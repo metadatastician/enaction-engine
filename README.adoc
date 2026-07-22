@@ -1,0 +1,133 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+// SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell (hyperpolymath)
+= Affective Engine
+:toc:
+:toc-placement: preamble
+
+// ── Licensing ───────────────────────────────────────────────────────────────
+image:https://img.shields.io/badge/Code-AGPL--3.0--or--later-blue.svg[Code licence: AGPL-3.0-or-later,link="https://www.gnu.org/licenses/agpl-3.0"]
+image:https://img.shields.io/badge/Docs-CC--BY--SA--4.0-blue.svg?logo=creativecommons[Docs licence: CC-BY-SA-4.0,link="https://creativecommons.org/licenses/by-sa/4.0/"]
+image:https://img.shields.io/badge/Provenance-Quantum--Safe-blueviolet[Quantum-Safe Provenance,link="docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt"]
+
+// ── Standard & quality gates ────────────────────────────────────────────────
+image:https://img.shields.io/badge/RSR-Rhodium_Standard-9C27B0[Rhodium Standard Repository,link="https://github.com/hyperpolymath/rhodium-standard-repositories"]
+image:https://api.scorecard.dev/projects/github.com/metadatastician/affective-engine/badge[OpenSSF Scorecard,link="https://scorecard.dev/viewer/?uri=github.com/metadatastician/affective-engine"]
+image:https://sonarcloud.io/api/project_badges/measure?project=metadatastician_affective-engine&metric=alert_status[SonarQube Quality Gate,link="https://sonarcloud.io/summary/new_code?id=metadatastician_affective-engine"]
+image:https://archive.softwareheritage.org/badge/origin/https://github.com/metadatastician/affective-engine/[Archived in Software Heritage,link="https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/metadatastician/affective-engine"]
+
+// ── Provenance & ecosystem ──────────────────────────────────────────────────
+image:https://img.shields.io/badge/Idris-Inside-5E5086?logo=idris&logoColor=white[Idris Inside,link="https://github.com/hyperpolymath/proven"]
+image:https://img.shields.io/badge/Zig-Zero--overhead-F7A41D?logo=zig&logoColor=black[Zig Zero-overhead FFI,link="https://github.com/hyperpolymath/typed-wasm"]
+image:https://api.thegreenwebfoundation.org/greencheckimage/github.com[Green Web,link="https://www.thegreenwebfoundation.org/green-web-check/?url=github.com"]
+
+
+A runtime for deterministic simulations: fixed-timestep stepping, and render
+interpolation that smooths the result onto a display running at any rate.
+
+== The constraint everything follows from
+
+The simulation advances in **whole, equal steps**, and nothing the renderer does
+may change that.
+
+Variable `dt` makes a run depend on frame timing, and a run that depends on frame
+timing cannot be replayed, snapshotted, or lockstepped across a network. So the
+engine steps the simulation on a fixed clock and hands the renderer a *fraction*
+to draw with — never a partial step to simulate.
+
+== Status: early, and honest about it
+
+This is the timing and interpolation core. It is **not yet a general-purpose game
+engine**: there is no renderer, no ECS, no asset pipeline, no audio and no input
+handling.
+
+What exists is one crate, `affective-time`, and it does two things:
+
+[cols="1,3,1"]
+|===
+|Component |What it does |Provenance
+
+|`DoubleBuffer<T, N>`
+|Holds the last two simulated states and samples between them. Two inline
+fixed-size arrays; nothing allocates.
+|Proven in IDApTIK
+
+|`FixedStep`
+|Turns real elapsed time into whole owed steps plus a fraction, with a
+spiral-of-death guard.
+|New here — never run a real game
+|===
+
+That last column is the point. This engine is being **extracted from a working
+game**, not designed in the abstract: the proving ground is
+link:https://github.com/metadatastician/IDApTIK[IDApTIK], whose Rust core already
+holds a deterministic, event-sourced simulation with replay and snapshot tests.
+A component earns its way in by working somewhere real first, and where one has
+not, the docs say so.
+
+== Using it
+
+[source,rust]
+----
+use affective_time::{DoubleBuffer, FixedStep};
+
+let mut clock = FixedStep::from_hz(60.0);
+let mut buffer: DoubleBuffer<f64, 1> = DoubleBuffer::new();
+buffer.prime(&[world.x()]);
+
+// once per frame
+for _ in 0..clock.advance(real_dt) {
+    world.step();                    // whole steps only
+    buffer.commit(&[world.x()]);
+}
+draw(buffer.sample(0, clock.alpha()));
+----
+
+The engine deliberately knows nothing about what a slot means — the host keeps
+its own indices. That boundary is what lets the same buffers serve a 2D
+platformer, a network simulation and a terminal frontend.
+
+=== Three rules worth knowing before you integrate
+
+. **Interpolation is render-only.** No sampled value may flow back into
+  simulation state. Determinism rests on this.
+. **Only continuous quantities blend.** Booleans, enums and visibility are read
+  live. So is a *facing direction* — lerping a sign through zero draws the
+  subject facing neither way.
+. **A discontinuity is `commit` then `snap`, never `snap` alone.** On a restart
+  or teleport the fresh state still has to enter the buffer; `snap` only
+  discards the stale previous step.
+
+All three came from bugs found by testing in IDApTIK, and all three are pinned
+by tests here. See link:docs/decisions/0005-fixed-timestep-and-interpolation.adoc[ADR-0005].
+
+== Language
+
+The intended long-term implementation language is **AffineScript**. This is
+Rust, deliberately and for now: AffineScript is a real working compiler, but it
+ships no release artefact and its typed-wasm bridge is still gated. The port is
+gated on both of those, and would pin to a compiler commit rather than a version.
+See link:docs/decisions/0004-rust-now-affinescript-later.adoc[ADR-0004].
+
+== Build
+
+[source,sh]
+----
+just test          # cargo test --workspace
+just verify        # RSR gates
+cargo clippy --workspace --all-targets -- -D warnings
+----
+
+== Where to look next
+
+* `ARCHITECTURE.md` — the layout and the design rationale.
+* `docs/decisions/` — architecture decision records.
+
+== Licence
+
+Code, configuration and scripts are link:LICENSE[GNU Affero General Public License v3.0 or later]
+(`AGPL-3.0-or-later`); prose documentation is `CC-BY-SA-4.0`. Both texts live in
+`LICENSES/`, and per-file `SPDX-License-Identifier` headers are authoritative.
+The GitHub-detected licence is AGPL-3.0-or-later (the root `LICENSE`). Long-term
+attribution uses Quantum-Safe Provenance — see
+link:docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt[the Quantum-Safe Provenance exhibit].

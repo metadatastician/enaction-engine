@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0005-fixed-timestep-and-interpolation
+
+# 5. Fixed timestep, with interpolation confined to rendering
+
+Date: 2026-07-22
+
+## Status
+
+Accepted
+
+## Context
+
+A simulation that advances by whatever `dt` the last frame happened to take
+produces a different run on every machine. That forecloses replay, snapshots,
+deterministic networking and reproducible bug reports — all of which the
+proving-ground game (IDApTIK) already depends on and tests for.
+
+But displays refresh at rates that have nothing to do with a chosen step rate.
+A simulation stepping at 60 Hz, rendered directly, shows each position for a
+varying number of frames on a 144 Hz display, and the result visibly judders.
+
+These two facts are in tension, and the tension has exactly one good resolution.
+
+## Decision
+
+**Simulation advances only on whole, equal steps. The renderer draws between the
+last two of them. No interpolated value ever re-enters simulation state.**
+
+`FixedStep` converts real elapsed time into a whole number of owed steps plus a
+fraction; `DoubleBuffer` holds the last two states and samples at that fraction.
+
+Four supporting rules, each of which was a bug before it was a rule:
+
+Only continuous quantities blend::
+Booleans, enums, visibility and colour are read live from the current step.
+Sign-like values — a facing direction — count as discrete even though they are
+stored as numbers: lerping one through zero draws the subject facing neither way.
+
+Endpoints are clamped, not computed::
+`prev + (curr - prev) * 1.0` is not exact. `(-5.5, 3.3)` gives
+`3.3000000000000007`; `(1e16, 1.0)` gives `0.0`. An inexact endpoint pops once
+per step — precisely the artefact interpolation exists to remove.
+
+The interior uses the one-term form::
+The symmetric-looking `prev * (1 - alpha) + curr * alpha` is worse: with
+`prev == curr == 42.0` and `alpha = 0.1` it returns `42.00000000000001`, so a
+*stationary* value shimmers every frame. `prev + (curr - prev) * alpha`
+collapses to `prev + 0.0 * alpha` and is exactly stationary.
+
+A discontinuity is `commit` then `snap`, never `snap` alone::
+On a restart, teleport, level load or resync the fresh state still has to enter
+the buffer. `snap` only discards the stale previous step; using it *instead of*
+committing leaves the new state out entirely and keeps drawing the old position
+for another interval before jumping.
+
+All four were established by measurement in IDApTIK, not by reasoning, and all
+four are pinned by tests that fail if someone "simplifies" them back.
+
+## The spiral of death
+
+If a frame stalls, the accumulator fills with more time than the simulation can
+work off before the next frame. Running every owed step then takes longer than
+real time, so the next frame is later still, and the gap grows without bound.
+
+`FixedStep::advance` caps the steps it returns in one call and **discards** the
+excess, so the simulation runs slow during a stall rather than freezing.
+Dropping time is the lesser evil; `took_shortcut()` exposes when it happened,
+because silently running slow is exactly the kind of fault that goes unnoticed
+until it is expensive.
+
+## Consequences
+
+* Determinism is preserved by construction: the simulation cannot observe frame
+  timing, because it is never handed any.
+* The host keeps ownership of the frame loop and of what a "slot" means. The
+  engine stays ignorant of game concepts, which is what lets one buffer serve a
+  platformer, a network simulation and a terminal frontend.
+* Interpolation adds one step of latency: what is drawn is between the two most
+  recent states, not the newest. This is the standard trade and it is worth it —
+  the alternative, extrapolation, guesses forward and must visibly correct
+  itself when it guesses wrong.
+* Any future subsystem that wants to read interpolated values inside simulation
+  logic is a design error, not a feature request.

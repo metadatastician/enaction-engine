@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# RFC 9116 - security.txt
+# https://securitytxt.org/
+
+# No Encryption: field. RFC 9116 §2.5.4 requires it to point at an actual key;
+# the estate signs with SSH (gpg.format=ssh) and publishes no PGP key, so the
+# field had nothing to reference and shipped the literal token instead — which
+# also made this file unparseable. Report via the Policy: URL below.
+
+Contact: mailto:jonathan.jewell@gmail.com
+Expires: 2026-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://github.com/metadatastician/affective-engine/.well-known/security.txt
+Policy: https://github.com/metadatastician/affective-engine/blob/main/SECURITY.md

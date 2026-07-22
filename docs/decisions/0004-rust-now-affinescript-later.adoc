@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0004-rust-now-affinescript-later
+
+# 4. Implement in Rust now; AffineScript is the eventual target
+
+Date: 2026-07-22
+
+## Status
+
+Accepted
+
+## Context
+
+The Affective Engine is intended, long-term, to be written in **AffineScript** —
+the maintainer's own affine-typed language. The question is whether to start
+there or to start in Rust and port later.
+
+What is actually true of AffineScript today, measured rather than assumed:
+
+* It is **real and working** — a substantial OCaml compiler (`typecheck.ml`,
+  `codegen.ml`, `borrow.ml`), roughly 30 backends including wasm, LLVM, C and
+  JS, an LSP and a REPL, 309+ end-to-end cases over 80 fixtures, and green CI on
+  `main`. It is not a paper spec and should not be dismissed as one.
+* It has **no release artefact**. It builds from source via dune/opam, so it is
+  uninstallable in a bare checkout without an OCaml toolchain present.
+* The **AffineScript → typed-wasm bridge is still gated** in `paint-type`, the
+  repo furthest along that path.
+* Its own version story is ambiguous: three numbering systems disagree
+  (`ANCHOR.a2ml` says 0.2.0, `lib/version.ml` says 0.1.1, and tag `v2.0.0` is a
+  packaging release), and there is no standalone grammar artefact — `parser.mly`
+  is the source of truth.
+
+Meanwhile the component this engine starts from — fixed-timestep interpolation —
+already exists and is proven in Rust inside IDApTIK.
+
+## Decision
+
+**Write the engine in Rust now. Record AffineScript as the target and port when
+the toolchain can carry it.**
+
+Concretely:
+
+. The reference implementation is Rust, `edition = "2024"`, `#![forbid(unsafe_code)]`.
+. AffineScript is not a dependency and is not in the build.
+. When porting begins, pin to a **compiler commit**, the way `.affinescript-pin`
+  already does in `pseudoscript`, `lucidscript` and `jaffascript` — never to a
+  version number, given the numbering ambiguity above.
+. The port is gated on two conditions, both externally observable: an
+  installable release artefact, and the typed-wasm bridge landing ungated.
+
+## Consequences
+
+* The engine can be built, tested and used today, and the design questions get
+  answered by running code rather than by argument.
+* **A rewrite is owed.** This is a real cost, accepted deliberately. It is
+  bounded by keeping the crate small and its surface narrow — the whole of
+  `affective-time` is two files.
+* Writing it in Rust first is also a useful forcing function for the port: an
+  affine-typed language should find a zero-allocation, no-aliasing,
+  `forbid(unsafe_code)` design *easier* to express than Rust does, not harder.
+  If it does not, that is worth knowing before the rest of the engine exists.
+* Anyone reading the repo could reasonably assume Rust is the final answer. It
+  is not, and this ADR is where that is written down.

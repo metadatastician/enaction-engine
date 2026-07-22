@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Jewell"
+  given-names: "Jonathan D.A."
+  orcid: "https://orcid.org/0000-0000-0000-0000" # Placeholder
+title: "Affective Engine"
+version: 0.1.0
+date-released: "2026-07-22"
+url: "https://github.com/metadatastician/affective-engine"
+repository-code: "https://github.com/metadatastician/affective-engine"
+license: AGPL-3.0-or-later
+keywords:
+  - "rsr"
+  - "formal-verification"
+  - "neurosymbolic"
+  - "provenance"
