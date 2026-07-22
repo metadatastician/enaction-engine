@@ -17,8 +17,14 @@
 #
 #     uuidgen --sha1 --namespace @url --name "github.com/metadatastician/affective-engine"
 #
-# Verify the method first by reproducing a known worked example:
-#     januskey -> e216170e-ff47-5a5c-bbdd-15e61c8190c8
+# Verify the method first by reproducing a known worked example. Running the
+# command above with the name "github.com/hyperpolymath/januskey" must print a
+# uuid beginning e216170e and ending 15e61c8190c8. (Written out in prose rather
+# than as a literal: a bare uuid sitting next to the word "key" trips the
+# generic-api-key entropy heuristic in secret scanners. It is not a secret --
+# it is recomputable from public inputs, which is precisely the tell -- but
+# rewording the comment is better than teaching the scanner to ignore the
+# pattern, which would blind it to real random-uuid credentials.)
 #
 # The owner segment is part of the derived name, so it is part of the IDENTITY:
 # the same repo hosted under a different owner has a different uuid. Record the

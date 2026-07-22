@@ -32,24 +32,11 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 0
 
-  # Elixir/Mix
-  - package-ecosystem: "mix"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-
-  # Node.js/npm
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-
-  # Python/pip
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-
+  # NOTE: mix / npm / pip were removed at mint. The RSR template declares them
+  # speculatively, but Dependabot FAILS a run for any ecosystem whose manifest
+  # is absent — this repo is Rust-only, so three of the five runs were red from
+  # the first push. Re-add an ecosystem only alongside its manifest.
+  #
   # NOTE: Nix is banned estate-wide — Guix is the sole package manager.
   # Do not add a `nix` ecosystem here. Guix has no Dependabot ecosystem;
   # pin Guix channels/manifests via build/ tooling instead.

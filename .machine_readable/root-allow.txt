@@ -81,3 +81,4 @@ MAINTAINERS                # plain-text roster shipped by the template alongside
 ARCHITECTURE.md            # repo layout + design rationale; template-shipped at root but omitted from its own allowlist
 AGENTS.md                  # canonical tool-agnostic agent instructions; CLAUDE.md and GEMINI.md point at it
 GEMINI.md                  # pointer to AGENTS.md
+.gitleaks.toml             # repo-local gitleaks baseline; the standards secret-scanner reusable passes no --config, so the caller must carry its own
