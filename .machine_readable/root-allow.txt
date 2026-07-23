@@ -82,3 +82,5 @@ ARCHITECTURE.md            # repo layout + design rationale; template-shipped at
 AGENTS.md                  # canonical tool-agnostic agent instructions; CLAUDE.md and GEMINI.md point at it
 GEMINI.md                  # pointer to AGENTS.md
 .gitleaks.toml             # repo-local gitleaks baseline; the standards secret-scanner reusable passes no --config, so the caller must carry its own
+.hypatia-ignore
+CLAUDE.md
