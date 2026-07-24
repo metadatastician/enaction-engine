@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell (hyperpolymath)
-= Affective Engine
+= Enaction Engine
 :toc:
 :toc-placement: preamble
 
@@ -41,7 +41,7 @@ This is the timing and interpolation core. It is **not yet a general-purpose gam
 engine**: there is no renderer, no ECS, no asset pipeline, no audio and no input
 handling.
 
-What exists is one crate, `affective-time`, and it does two things:
+What exists is a timing crate plus one deliberately small typed event seam:
 
 [cols="1,3,1"]
 |===
@@ -56,6 +56,11 @@ fixed-size arrays; nothing allocates.
 |Turns real elapsed time into whole owed steps plus a fraction, with a
 spiral-of-death guard.
 |New here — never run a real game
+
+|`enaction-cognition`
+|Separates mechanical, epistemic, affective, conative, behavioural-selection
+and social/relational trace events while leaving vocabulary to the game.
+|New here — not yet linked by either game
 |===
 
 That last column is the point. This engine is being **extracted from a working
@@ -100,6 +105,20 @@ platformer, a network simulation and a terminal frontend.
 
 All three came from bugs found by testing in IDApTIK, and all three are pinned
 by tests here. See link:docs/decisions/0005-fixed-timestep-and-interpolation.adoc[ADR-0005].
+
+== Current integration evidence
+
+`crates/affective-time/tests/idaptik_parity.rs` covers healthy fixed-step
+accounting, hostile elapsed time, interpolation, discrete versus continuous
+state, discontinuities and snapshot/restart interaction. It proves the
+extracted interpolation boundary; it does not prove that IDApTIK uses
+`FixedStep`. IDApTIK still uses Bevy's accumulator, and this pass deliberately
+does not replace it.
+
+Enaction is a runtime dependency candidate below games. It does not depend on
+UMS. An optional UMS preview adapter may be added later, but released games must
+not depend on the UMS UI. The current IDApTIK appraisal example is game-local;
+the general `enaction-cognition` seam is new and remains unadopted.
 
 == Language
 

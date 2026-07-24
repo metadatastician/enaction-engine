@@ -8,6 +8,25 @@ image:https://img.shields.io/badge/License-AGPL_3.0--or--later-blue.svg[License:
 
 This file explains how the key template claims map to real files.
 
+== Runtime evidence boundary
+
+Claim:
+Enaction supplies deterministic runtime facilities, not an editor or narrative
+vocabulary.
+
+How this is implemented:
+
+* `affective-time::DoubleBuffer` is extracted from IDApTIK and parity-tested.
+* `FixedStep` is tested here but has not replaced IDApTIK's Bevy accumulator.
+* `enaction-cognition` supplies six typed domains and causal trace validation;
+  it contains no IDApTIK or Slavia terms and has not yet run in a game.
+* No crate in this repository depends on UMS.
+
+Caveat:
+
+The UMS round trip executes IDApTIK's own runtime. It is not evidence that every
+new Enaction component has been adopted.
+
 == Central Session Protocol Authority
 
 Claim:

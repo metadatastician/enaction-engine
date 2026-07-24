@@ -1,4 +1,4 @@
-# The Affective Engine Cargo workspace.
+# The Enaction Engine Cargo workspace.
 #
 # Crates are extracted from proving grounds, not designed in the abstract.
 # `affective-time` generalises the fixed-timestep interpolation first built and
@@ -7,7 +7,7 @@
 # out and why the engine needs an accumulator IDApTIK does not.
 [workspace]
 resolver = "2"
-members = ["crates/affective-time"]
+members = ["crates/affective-time", "crates/enaction-cognition"]
 
 [workspace.package]
 version = "0.1.0"
@@ -18,3 +18,5 @@ repository = "https://github.com/metadatastician/affective-engine"
 
 [workspace.dependencies]
 affective-time = { path = "crates/affective-time" }
+enaction-cognition = { path = "crates/enaction-cognition" }
+serde = { version = "1", features = ["derive"] }
