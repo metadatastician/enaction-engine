@@ -1,23 +1,98 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= YOUR Template Repo Roadmap
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Enaction Engine Roadmap
+:toc:
 
-== Current Status
+This roadmap is evidence-gated. Only Phase 1 has implementation in this
+repository. Later phases are intended direction, not release commitments or
+claims of existing subsystems. A component earns its way in through a real game,
+working code, tests, and a stable boundary.
 
-Initial development phase.
+== Admission rule
 
-== Milestones
+Before a roadmap item becomes an implemented engine component it needs:
 
-=== v0.1.0 - Foundation
-* [ ] Core functionality
-* [ ] Basic documentation
-* [ ] CI/CD pipeline
+* a concrete proving-ground use or unavoidable substrate requirement;
+* an implementation with proportionate tests;
+* provenance and known limits;
+* a host-neutral boundary tested against game-specific assumptions;
+* no speculative empty crate.
 
-=== v1.0.0 - Stable Release
-* [ ] Full feature set
-* [ ] Comprehensive tests
-* [ ] Production ready
+== Phases
 
-== Future Directions
+=== 1. Deterministic time and replay substrate — active
 
-_To be determined based on community feedback._
+Implemented now: fixed-timestep stepping, whole-step support, render-only
+interpolation, double buffering, discontinuity handling, and tests.
+
+Next committed work is integration evidence: exercise `enaction-time` in a game
+host, preserve replay inputs independently of presentation, and measure shortcut
+behaviour under stalls. Full replay storage is not implemented here yet.
+
+=== 2. World-state and event substrate — exploratory
+
+Identify a minimal deterministic state/event boundary from a real game. Specify
+ordering, identifiers, snapshots, and versioning without importing one game's
+ontology.
+
+=== 3. Host and rendering boundary — exploratory
+
+Define reusable frame-host contracts, completed-state views, discontinuities,
+and presentation sampling. A renderer is not implied by the current buffer.
+
+=== 4. Agency and action — exploratory
+
+Represent embodied agents, affordances, constraints, chosen actions, and
+consequences over host-defined entities and events.
+
+=== 5. Cognitive state — exploratory
+
+Extract evidence-backed facilities for perception, attention, memory, belief,
+inference, and planning. Avoid a monolithic “AI” API.
+
+=== 6. Affective state — exploratory
+
+Develop appraisal, mood, atmosphere, trust, fear, attachment, and significance
+as an interacting sibling dimension, not the engine identity.
+
+=== 7. Conative state — exploratory
+
+Develop needs, motives, goals, commitment, inhibition, and action selection,
+with explicit relationships to cognition, affect, and available action.
+
+=== 8. Networking and persistence — exploratory
+
+Build from deterministic state, ordered events, snapshots, replay, protocol
+versioning, and recovery evidence. Multiplayer claims require real multi-peer
+tests.
+
+=== 9. Asset and presentation systems — exploratory
+
+Admit assets, rendering, animation, sound, music, and input through tested host
+boundaries. Do not couple simulation correctness to a presentation backend.
+
+=== 10. UMS integration — exploratory
+
+Implement a versioned game profile, compiled package format, headless
+validation, and optional Enaction preview adapter without a runtime/editor
+cycle.
+
+=== 11. Extraction from IDApTIK — active proving-ground programme
+
+Inventory candidate seams, integrate `enaction-time`, and extract only
+facilities whose boundaries survive removal of IDApTIK-specific rules. Record
+whether each component is copied, generalised, or new.
+
+=== 12. Validation against Chronicles of Slavia — planned abstraction test
+
+Use a second game's materially different ontology and demands to challenge the
+host, world, agency, and content contracts. Refactor boundaries that only fit
+IDApTIK rather than papering over them with game-specific engine concepts.
+
+== Commitment boundary
+
+Committed repository work is maintenance and validation of the current timing
+crate, truthful documentation, and proving-ground integration when scheduled by
+the games. Phases 2–10 and 12 are exploratory direction until backed by an
+accepted scoped proposal and implementation work. Dates are intentionally absent
+because evidence, not calendar optics, advances a phase.

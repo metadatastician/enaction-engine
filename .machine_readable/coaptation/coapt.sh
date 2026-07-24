@@ -44,10 +44,8 @@ case "$MODE" in
   --reanchor)
     if [ "$band" = "red" ]; then
       basis="$CO/receipts/reanchor-basis.a2ml"
-      # repo name from the CLADE descriptile, not a hardcoded literal — this
-      # script is shared verbatim by every repo instantiated from
-      # affective-engine, so a literal "affective-engine" here would
-      # misreport every one of them.
+      # Repository name comes from the CLADE descriptile so reusable
+      # coaptation logic does not embed or drift from repository identity.
       repo_name="$(grep -oP '^canonical-name = "\K[^"]+' "$ROOT/.machine_readable/descriptiles/CLADE.a2ml" | head -1)"
       {
         echo "# SPDX-License-Identifier: AGPL-3.0-or-later"

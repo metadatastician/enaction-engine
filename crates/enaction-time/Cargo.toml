@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 [package]
-name = "affective-time"
+name = "enaction-time"
 description = "Fixed-timestep stepping and render interpolation for a deterministic simulation."
 version.workspace = true
 edition.workspace = true

@@ -9,7 +9,7 @@
 /// its inputs and remains replayable, snapshottable and lockstep-safe.
 ///
 /// ```
-/// use affective_time::FixedStep;
+/// use enaction_time::FixedStep;
 ///
 /// let mut clock = FixedStep::from_hz(60.0);
 ///

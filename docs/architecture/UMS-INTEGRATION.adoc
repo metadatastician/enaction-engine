@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Universal Modding Studio Integration
+:toc:
+
+== Responsibilities
+
+Enaction Engine is runtime infrastructure. Universal Modding Studio (UMS) is
+authoring, generation, validation, simulation preview, and packaging
+infrastructure.
+
+UMS Studio provides the author-facing application. UMS Core provides
+engine-neutral content operations. A game supplies a versioned profile and
+contracts describing its ontology, schemas, validation rules, package format,
+and supported preview capabilities.
+
+[source,text]
+----
+UMS Studio
+    ↓
+UMS Core + game profile
+    ↓
+validated/compiled game package
+    ↓
+game runtime
+    ↓
+Enaction Engine runtime facilities
+----
+
+== Dependency rules
+
+* Enaction Engine must not depend on the UMS application.
+* UMS Core must not be hard-wired to Enaction Engine.
+* An optional UMS Enaction adapter may execute previews and tests against
+  versioned runtime contracts.
+* Games expose versioned profiles and contracts; the game owns its ontology and
+  game-specific validation.
+* Released games consume compiled assets or packages, not the editor UI.
+* No circular dependency between UMS, a game, and Enaction Engine is permitted.
+
+== Contract shape
+
+A future integration should version at least the game profile, package schema,
+runtime capability declaration, preview protocol, diagnostics, and compatibility
+range independently where their evolution differs. Contracts must be usable in
+headless validation and CI, not only through UMS Studio.
+
+Preview is an adapter capability, not evidence that the editor is the runtime.
+The adapter may start an isolated game host, supply a validated package, execute
+bounded scenarios, and return structured diagnostics. The same package must be
+consumable without UMS installed.
+
+== Current status
+
+This document defines a boundary only. No UMS adapter, game profile, package
+schema, preview protocol, or integration test exists in this repository today.
+Those artifacts must arrive together with a real game use and verification;
+placeholder crates or empty interfaces are not an implementation.

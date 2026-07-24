@@ -3,7 +3,7 @@
 = ABI/FFI Standards
 {{~ Aditionally delete this line and fill out the template below ~}}
 
-# AFFECTIVE_ENGINE ABI/FFI Documentation
+# ENACTION_ENGINE ABI/FFI Documentation
 
 ## Overview
 
@@ -29,7 +29,7 @@ This library follows the **Hyperpolymath RSR Standard** for ABI and FFI design:
                   ▼
 ┌─────────────────────────────────────────────┐
 │  C Headers (auto-generated)                 │
-│  generated/abi/affective_engine.h                │
+│  generated/abi/enaction_engine.h                │
 └─────────────────┬───────────────────────────┘
                   │
                   │ imported by
@@ -42,7 +42,7 @@ This library follows the **Hyperpolymath RSR Standard** for ABI and FFI design:
 │  - Memory-safe by default                   │
 └─────────────────┬───────────────────────────┘
                   │
-                  │ compiled to libaffective_engine.so/.a
+                  │ compiled to libenaction_engine.so/.a
                   ▼
 ┌─────────────────────────────────────────────┐
 │  Any Language via C ABI                     │
@@ -53,7 +53,7 @@ This library follows the **Hyperpolymath RSR Standard** for ABI and FFI design:
 ## Directory Structure
 
 ```
-affective_engine/
+enaction_engine/
 ├── src/
 │   ├── abi/                    # ABI definitions (Idris2)
 │   │   ├── Types.idr           # Core type definitions with proofs
@@ -70,11 +70,11 @@ affective_engine/
 │       ├── test/
 │       │   └── integration_test.zig
 │       └── include/
-│           └── affective_engine.h   # C header (optional, can be generated)
+│           └── enaction_engine.h   # C header (optional, can be generated)
 │
 ├── generated/                  # Auto-generated files
 │   └── abi/
-│       └── affective_engine.h       # Generated from Idris2 ABI
+│       └── enaction_engine.h       # Generated from Idris2 ABI
 │
 └── bindings/                   # Language-specific wrappers (optional)
     ├── rust/
@@ -202,7 +202,7 @@ zig build test                    # Run tests
 
 ```bash
 cd src/abi
-idris2 --cg c-header Types.idr -o ../../generated/abi/affective_engine.h
+idris2 --cg c-header Types.idr -o ../../generated/abi/enaction_engine.h
 ```
 
 ### Cross-Compile
@@ -225,32 +225,32 @@ zig build -Dtarget=x86_64-windows
 ### From C
 
 ```c
-#include "affective_engine.h"
+#include "enaction_engine.h"
 
 int main() {
-    void* handle = affective_engine_init();
+    void* handle = enaction_engine_init();
     if (!handle) return 1;
 
-    int result = affective_engine_process(handle, 42);
+    int result = enaction_engine_process(handle, 42);
     if (result != 0) {
-        const char* err = affective_engine_last_error();
+        const char* err = enaction_engine_last_error();
         fprintf(stderr, "Error: %s\n", err);
     }
 
-    affective_engine_free(handle);
+    enaction_engine_free(handle);
     return 0;
 }
 ```
 
 Compile with:
 ```bash
-gcc -o example example.c -laffective_engine -L./zig-out/lib
+gcc -o example example.c -lenaction_engine -L./zig-out/lib
 ```
 
 ### From Idris2
 
 ```idris
-import AFFECTIVE_ENGINE.ABI.Foreign
+import ENACTION_ENGINE.ABI.Foreign
 
 main : IO ()
 main = do
@@ -267,22 +267,22 @@ main = do
 ### From Rust
 
 ```rust
-#[link(name = "affective_engine")]
+#[link(name = "enaction_engine")]
 extern "C" {
-    fn affective_engine_init() -> *mut std::ffi::c_void;
-    fn affective_engine_free(handle: *mut std::ffi::c_void);
-    fn affective_engine_process(handle: *mut std::ffi::c_void, input: u32) -> i32;
+    fn enaction_engine_init() -> *mut std::ffi::c_void;
+    fn enaction_engine_free(handle: *mut std::ffi::c_void);
+    fn enaction_engine_process(handle: *mut std::ffi::c_void, input: u32) -> i32;
 }
 
 fn main() {
     unsafe {
-        let handle = affective_engine_init();
+        let handle = enaction_engine_init();
         assert!(!handle.is_null());
 
-        let result = affective_engine_process(handle, 42);
+        let result = enaction_engine_process(handle, 42);
         assert_eq!(result, 0);
 
-        affective_engine_free(handle);
+        enaction_engine_free(handle);
     }
 }
 ```
@@ -290,21 +290,21 @@ fn main() {
 ### From Julia
 
 ```julia
-const libaffective_engine = "libaffective_engine"
+const libenaction_engine = "libenaction_engine"
 
 function init()
-    handle = ccall((:affective_engine_init, libaffective_engine), Ptr{Cvoid}, ())
+    handle = ccall((:enaction_engine_init, libenaction_engine), Ptr{Cvoid}, ())
     handle == C_NULL && error("Failed to initialize")
     handle
 end
 
 function process(handle, input)
-    result = ccall((:affective_engine_process, libaffective_engine), Cint, (Ptr{Cvoid}, UInt32), handle, input)
+    result = ccall((:enaction_engine_process, libenaction_engine), Cint, (Ptr{Cvoid}, UInt32), handle, input)
     result
 end
 
 function cleanup(handle)
-    ccall((:affective_engine_free, libaffective_engine), Cvoid, (Ptr{Cvoid},), handle)
+    ccall((:enaction_engine_free, libenaction_engine), Cvoid, (Ptr{Cvoid},), handle)
 end
 
 # Usage
@@ -358,7 +358,7 @@ When modifying the ABI/FFI:
 
 2. **Generate C header**
    ```bash
-   idris2 --cg c-header src/interface/Abi/Types.idr -o generated/abi/affective_engine.h
+   idris2 --cg c-header src/interface/Abi/Types.idr -o generated/abi/enaction_engine.h
    ```
 
 3. **Update FFI implementation** (`ffi/zig/src/main.zig`)

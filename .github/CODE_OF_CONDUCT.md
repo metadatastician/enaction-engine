@@ -9,9 +9,9 @@ Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 TEMPLATE INSTRUCTIONS (delete this block before publishing)
 ============================================================================
 Replace all {{PLACEHOLDER}} values:
-  Affective Engine     - Your project name
+  Enaction Engine     - Your project name
   metadatastician            - GitHub/GitLab username or org
-  affective-engine             - Repository name
+  enaction-engine             - Repository name
   jonathan.jewell@gmail.com    - Email for conduct reports
   Code of Conduct Committee     - Name of conduct team/committee
   48 hours    - Initial response SLA (e.g., 48 hours)
@@ -26,7 +26,7 @@ Review and customise:
 
 ## Our Pledge
 
-We as members, contributors, and leaders pledge to make participation in Affective Engine a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, colour, religion, or sexual identity and orientation.
+We as members, contributors, and leaders pledge to make participation in Enaction Engine a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, colour, religion, or sexual identity and orientation.
 
 We pledge to act and interact in ways that contribute to an open, welcoming, diverse, inclusive, and healthy community.
 
@@ -314,7 +314,7 @@ We thank these communities for their leadership in creating welcoming spaces.
 
 If you have questions about this Code of Conduct:
 
-- Open a [Discussion](https://github.com/metadatastician/affective-engine/discussions) (for general questions)
+- Open a [Discussion](https://github.com/metadatastician/enaction-engine/discussions) (for general questions)
 - Email jonathan.jewell@gmail.com (for private questions)
 - Contact any maintainer directly
 

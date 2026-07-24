@@ -12,30 +12,22 @@
 # It carries NO `name`, `description`, `homepage` or `private` key, and it must
 # never gain one. The reason is a real incident, not a hypothetical:
 #
-#   This file previously read `name: "affective-engine"`. probot/settings applies it on
-#   every push to the default branch, so it submitted the literal string
-#   `affective-engine` as the repository name. GitHub sanitises an invalid name by
-#   collapsing each run of illegal characters to a dash — `affective-engine` became
-#   `-REPO-`. The template renamed itself on every push, its old URL 404'd, and
-#   it was mistaken for a deleted repository. `description` was likewise left
-#   reading the literal `A game engine: deterministic fixed-timestep simulation with render interpolation.` on the live repo.
+#   A template once carried an unresolved repository-name token here.
+#   probot/settings applied that token on every push; GitHub sanitised it into an
+#   unintended slug and repeatedly renamed the repository. A description token
+#   was likewise applied as literal live metadata.
 #
 # Two properties make identity keys unsafe here specifically:
 #
-#   1. This is a TEMPLATE. `just init` fills placeholders in repos minted by the
-#      scaffolder — but GitHub's "Use this template" button copies the default
-#      branch verbatim and never runs `just init`. Any placeholder left in a
-#      probot-managed file therefore reaches children unrendered.
-#   2. Identity is not shareable. The template must be public while children
-#      default private; a child cannot inherit either `name` or `private` from
-#      its parent without being wrong.
+#   1. A copied settings file may be applied without a rendering step.
+#   2. Identity is not shareable: a downstream repository cannot safely inherit
+#      another repository's name, description, homepage, or visibility.
 #
 # Repository identity and visibility are therefore set OUT OF BAND: once per
 # repo, at creation time, by the operator (the Configure stage of ADR-0003).
 # `just init` deliberately runs NO `gh` commands — it prints the exact
 # `gh repo edit` commands as next steps instead. Fail-closed default: repos
-# stay private unless the owner flips visibility deliberately; the template's
-# own name and visibility are set deliberately by the owner.
+# stay private unless the owner flips visibility deliberately.
 #
 # Everything below is safe to inherit: it is true of every RSR repo regardless
 # of that repo's name, purpose or visibility.

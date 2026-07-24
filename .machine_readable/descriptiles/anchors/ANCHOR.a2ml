@@ -5,11 +5,11 @@
 
 [metadata]
 version = "1.0.0"
-last-updated = "2026-07-22"
+last-updated = "2026-07-25"
 
 [anchor]
 schema = "hyperpolymath.anchor/1"
-repo = "metadatastician/affective-engine"
+repo = "metadatastician/enaction-engine"
 authority = "upstream-canonical"
 
 purpose = [
@@ -19,18 +19,18 @@ purpose = [
 ]
 
 [identity]
-project = "Affective Engine"
-kind = "UNASSIGNED"                # language | library | service | tool
-one-sentence = "A game engine: deterministic fixed-timestep simulation with render interpolation."
-domain = "UNASSIGNED"
+project = "Enaction Engine"
+kind = "game-engine"
+one-sentence = "A deterministic, type-safe game engine for worlds shaped through perception, affect, intention, action and consequence."
+domain = "games-and-interactive-simulation"
 
 [semantic-authority]
 policy = "canonical"
 
 owns = [
-  "Project semantics and specification",
-  "Invariant definitions and contractiles",
-  "Reference implementation behavior",
+  "Deterministic runtime invariants",
+  "Engine subsystem boundaries and contracts",
+  "Reference implementation behaviour",
 ]
 
 [implementation-policy]
@@ -40,13 +40,14 @@ forbidden = ["Node.js", "npm"]
 [golden-path]
 smoke-test-command = [
   "just test",
-  "just quality",
+  "just verify",
 ]
 
 success-criteria = [
-  "Core tests pass",
-  "Quality gates pass",
-  "No unresolved critical security findings",
+  "Cargo workspace tests pass",
+  "Formatting and Clippy gates pass",
+  "RSR verification passes",
+  "Documentation distinguishes implemented substrate from engine direction",
 ]
 
 [satellite-policy]
