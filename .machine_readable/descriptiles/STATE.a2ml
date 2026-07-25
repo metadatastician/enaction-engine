@@ -49,9 +49,47 @@ fixed-step = "new engine code; not yet run in a real game"
 
 [critical-next-actions]
 actions = [
+  "Rebase the Enaction identity-realignment line onto current origin/main before publishing runtime-contract work",
+  "Apply agent/ums-runtime-contract only after identity realignment; do not publish two competing Enaction baselines",
   "Validate enaction-time through a real game-host integration",
   "Preserve and extend timing/interpolation behavioural evidence",
   "Extract only implemented, tested seams that survive game-specific ontology",
+]
+
+[cross-repository-reconciliation]
+coordination-id = "ums-idaptik-slavia-enaction-2026-07-25"
+decision-status = "working direction recorded for the next agent; publication reconciliation remains"
+role = "Game-neutral deterministic runtime facilities; never the owner of UMS profiles or either game's narrative vocabulary."
+settled = [
+  "Enaction must not depend on Universal Modding Studio",
+  "Games may adopt selected Enaction facilities only after behavioural evidence",
+  "Shared cognitive-affective-conative domains do not imply shared game vocabulary",
+]
+local-evidence-branch = "agent/ums-runtime-contract"
+local-evidence-commit = "c8edef8a4df28645513fb81658e8cda361ef91f6"
+local-evidence-status = "Clean, one commit ahead of origin/main, not present on the remote, and without a pull request."
+parallel-local-branch = "agent/enaction-engine-realignment"
+parallel-local-status = "Two identity/vortal commits diverge from two origin/main CI-remediation commits."
+proven = [
+  "IDApTIK DoubleBuffer and interpolation parity",
+  "continuous versus discrete value behaviour",
+  "commit-then-snap discontinuity behaviour",
+  "FixedStep accounting and hostile elapsed-time policy in comparison tests",
+]
+not-adopted-by-a-game = [
+  "Enaction FixedStep",
+  "enaction-cognition",
+]
+required-order = [
+  "Bring agent/enaction-engine-realignment onto current origin/main",
+  "Apply the runtime-contract evidence commit to that reconciled baseline",
+  "Rerun cargo fmt, workspace tests, warnings-as-errors Clippy, just test, and just verify",
+  "Publish one Enaction branch and one truthful pull request",
+]
+do-not = [
+  "Do not replace IDApTIK timing merely to create a dependency",
+  "Do not claim enaction-cognition has run in either game",
+  "Do not add Slavia or IDApTIK narrative enums to Enaction",
 ]
 
 [maintenance-status]
