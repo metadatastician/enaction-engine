@@ -114,7 +114,7 @@ K9!
       description = "Add RSR-compliant workflows",
       commands = [
         # This would copy workflow templates
-        # In a real implementation, would fetch from affective-engine
+        # In a real implementation, fetch the declared RSR template source
         "echo '✓ Workflows configured'",
       ],
     },

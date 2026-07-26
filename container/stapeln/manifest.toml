@@ -1,26 +1,26 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Cerro Torre manifest for Affective Engine .ctp bundle
+# Cerro Torre manifest for Enaction Engine .ctp bundle
 #
 # This manifest describes the container image for verified
 # container packaging. Used by `ct pack` to create .ctp bundles.
 
 [metadata]
-name = "affective-engine"
+name = "enaction-engine"
 version = "0.1.0"
 revision = 1
-summary = "A game engine: deterministic fixed-timestep simulation with render interpolation."
+summary = "Deterministic timing substrate for Enaction Engine."
 description = """
-Affective Engine — containerised service packaged as a verified
+Enaction Engine timing substrate — containerised service packaged as a verified
 cerro-torre .ctp bundle with Ed25519 signing and full provenance
 tracking.
 """
 license = "AGPL-3.0-or-later"
-homepage = "https://github.com/metadatastician/affective-engine"
+homepage = "https://github.com/metadatastician/enaction-engine"
 maintainer = "Jonathan D.A. Jewell <jonathan.jewell@gmail.com>"
 
 [provenance]
-upstream = "https://github.com/metadatastician/affective-engine"
+upstream = "https://github.com/metadatastician/enaction-engine"
 import_date = 2026-07-22T00:00:00Z
 
 [dependencies]
@@ -35,7 +35,7 @@ APP_HOST = "[::]"
 APP_PORT = "8080"
 
 [outputs]
-primary = "affective-engine"
+primary = "enaction-engine"
 split = []
 
 [attestations]

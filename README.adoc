@@ -1,26 +1,21 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // SPDX-FileCopyrightText: 2024-2026 Jonathan D.A. Jewell (hyperpolymath)
-= Affective Engine
+= Enaction Engine
 :toc:
 :toc-placement: preamble
 
-// ── Licensing ───────────────────────────────────────────────────────────────
 image:https://img.shields.io/badge/Code-AGPL--3.0--or--later-blue.svg[Code licence: AGPL-3.0-or-later,link="https://www.gnu.org/licenses/agpl-3.0"]
 image:https://img.shields.io/badge/Docs-CC--BY--SA--4.0-blue.svg?logo=creativecommons[Docs licence: CC-BY-SA-4.0,link="https://creativecommons.org/licenses/by-sa/4.0/"]
-image:https://img.shields.io/badge/Provenance-Quantum--Safe-blueviolet[Quantum-Safe Provenance,link="docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt"]
-
-// ── Standard & quality gates ────────────────────────────────────────────────
 image:https://img.shields.io/badge/RSR-Rhodium_Standard-9C27B0[Rhodium Standard Repository,link="https://github.com/hyperpolymath/rhodium-standard-repositories"]
-image:https://api.scorecard.dev/projects/github.com/metadatastician/affective-engine/badge[OpenSSF Scorecard,link="https://scorecard.dev/viewer/?uri=github.com/metadatastician/affective-engine"]
-image:https://sonarcloud.io/api/project_badges/measure?project=metadatastician_affective-engine&metric=alert_status[SonarQube Quality Gate,link="https://sonarcloud.io/summary/new_code?id=metadatastician_affective-engine"]
-image:https://archive.softwareheritage.org/badge/origin/https://github.com/metadatastician/affective-engine/[Archived in Software Heritage,link="https://archive.softwareheritage.org/browse/origin/?origin_url=https://github.com/metadatastician/affective-engine"]
 
-// ── Provenance & ecosystem ──────────────────────────────────────────────────
-image:https://img.shields.io/badge/Idris-Inside-5E5086?logo=idris&logoColor=white[Idris Inside,link="https://github.com/hyperpolymath/proven"]
-image:https://img.shields.io/badge/Zig-Zero--overhead-F7A41D?logo=zig&logoColor=black[Zig Zero-overhead FFI,link="https://github.com/hyperpolymath/typed-wasm"]
-image:https://api.thegreenwebfoundation.org/greencheckimage/github.com[Green Web,link="https://www.thegreenwebfoundation.org/green-web-check/?url=github.com"]
+Enaction Engine is a deterministic, type-safe game engine for worlds shaped
+through perception, affect, intention, action and consequence.
 
+The name describes the intended whole: agents and worlds continuously constitute
+and alter one another through situated action. The current code is deliberately
+smaller than that destination. It is an early deterministic timing and
+interpolation substrate, implemented in Rust and tested as one crate.
 // ── Compliance ─────────────────────────────────────────────────────────────
 image:https://img.shields.io/badge/SOC_3-Compliant-brightgreen[SOC 3 Compliant,link=https://github.com/organizations/metadatastician/settings/compliance]
 image:https://img.shields.io/badge/ISO_27001-Compliant-blue[ISO 27001 Compliant,link=https://github.com/organizations/metadatastician/settings/compliance]
@@ -28,112 +23,167 @@ image:https://img.shields.io/badge/CIAQ-Compliant-9f55ff[CIAQ Compliant,link=htt
 nimage:https://www.bestpractices.dev/projects/8509/badge[OpenSSF Best Practices,link="https://www.bestpractices.dev/projects/8509"]
 
 
-A runtime for deterministic simulations: fixed-timestep stepping, and render
-interpolation that smooths the result onto a display running at any rate.
+== The invariant everything follows from
 
-== The constraint everything follows from
+The simulation advances only in **whole, equal steps**, and render interpolation
+never feeds simulation state.
 
-The simulation advances in **whole, equal steps**, and nothing the renderer does
-may change that.
+Variable frame time must not become simulation input. `enaction-time` therefore
+turns elapsed wall time into a count of whole fixed steps and a render-only
+fraction. A host simulates the whole steps, then may use that fraction to draw
+continuous values between two completed states. Discrete values are read from
+the current state, never blended.
 
-Variable `dt` makes a run depend on frame timing, and a run that depends on frame
-timing cannot be replayed, snapshotted, or lockstepped across a network. So the
-engine steps the simulation on a fixed clock and hands the renderer a *fraction*
-to draw with — never a partial step to simulate.
+== Implemented now
 
-== Status: early, and honest about it
+The repository currently provides `enaction-time`:
 
-This is the timing and interpolation core. It is **not yet a general-purpose game
-engine**: there is no renderer, no ECS, no asset pipeline, no audio and no input
-handling.
-
-What exists is one crate, `affective-time`, and it does two things:
-
-[cols="1,3,1"]
+[cols="1,3,2"]
 |===
-|Component |What it does |Provenance
-
-|`DoubleBuffer<T, N>`
-|Holds the last two simulated states and samples between them. Two inline
-fixed-size arrays; nothing allocates.
-|Proven in IDApTIK
+|Artifact |Implemented behaviour |Evidence and provenance
 
 |`FixedStep`
-|Turns real elapsed time into whole owed steps plus a fraction, with a
-spiral-of-death guard.
-|New here — never run a real game
+|Fixed-timestep accumulation, whole-step counts, a render fraction, hostile
+input handling, and a configurable spiral-of-death guard.
+|Unit and doctests in this repository. New engine code; it has not yet run in a
+released game.
+
+|`DoubleBuffer<T, N>`
+|Two inline fixed-size state buffers, commit/prime/snap operations, exact
+endpoints, and render-only interpolation of continuous values.
+|Tests inherited or derived from IDApTIK experience. The interpolation design
+has served in IDApTIK; this extracted crate has not yet replaced that game code.
+
+|`Blend` and `lerp`
+|Clamped, endpoint-exact interpolation, including measured floating-point edge
+cases.
+|Unit tests, doctests, and size checks. No heap allocation appears in these
+operations or in the fixed-size buffer representation.
 |===
 
-That last column is the point. This engine is being **extracted from a working
-game**, not designed in the abstract: the proving ground is
-link:https://github.com/metadatastician/IDApTIK[IDApTIK], whose Rust core already
-holds a deterministic, event-sourced simulation with replay and snapshot tests.
-A component earns its way in by working somewhere real first, and where one has
-not, the docs say so.
+Discontinuities such as teleports, restarts, loads, or resynchronisation use
+`commit` followed by `snap`: the new state first enters the buffer, then stale
+history is discarded.
 
-== Using it
+== Intended engine direction
+
+Enaction Engine is intended to grow into a complete game engine. Its destination
+includes deterministic simulation; world and event models; agency and
+embodiment; physics and interaction; rendering and presentation; sound and
+music; input; networking and multiplayer; persistence and replay; assets and
+content; host contracts; tools; and Universal Modding Studio integration.
+
+That direction is not a claim that those systems exist today. There is currently
+no renderer, ECS, audio system, input layer, asset pipeline, networking stack,
+general AI framework, physical simulation, or complete cognitive, affective, or
+conative implementation here. New modules must arrive with a real use,
+implementation, and tests; empty subsystem crates are explicitly disallowed.
+
+=== Cognition, affect, and conation
+
+These are sibling dimensions of agency, not competing names for the engine:
+
+* **cognition** covers perception, attention, memory, belief, inference, and
+  planning;
+* **affect** covers appraisal, mood, atmosphere, trust, fear, attachment, and
+  significance;
+* **conation** covers needs, motives, goals, commitment, inhibition, and action
+  selection.
+
+They operate over host-defined entities, events, worlds, ecologies, and
+institutions. Games retain their domain ontology and game-specific rules.
+
+== Proving grounds
+
+link:https://github.com/metadatastician/IDApTIK[IDApTIK] is the first proving
+ground. Its deterministic, event-sourced Rust core supplied the operational
+experience behind `DoubleBuffer`, discontinuity handling, continuous-versus-
+discrete rendering, replay, and snapshot concerns. `FixedStep` itself is new
+engine code and is not yet integrated into IDApTIK.
+
+Chronicles of Slavia is the planned second abstraction test. A facility should
+not be called general merely because one game can use it: the second game must
+exercise the boundary without importing IDApTIK-specific ontology into the
+engine.
+
+== Universal Modding Studio
+
+Universal Modding Studio (UMS) will author, generate, validate, preview, and
+package content through versioned game profiles and contracts. Enaction Engine
+is runtime infrastructure; it must not depend on the UMS application. Released
+games consume validated, compiled packages rather than the editor UI. See
+link:docs/architecture/UMS-INTEGRATION.adoc[UMS integration].
+
+== Using the current crate
 
 [source,rust]
 ----
-use affective_time::{DoubleBuffer, FixedStep};
+use enaction_time::{DoubleBuffer, FixedStep};
 
 let mut clock = FixedStep::from_hz(60.0);
 let mut buffer: DoubleBuffer<f64, 1> = DoubleBuffer::new();
 buffer.prime(&[world.x()]);
 
-// once per frame
 for _ in 0..clock.advance(real_dt) {
     world.step();                    // whole steps only
     buffer.commit(&[world.x()]);
 }
-draw(buffer.sample(0, clock.alpha()));
+draw(buffer.sample(0, clock.alpha())); // render-only
 ----
 
-The engine deliberately knows nothing about what a slot means — the host keeps
-its own indices. That boundary is what lets the same buffers serve a 2D
-platformer, a network simulation and a terminal frontend.
+== Repository map
 
-=== Three rules worth knowing before you integrate
+[source,text]
+----
+crates/enaction-time/       current Rust timing and interpolation crate
+docs/architecture/          target architecture and integration boundaries
+docs/decisions/             accepted architecture decisions
+docs/status/ROADMAP.adoc    evidence-gated staged direction
+.machine_readable/          RSR metadata, policies, and contracts
+build/just/                 recipes imported by the root Justfile
+scripts/                    repository and verification gates
+----
 
-. **Interpolation is render-only.** No sampled value may flow back into
-  simulation state. Determinism rests on this.
-. **Only continuous quantities blend.** Booleans, enums and visibility are read
-  live. So is a *facing direction* — lerping a sign through zero draws the
-  subject facing neither way.
-. **A discontinuity is `commit` then `snap`, never `snap` alone.** On a restart
-  or teleport the fresh state still has to enter the buffer; `snap` only
-  discards the stale previous step.
-
-All three came from bugs found by testing in IDApTIK, and all three are pinned
-by tests here. See link:docs/decisions/0005-fixed-timestep-and-interpolation.adoc[ADR-0005].
-
-== Language
-
-The intended long-term implementation language is **AffineScript**. This is
-Rust, deliberately and for now: AffineScript is a real working compiler, but it
-ships no release artefact and its typed-wasm bridge is still gated. The port is
-gated on both of those, and would pin to a compiler commit rather than a version.
-See link:docs/decisions/0004-rust-now-affinescript-later.adoc[ADR-0004].
-
-== Build
+== Build and verification
 
 [source,sh]
 ----
-just test          # cargo test --workspace
-just verify        # RSR gates
+cargo fmt --all -- --check
+cargo test --workspace
 cargo clippy --workspace --all-targets -- -D warnings
+just test
+just verify
 ----
 
-== Where to look next
+The exact RSR gates behind `just verify` are defined in `Justfile` and
+`build/just/`. `EXPLAINME.adoc` maps the major claims above to implementation
+artifacts and checks.
 
-* `ARCHITECTURE.md` — the layout and the design rationale.
-* `docs/decisions/` — architecture decision records.
+== Language direction
+
+Rust is the implementation language now. AffineScript is a future direction
+only when it has a genuine release artefact and the required typed-Wasm path is
+ready. Any later port must preserve behaviour and tests, pin its toolchain, and
+earn adoption through working integration; no AffineScript build is claimed
+today. See link:docs/decisions/0004-rust-now-affinescript-later.adoc[ADR-0004].
+
+== Current limitations
+
+* The crate supplies timing and interpolation utilities, not a frame loop or a
+  complete engine runtime.
+* Determinism of a whole game still depends on the host using deterministic
+  state, ordering, arithmetic, inputs, and side-effect boundaries.
+* `FixedStep` drops excess accumulated time when its step cap is reached; hosts
+  should observe `took_shortcut()` and decide how to surface degraded timing.
+* The no-allocation evidence covers the current fixed-size value representation
+  and its operations, not an instrumented whole-process allocator trace.
+* Current extracted code has not yet been validated as a reusable contract by
+  two games.
 
 == Licence
 
-Code, configuration and scripts are link:LICENSE[GNU Affero General Public License v3.0 or later]
-(`AGPL-3.0-or-later`); prose documentation is `CC-BY-SA-4.0`. Both texts live in
-`LICENSES/`, and per-file `SPDX-License-Identifier` headers are authoritative.
-The GitHub-detected licence is AGPL-3.0-or-later (the root `LICENSE`). Long-term
-attribution uses Quantum-Safe Provenance — see
-link:docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt[the Quantum-Safe Provenance exhibit].
+Code, configuration, and scripts are link:LICENSE[GNU Affero General Public
+License v3.0 or later] (`AGPL-3.0-or-later`). Prose documentation is
+`CC-BY-SA-4.0`. Full texts are in `LICENSES/`; per-file SPDX headers remain
+authoritative. Long-term attribution uses Quantum-Safe Provenance as described
+in link:docs/legal/EXHIBIT-B-QUANTUM-SAFE.txt[the provenance exhibit].

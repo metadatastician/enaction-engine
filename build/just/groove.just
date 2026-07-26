@@ -69,12 +69,6 @@ verify-template:
         FOUND=1
     fi
 
-    # Check for template defaults still present
-    if grep -q 'affective-engine' Justfile 2>/dev/null; then
-        echo "⚠ Justfile still references 'affective-engine' — update project name"
-        FOUND=1
-    fi
-
     # Check for port 0 in Groove manifest
     if grep -q '(port 0)' .machine_readable/integrations/groove.a2ml 2>/dev/null; then
         echo "⚠ Groove manifest has port 0 — run 'just groove-setup' to assign a port"

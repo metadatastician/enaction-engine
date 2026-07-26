@@ -20,9 +20,9 @@ carve-out).
 
 == How to adopt
 
-. Copy `docs-template/` → `docs/` in your repo.
-. Replace `Affective Engine`, `metadatastician`, `Jonathan D.A. Jewell`, `jonathan.jewell@gmail.com`,
-  `2026` placeholders.
+. Copy the relevant files from `docs-template/` into the project documentation.
+. Keep the Enaction Engine name, `metadatastician/enaction-engine` repository
+  identity, maintainer attribution, and dates aligned with root metadata.
 . Delete any sections that genuinely do not apply (don't leave empty
   scaffolding — the 2026-05-26 doc-debt audit flagged 61 estate repos
   with empty `docs/` dirs as a separate category of debt).

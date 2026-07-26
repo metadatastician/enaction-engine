@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Affective Engine Container Image
+# Enaction Engine Container Image
 #
 # Multi-stage build template for Chainguard Wolfi base images.
 # Customise the builder stage for your language and copy the
@@ -11,13 +11,13 @@
 # svalinn files under container/stapeln/ are referenced only as labels.
 #
 # Build (engine-agnostic — substitute podman | nerdctl | docker):
-#   podman build -t affective-engine:latest -f container/Containerfile .
+#   podman build -t enaction-engine:latest -f container/Containerfile .
 #
 # Run:
-#   podman run -p 8080:8080 affective-engine:latest
+#   podman run -p 8080:8080 enaction-engine:latest
 #
 # Run with persistent volume:
-#   podman run -p 8080:8080 -v affective-engine-data:/data affective-engine:latest
+#   podman run -p 8080:8080 -v enaction-engine-data:/data enaction-engine:latest
 #
 # Via the Justfile (auto-detects engine, prefers cerro-torre when present):
 #   just container-build
@@ -37,7 +37,7 @@
 #   COPY Cargo.toml Cargo.lock ./
 #   COPY src/ ./src/
 #   RUN cargo build --release
-#   # Output: /build/target/release/affective-engine
+#   # Output: /build/target/release/enaction-engine
 #
 # --- Elixir ---
 #   RUN apk add --no-cache erl27-elixir-1.18 erlang-27 erlang-27-dev git build-base
@@ -47,14 +47,14 @@
 #   ENV MIX_ENV=prod
 #   RUN mix local.hex --force && mix local.rebar --force && \
 #       mix deps.get --only prod && mix compile && mix release
-#   # Output: /build/_build/prod/rel/affective-engine/
+#   # Output: /build/_build/prod/rel/enaction-engine/
 #
 # --- Zig ---
 #   RUN apk add --no-cache zig build-base
 #   COPY build.zig build.zig.zon ./
 #   COPY src/ ./src/
 #   RUN zig build -Doptimize=ReleaseFast
-#   # Output: /build/zig-out/bin/affective-engine
+#   # Output: /build/zig-out/bin/enaction-engine
 #
 # Base image: `:latest` is right for a template scaffold (Chainguard rebuilds
 # Wolfi daily). For PRODUCTION builds, pin by digest for reproducibility/supply-
@@ -82,10 +82,10 @@ COPY . .
 FROM cgr.dev/chainguard/wolfi-base:latest
 
 # OCI image labels (compatible with cerro-torre .ctp bundle metadata)
-LABEL org.opencontainers.image.title="Affective Engine" \
-      org.opencontainers.image.description="A game engine: deterministic fixed-timestep simulation with render interpolation." \
-      org.opencontainers.image.url="https://github.com/metadatastician/affective-engine" \
-      org.opencontainers.image.source="https://github.com/metadatastician/affective-engine" \
+LABEL org.opencontainers.image.title="Enaction Engine" \
+      org.opencontainers.image.description="A deterministic, type-safe game engine for worlds shaped through perception, affect, intention, action and consequence." \
+      org.opencontainers.image.url="https://github.com/metadatastician/enaction-engine" \
+      org.opencontainers.image.source="https://github.com/metadatastician/enaction-engine" \
       org.opencontainers.image.vendor="metadatastician" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
       org.opencontainers.image.authors="Jonathan D.A. Jewell <jonathan.jewell@gmail.com>" \
@@ -109,9 +109,9 @@ WORKDIR /app
 
 # TODO: Copy compiled binary/release from builder stage.
 # Examples:
-#   COPY --from=builder /build/target/release/affective-engine /app/affective-engine
-#   COPY --from=builder /build/_build/prod/rel/affective-engine /app/release/
-#   COPY --from=builder /build/zig-out/bin/affective-engine /app/affective-engine
+#   COPY --from=builder /build/target/release/enaction-engine /app/enaction-engine
+#   COPY --from=builder /build/_build/prod/rel/enaction-engine /app/release/
+#   COPY --from=builder /build/zig-out/bin/enaction-engine /app/enaction-engine
 
 # Copy entrypoint script
 COPY container/entrypoint.sh /app/entrypoint.sh

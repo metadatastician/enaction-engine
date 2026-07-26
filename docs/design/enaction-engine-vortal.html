@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<!--
+SPDX-FileCopyrightText: 2026 Enaction Engine contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+Design reference only. This file is not a claim that the systems portal or its
+displayed engine subsystems and integrations have been implemented.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Enaction Engine — Systems Portal</title>
+<style>
+  :root{
+    --bg:#071016;
+    --bg2:#0c1820;
+    --panel:#0e1d27cc;
+    --panel-strong:#132733f2;
+    --line:#24424f;
+    --line-soft:#1a333d;
+    --ink:#e9f7f2;
+    --muted:#91aaa5;
+    --aqua:#6de2cf;
+    --mint:#98f0c7;
+    --gold:#f2c86f;
+    --amber:#ee9d51;
+    --rose:#df7e8c;
+    --violet:#a590e8;
+    --blue:#76aee8;
+    --danger:#f06f66;
+    --ok:#74d6a1;
+    --shadow:0 20px 55px rgba(0,0,0,.38);
+    --radius:16px;
+    --mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    color:var(--ink);
+    font-family:var(--sans);
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 20% -10%, rgba(109,226,207,.12), transparent 36%),
+      radial-gradient(circle at 88% 20%, rgba(165,144,232,.11), transparent 30%),
+      linear-gradient(180deg,#071016 0%,#09131a 62%,#050b0f 100%);
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0; pointer-events:none; opacity:.22;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+    background-size:24px 24px;
+    mask-image:linear-gradient(to bottom,black,transparent 90%);
+  }
+  button,input,select{font:inherit}
+  button{color:inherit}
+  .app{
+    height:100%;
+    display:grid;
+    grid-template-rows:62px 1fr 34px;
+  }
+  .topbar{
+    display:grid;
+    grid-template-columns:330px minmax(420px,1fr) 370px;
+    align-items:center;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(12,27,35,.96),rgba(8,19,25,.92));
+    backdrop-filter:blur(18px);
+    z-index:20;
+  }
+  .brand{
+    height:100%;
+    padding:0 18px;
+    display:flex; align-items:center; gap:13px;
+    border-right:1px solid var(--line);
+  }
+  .brandmark{
+    width:36px;height:36px;border:1px solid #49706e;border-radius:50%;
+    display:grid;place-items:center;position:relative;
+    background:radial-gradient(circle at center,rgba(109,226,207,.18),transparent 62%);
+    box-shadow:0 0 22px rgba(109,226,207,.12);
+  }
+  .brandmark::before,.brandmark::after{
+    content:"";position:absolute;border-radius:50%;border:1px solid rgba(109,226,207,.35)
+  }
+  .brandmark::before{width:22px;height:22px}
+  .brandmark::after{width:8px;height:8px;background:var(--aqua);box-shadow:0 0 12px var(--aqua)}
+  .brand h1{font-size:15px;letter-spacing:.14em;margin:0;font-weight:700}
+  .brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;margin-top:3px}
+  .command{
+    justify-self:center;
+    width:min(620px,92%);
+    display:flex;align-items:center;gap:9px;
+    background:#0a151c;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:7px 10px;
+    color:var(--muted);
+  }
+  .command input{
+    flex:1;background:transparent;border:0;outline:0;color:var(--ink);font-family:var(--mono);font-size:12px
+  }
+  .kbd{font:10px var(--mono);padding:3px 6px;border:1px solid #34515e;border-radius:5px;color:#a9bfba}
+  .top-actions{
+    height:100%;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 14px;border-left:1px solid var(--line)
+  }
+  .pill,.icon-btn{
+    border:1px solid var(--line);background:#0d1b23;border-radius:9px;padding:8px 10px;font-size:11px;cursor:pointer;
+  }
+  .pill:hover,.icon-btn:hover{border-color:#4b7778;background:#12252f}
+  .pill.ok::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:7px;box-shadow:0 0 8px var(--ok)}
+  .workspace{
+    min-height:0;
+    display:grid;
+    grid-template-columns:252px minmax(520px,1fr) 330px;
+  }
+  .sidebar,.inspector{
+    min-height:0;overflow:auto;
+    background:rgba(8,20,27,.78);
+    backdrop-filter:blur(16px);
+  }
+  .sidebar{border-right:1px solid var(--line)}
+  .inspector{border-left:1px solid var(--line)}
+  .section-title{
+    padding:15px 15px 8px;
+    font:700 10px var(--mono);
+    letter-spacing:.16em;
+    color:#8aa39f;
+    text-transform:uppercase;
+  }
+  .nav{
+    padding:0 9px 12px;
+  }
+  .nav-item{
+    width:100%;display:grid;grid-template-columns:30px 1fr auto;align-items:center;
+    border:1px solid transparent;background:transparent;border-radius:10px;
+    padding:9px 8px;color:#b9ccc8;cursor:pointer;text-align:left;margin:2px 0;
+  }
+  .nav-item:hover{background:#10212a;border-color:#203c47}
+  .nav-item.active{background:linear-gradient(90deg,rgba(109,226,207,.13),rgba(109,226,207,.03));border-color:#315a5c;color:#eefcf7}
+  .nav-icon{
+    width:23px;height:23px;border-radius:7px;display:grid;place-items:center;
+    border:1px solid #294653;background:#0b171e;font:700 10px var(--mono);
+  }
+  .nav-count{font:10px var(--mono);color:#75908b}
+  .mini-tree{padding:4px 14px 12px;color:#8ca49f;font-size:11px}
+  .tree-line{padding:4px 0;display:flex;align-items:center;gap:7px}
+  .tree-line::before{content:"";width:8px;height:1px;background:#35505b}
+  .tree-line strong{color:#cadbd7;font-weight:600}
+  .center{
+    min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) 202px;
+  }
+  .hero{
+    border-bottom:1px solid var(--line);
+    background:
+      linear-gradient(90deg,rgba(109,226,207,.07),transparent 35%,rgba(165,144,232,.06)),
+      rgba(9,20,27,.62);
+    padding:18px 20px 14px;
+    display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center;
+  }
+  .hero h2{margin:0 0 5px;font-size:22px;font-weight:650;letter-spacing:.01em}
+  .hero p{margin:0;color:#99b0ab;font-size:12px;max-width:760px;line-height:1.6}
+  .hero-actions{display:flex;gap:8px}
+  .primary{
+    border:1px solid #4e8c83;background:linear-gradient(180deg,#183d3d,#102b2e);border-radius:10px;padding:10px 14px;font-weight:700;font-size:11px;cursor:pointer;
+  }
+  .primary:hover{filter:brightness(1.12)}
+  .secondary{
+    border:1px solid var(--line);background:#0d1b23;border-radius:10px;padding:10px 14px;font-size:11px;cursor:pointer;
+  }
+  .stage{
+    position:relative;min-height:0;overflow:auto;padding:18px;
+  }
+  .stage-grid{
+    display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:minmax(96px,auto);gap:12px;
+  }
+  .card{
+    position:relative;overflow:hidden;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:linear-gradient(180deg,rgba(17,37,48,.9),rgba(9,22,29,.92));
+    box-shadow:0 12px 26px rgba(0,0,0,.16);
+    padding:15px;
+    cursor:pointer;
+    transition:transform .16s ease,border-color .16s ease,background .16s ease;
+  }
+  .card:hover{transform:translateY(-2px);border-color:#467277}
+  .card.active{border-color:#6db8ab;box-shadow:0 0 0 1px rgba(109,226,207,.15),0 16px 32px rgba(0,0,0,.2)}
+  .card::after{
+    content:"";position:absolute;inset:auto -30px -50px auto;width:130px;height:130px;border-radius:50%;
+    background:radial-gradient(circle,rgba(109,226,207,.08),transparent 68%);
+  }
+  .span-3{grid-column:span 3}.span-4{grid-column:span 4}.span-5{grid-column:span 5}.span-6{grid-column:span 6}.span-7{grid-column:span 7}.span-8{grid-column:span 8}.span-12{grid-column:span 12}
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card-title{display:flex;align-items:center;gap:9px}
+  .sigil{
+    width:31px;height:31px;border:1px solid #31505c;border-radius:10px;display:grid;place-items:center;
+    font:700 11px var(--mono);background:#0b171e;color:var(--aqua)
+  }
+  .card h3{font-size:13px;margin:0}
+  .card .meta{font:10px var(--mono);color:#73908a;margin-top:3px}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px rgba(116,214,161,.65)}
+  .status-dot.design{background:var(--gold);box-shadow:0 0 10px rgba(242,200,111,.4)}
+  .status-dot.future{background:#65747d;box-shadow:none}
+  .card p{font-size:11px;line-height:1.55;color:#9db2ad;margin:12px 0 10px}
+  .tags{display:flex;gap:5px;flex-wrap:wrap}
+  .tag{font:9px var(--mono);padding:4px 6px;border:1px solid #294752;border-radius:5px;color:#92aaa5;background:#0a171e}
+  .metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .metric{border-top:1px solid #23404a;padding-top:8px}
+  .metric b{display:block;font:700 14px var(--mono);color:#dff4ee}
+  .metric span{font-size:9px;color:#708a85;text-transform:uppercase;letter-spacing:.08em}
+  .orbital{
+    min-height:230px;display:grid;grid-template-columns:1fr 240px;align-items:center;gap:12px;
+  }
+  .orbit-map{height:210px;position:relative}
+  .core-node{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:92px;height:92px;border-radius:50%;display:grid;place-items:center;text-align:center;
+    border:1px solid #568f86;background:radial-gradient(circle at 50% 45%,#18383a,#0b1b22 68%);
+    box-shadow:0 0 36px rgba(109,226,207,.16);
+    font:700 10px var(--mono);letter-spacing:.06em;color:#dffaf3;
+  }
+  .core-node::before,.core-node::after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(109,226,207,.16)}
+  .core-node::before{width:142px;height:142px}.core-node::after{width:194px;height:194px}
+  .orbit-node{
+    position:absolute;width:78px;height:38px;margin:-19px 0 0 -39px;
+    border:1px solid #31505c;border-radius:10px;background:#0c1c24;
+    display:grid;place-items:center;font:700 9px var(--mono);letter-spacing:.04em;
+    cursor:pointer;z-index:2;
+  }
+  .orbit-node:hover{border-color:#6db8ab;background:#11262f}
+  .orbit-node[data-n="0"]{left:50%;top:7%}
+  .orbit-node[data-n="1"]{left:82%;top:24%}
+  .orbit-node[data-n="2"]{left:88%;top:65%}
+  .orbit-node[data-n="3"]{left:64%;top:91%}
+  .orbit-node[data-n="4"]{left:28%;top:91%}
+  .orbit-node[data-n="5"]{left:9%;top:65%}
+  .orbit-node[data-n="6"]{left:16%;top:24%}
+  .orbit-node[data-n="7"]{left:50%;top:76%}
+  .flow-list{display:grid;gap:7px}
+  .flow{
+    display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:7px;
+    padding:7px;border:1px solid #213b46;border-radius:8px;background:#0a171e;font-size:10px;color:#9eb4af
+  }
+  .flow b{color:#d7e8e4}
+  .flow .num{font:10px var(--mono);color:var(--aqua)}
+  .bottom-dock{
+    min-height:0;border-top:1px solid var(--line);background:#08141b;
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+  }
+  .dock-panel{min-width:0;overflow:auto;border-right:1px solid var(--line)}
+  .dock-panel:last-child{border-right:0}
+  .dock-head{
+    position:sticky;top:0;background:#0b1a22;border-bottom:1px solid #203943;
+    padding:9px 12px;font:700 10px var(--mono);letter-spacing:.12em;color:#a7beb9;z-index:3
+  }
+  .log{padding:8px 11px;font:10px/1.65 var(--mono);color:#7f9994}
+  .log-line{display:grid;grid-template-columns:55px 70px 1fr;gap:6px}
+  .log-line .tick{color:#57736e}.log-line .kind{color:#ad8fe8}.log-line .msg{color:#a8bbb7}
+  .check-row{
+    display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;
+    padding:8px 11px;border-bottom:1px solid #162e38;font-size:10px;color:#9db2ad
+  }
+  .check{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+  .check.warn{background:var(--gold)}.check.future{background:#52636b}
+  .check-row code{font:9px var(--mono);color:#6f8984}
+  .inspector-inner{padding:13px}
+  .inspector-title{font-size:16px;margin:2px 0 4px}
+  .inspector-sub{color:#78928d;font:10px var(--mono);margin-bottom:13px}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px}
+  .tab{border:0;background:transparent;color:#78908c;font:10px var(--mono);padding:6px 7px;cursor:pointer;border-radius:6px}
+  .tab.active{background:#12252e;color:#d8ece7}
+  .ins-block{border:1px solid #223d48;border-radius:11px;margin:0 0 10px;overflow:hidden}
+  .ins-block h4{margin:0;padding:9px 10px;background:#0c1a22;border-bottom:1px solid #1d3640;font-size:10px;letter-spacing:.08em}
+  .ins-body{padding:10px}
+  .kv{display:grid;grid-template-columns:102px 1fr;gap:8px;padding:5px 0;font-size:10px;border-bottom:1px solid #172f38}
+  .kv:last-child{border-bottom:0}.kv span:first-child{color:#718b86}.kv span:last-child{color:#c4d7d2}
+  .bar{height:6px;border-radius:10px;background:#142832;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--aqua),var(--violet));width:68%}
+  .ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .ins-actions button{border:1px solid #2b4a55;background:#0d1d25;border-radius:8px;padding:8px;font-size:10px;cursor:pointer}
+  .ins-actions button:hover{border-color:#57867f}
+  .statusbar{
+    display:grid;grid-template-columns:252px 1fr 330px;align-items:center;
+    background:#071118;border-top:1px solid #142b34;color:#68807c;font:9px var(--mono)
+  }
+  .statusbar div{padding:0 12px}
+  .statusbar .middle{text-align:center}
+  .statusbar .right{text-align:right}
+  .modal{
+    position:fixed;inset:0;background:rgba(1,7,10,.76);backdrop-filter:blur(7px);
+    display:none;place-items:center;z-index:50;padding:20px
+  }
+  .modal.show{display:grid}
+  .modal-card{
+    width:min(760px,94vw);max-height:88vh;overflow:auto;border:1px solid #3a6067;border-radius:18px;
+    background:linear-gradient(180deg,#112730,#09181f);box-shadow:var(--shadow)
+  }
+  .modal-head{padding:18px 20px;border-bottom:1px solid #29454f;display:flex;justify-content:space-between;gap:16px}
+  .modal-head h3{margin:0}.modal-head p{margin:5px 0 0;color:#86a09b;font-size:11px}
+  .close{border:1px solid #35535d;background:#0b1a21;border-radius:8px;width:34px;height:34px;cursor:pointer}
+  .modal-body{padding:18px 20px}
+  .module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .module-option{border:1px solid #2b4853;border-radius:11px;padding:12px;background:#0a1920;cursor:pointer}
+  .module-option:hover{border-color:#62948b}.module-option b{display:block;font-size:11px}.module-option span{display:block;color:#78918c;font-size:9px;margin-top:5px}
+  .launch-screen{
+    position:fixed;inset:0;background:#03080b;z-index:90;display:none;place-items:center;text-align:center
+  }
+  .launch-screen.show{display:grid}
+  .launch-glyph{width:130px;height:130px;border-radius:50%;border:1px solid #446d6b;display:grid;place-items:center;position:relative;margin:auto}
+  .launch-glyph::before,.launch-glyph::after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(109,226,207,.25);animation:pulse 1.8s infinite}
+  .launch-glyph::before{width:170px;height:170px}.launch-glyph::after{width:210px;height:210px;animation-delay:.5s}
+  @keyframes pulse{0%,100%{opacity:.15;transform:scale(.96)}50%{opacity:.7;transform:scale(1.03)}}
+  .launch-screen h2{letter-spacing:.12em;margin:28px 0 8px}.launch-screen p{color:#77908a;font:11px var(--mono)}
+  @media(max-width:1100px){
+    .workspace{grid-template-columns:220px 1fr}.inspector{display:none}
+    .topbar{grid-template-columns:280px 1fr auto}.top-actions .pill:nth-child(2){display:none}
+    .statusbar{grid-template-columns:220px 1fr}
+    .statusbar .right{display:none}
+  }
+  @media(max-width:760px){
+    body{overflow:auto}.app{height:auto;min-height:100%}.workspace{display:block}.sidebar{display:none}.center{display:block}
+    .topbar{grid-template-columns:1fr auto}.command{display:none}.top-actions{border-left:0}
+    .stage-grid{grid-template-columns:1fr}.card{grid-column:1!important}.bottom-dock{grid-template-columns:1fr}.dock-panel{border-right:0;border-bottom:1px solid var(--line)}
+    .hero{grid-template-columns:1fr}.orbital{grid-template-columns:1fr}.module-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brandmark" aria-hidden="true"></div>
+      <div>
+        <h1>ENACTION ENGINE</h1>
+        <small>RUNTIME • WORLD • MIND • ACTION</small>
+      </div>
+    </div>
+    <label class="command">
+      <span>⌘</span>
+      <input id="commandInput" placeholder="Search systems, profiles, traces, contracts…" />
+      <span class="kbd">Ctrl K</span>
+    </label>
+    <div class="top-actions">
+      <button class="pill ok" id="runtimeStatus">runtime stable</button>
+      <button class="pill" data-open="profiles">profiles 2</button>
+      <button class="icon-btn" id="themeButton" title="Toggle visual density">◫</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="sidebar">
+      <div class="section-title">Engine portal</div>
+      <nav class="nav" id="mainNav">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">◎</span><span>Overview</span><span class="nav-count">12</span></button>
+        <button class="nav-item" data-view="runtime"><span class="nav-icon">T</span><span>Runtime</span><span class="nav-count">4</span></button>
+        <button class="nav-item" data-view="world"><span class="nav-icon">W</span><span>World & Space</span><span class="nav-count">6</span></button>
+        <button class="nav-item" data-view="agency"><span class="nav-icon">A</span><span>Agency</span><span class="nav-count">5</span></button>
+        <button class="nav-item" data-view="cognition"><span class="nav-icon">C</span><span>Cognition</span><span class="nav-count">6</span></button>
+        <button class="nav-item" data-view="affect"><span class="nav-icon">F</span><span>Affect</span><span class="nav-count">5</span></button>
+        <button class="nav-item" data-view="conation"><span class="nav-icon">V</span><span>Conation</span><span class="nav-count">5</span></button>
+        <button class="nav-item" data-view="presentation"><span class="nav-icon">P</span><span>Presentation</span><span class="nav-count">7</span></button>
+        <button class="nav-item" data-view="network"><span class="nav-icon">N</span><span>Network & Replay</span><span class="nav-count">5</span></button>
+        <button class="nav-item" data-view="tooling"><span class="nav-icon">U</span><span>Tooling & UMS</span><span class="nav-count">4</span></button>
+        <button class="nav-item" data-view="verification"><span class="nav-icon">✓</span><span>Verification</span><span class="nav-count">9</span></button>
+      </nav>
+
+      <div class="section-title">Connected worlds</div>
+      <div class="mini-tree">
+        <div class="tree-line"><strong>IDApTIK</strong> <span>primary proving game</span></div>
+        <div class="tree-line"><strong>Chronicles of Slavia</strong> <span>generality test</span></div>
+        <div class="tree-line"><strong>UMS</strong> <span>authoring bridge</span></div>
+        <div class="tree-line"><strong>Future profile</strong> <span>unbound</span></div>
+      </div>
+
+      <div class="section-title">Current workspace</div>
+      <div class="mini-tree">
+        <div class="tree-line"><strong>enaction-time</strong></div>
+        <div class="tree-line">fixed-step</div>
+        <div class="tree-line">double-buffer</div>
+        <div class="tree-line">render interpolation</div>
+        <div class="tree-line">discontinuities</div>
+      </div>
+    </aside>
+
+    <section class="center">
+      <div class="hero">
+        <div>
+          <h2 id="viewTitle">Engine Observatory</h2>
+          <p id="viewDescription">A deterministic, type-safe game engine for worlds shaped through perception, affect, intention, action and consequence.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="primary" id="launchLab">Launch Runtime Lab</button>
+          <button class="secondary" data-open="profiles">Open Profile Matrix</button>
+        </div>
+      </div>
+
+      <section class="stage">
+        <div class="stage-grid" id="stageGrid">
+          <article class="card span-8 active" data-module="enaction">
+            <div class="card-head">
+              <div class="card-title"><div class="sigil">E</div><div><h3>Enaction Core</h3><div class="meta">host-neutral causal substrate</div></div></div>
+              <span class="status-dot"></span>
+            </div>
+            <div class="orbital">
+              <div class="orbit-map">
+                <div class="core-node">WORLD ↔ AGENT</div>
+                <button class="orbit-node" data-n="0" data-module="cognition">COGNITION</button>
+                <button class="orbit-node" data-n="1" data-module="affect">AFFECT</button>
+                <button class="orbit-node" data-n="2" data-module="conation">CONATION</button>
+                <button class="orbit-node" data-n="3" data-module="action">ACTION</button>
+                <button class="orbit-node" data-n="4" data-module="world">WORLD</button>
+                <button class="orbit-node" data-n="5" data-module="perception">PERCEPTION</button>
+                <button class="orbit-node" data-n="6" data-module="memory">MEMORY</button>
+                <button class="orbit-node" data-n="7" data-module="time">TIME</button>
+              </div>
+              <div class="flow-list">
+                <div class="flow"><span>1</span><b>Sense</b><span class="num">input</span></div>
+                <div class="flow"><span>2</span><b>Appraise</b><span class="num">meaning</span></div>
+                <div class="flow"><span>3</span><b>Intend</b><span class="num">goal</span></div>
+                <div class="flow"><span>4</span><b>Act</b><span class="num">effect</span></div>
+                <div class="flow"><span>5</span><b>Re-enter</b><span class="num">world</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card span-4" data-module="runtime">
+            <div class="card-head">
+              <div class="card-title"><div class="sigil">60</div><div><h3>Deterministic Runtime</h3><div class="meta">implemented foundation</div></div></div>
+              <span class="status-dot"></span>
+            </div>
+            <p>Whole equal simulation steps, render-only interpolation, replayable transitions, and explicit discontinuities.</p>
+            <div class="metric-row">
+              <div class="metric"><b>60 Hz</b><span>step target</span></div>
+              <div class="metric"><b>0</b><span>alloc / tick</span></div>
+              <div class="metric"><b>✓</b><span>replay safe</span></div>
+            </div>
+            <div class="tags"><span class="tag">enaction-time</span><span class="tag">Rust now</span><span class="tag">AffineScript later</span></div>
+          </article>
+
+          <article class="card span-4" data-module="idaptik">
+            <div class="card-head">
+              <div class="card-title"><div class="sigil">ID</div><div><h3>IDApTIK</h3><div class="meta">primary proving game</div></div></div>
+              <span class="status-dot"></span>
+            </div>
+            <p>Asymmetric infiltration, grounded network simulation, embodied roles, typed events, snapshots, and replay.</p>
+            <div class="tags"><span class="tag">stealth</span><span class="tag">network topology</span><span class="tag">co-op</span></div>
+          </article>
+
+          <article class="card span-4" data-module="slavia">
+            <div class="card-head">
+              <div class="card-title"><div class="sigil">CS</div><div><h3>Chronicles of Slavia</h3><div class="meta">generality proving game</div></div></div>
+              <span class="status-dot design"></span>
+            </div>
+            <p>Quickening, settling, living response, place-memory, folklore, moral marking, and Rift disruption.</p>
+            <div class="tags"><span class="tag">world resonance</span><span class="tag">dual heroine</span><span class="tag">ecology</span></div>
+          </article>
+
+          <article class="card span-4" data-module="ums">
+            <div class="card-head">
+              <div class="card-title"><div class="sigil">UM</div><div><h3>Universal Modding Studio</h3><div class="meta">external authoring portal</div></div></div>
+              <span class="status-dot design"></span>
+            </div>
+            <p>Authors, validates, simulates, and packages game profiles without becoming part of the shipping runtime.</p>
+            <div class="tags"><span class="tag">profiles</span><span class="tag">constraints</span><span class="tag">round-trip</span></div>
+          </article>
+
+          <article class="card span-3" data-module="cognition">
+            <div class="card-head"><div class="card-title"><div class="sigil">C</div><div><h3>Cognition</h3><div class="meta">planned subsystem</div></div></div><span class="status-dot design"></span></div>
+            <p>Perception, attention, memory, belief, inference, anticipation, and planning.</p>
+          </article>
+          <article class="card span-3" data-module="affect">
+            <div class="card-head"><div class="card-title"><div class="sigil">F</div><div><h3>Affect</h3><div class="meta">planned subsystem</div></div></div><span class="status-dot design"></span></div>
+            <p>Appraisal, atmosphere, trust, fear, attachment, arousal, and significance.</p>
+          </article>
+          <article class="card span-3" data-module="conation">
+            <div class="card-head"><div class="card-title"><div class="sigil">V</div><div><h3>Conation</h3><div class="meta">planned subsystem</div></div></div><span class="status-dot design"></span></div>
+            <p>Needs, motives, goals, commitment, inhibition, persistence, and action selection.</p>
+          </article>
+          <article class="card span-3" data-module="world">
+            <div class="card-head"><div class="card-title"><div class="sigil">W</div><div><h3>World</h3><div class="meta">planned subsystem</div></div></div><span class="status-dot future"></span></div>
+            <p>Space, physics, ecology, institutions, affordances, objects, and environmental change.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="bottom-dock">
+        <div class="dock-panel">
+          <div class="dock-head">DETERMINISTIC TRACE</div>
+          <div class="log" id="traceLog">
+            <div class="log-line"><span class="tick">000142</span><span class="kind">EVENT</span><span class="msg">camera-feed.failed security/cam-03</span></div>
+            <div class="log-line"><span class="tick">000143</span><span class="kind">APPRAISE</span><span class="msg">guard/billy → possible_interference</span></div>
+            <div class="log-line"><span class="tick">000143</span><span class="kind">AFFECT</span><span class="msg">anxiety +0.14 • composure -0.06</span></div>
+            <div class="log-line"><span class="tick">000144</span><span class="kind">CONATE</span><span class="msg">goal.verify-camera priority 0.71</span></div>
+            <div class="log-line"><span class="tick">000145</span><span class="kind">ACTION</span><span class="msg">route → security-desk</span></div>
+          </div>
+        </div>
+        <div class="dock-panel">
+          <div class="dock-head">GUARANTEE LEDGER</div>
+          <div>
+            <div class="check-row"><span class="check"></span><span>fixed-step state advance</span><code>TESTED</code></div>
+            <div class="check-row"><span class="check"></span><span>render-only interpolation</span><code>PROVEN-IN-PRACTICE</code></div>
+            <div class="check-row"><span class="check"></span><span>snapshot and replay seam</span><code>IDApTIK</code></div>
+            <div class="check-row"><span class="check warn"></span><span>cognitive-affective-conative loop</span><code>DESIGNED</code></div>
+            <div class="check-row"><span class="check future"></span><span>full engine completeness</span><code>FUTURE</code></div>
+          </div>
+        </div>
+        <div class="dock-panel">
+          <div class="dock-head">PROFILE CONTRACTS</div>
+          <div>
+            <div class="check-row"><span class="check"></span><span>IDApTIK runtime contract</span><code>v0.1</code></div>
+            <div class="check-row"><span class="check warn"></span><span>Slavia profile vocabulary</span><code>DRAFT</code></div>
+            <div class="check-row"><span class="check warn"></span><span>UMS adapter boundary</span><code>DESIGNED</code></div>
+            <div class="check-row"><span class="check future"></span><span>third-party profile SDK</span><code>PLANNED</code></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside class="inspector">
+      <div class="inspector-inner">
+        <div class="section-title" style="padding-left:0">Selected system</div>
+        <h3 class="inspector-title" id="inspectorTitle">Enaction Core</h3>
+        <div class="inspector-sub" id="inspectorSub">engine://core/enaction</div>
+        <div class="tabs">
+          <button class="tab active">Definition</button>
+          <button class="tab">Contracts</button>
+          <button class="tab">Evidence</button>
+          <button class="tab">Roadmap</button>
+        </div>
+        <div class="ins-block">
+          <h4>ROLE</h4>
+          <div class="ins-body" id="inspectorRole">Coordinates the causal loop through which agents perceive, appraise, intend, act, and alter their worlds.</div>
+        </div>
+        <div class="ins-block">
+          <h4>OWNERSHIP</h4>
+          <div class="ins-body">
+            <div class="kv"><span>Layer</span><span id="kvLayer">engine-wide</span></div>
+            <div class="kv"><span>Status</span><span id="kvStatus">architectural spine</span></div>
+            <div class="kv"><span>Host neutral</span><span id="kvNeutral">yes</span></div>
+            <div class="kv"><span>UMS exposed</span><span id="kvUms">through contracts</span></div>
+          </div>
+        </div>
+        <div class="ins-block">
+          <h4>MATURITY</h4>
+          <div class="ins-body">
+            <div class="kv"><span>Implementation</span><span id="kvImpl">early substrate</span></div>
+            <div class="bar"><i id="maturityBar"></i></div>
+          </div>
+        </div>
+        <div class="ins-block">
+          <h4>DEPENDENCIES</h4>
+          <div class="ins-body" id="dependencyText">Time, state, events, world model, agency, profile contracts.</div>
+        </div>
+        <div class="ins-actions">
+          <button id="inspectButton">Inspect contract</button>
+          <button id="traceButton">Run trace</button>
+          <button id="docsButton">Open docs</button>
+          <button id="pinButton">Pin system</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="statusbar">
+    <div>workspace: enaction-engine/main</div>
+    <div class="middle" id="statusMessage">12 systems indexed • deterministic clock idle</div>
+    <div class="right">profile ABI: compatible • UMS: disconnected</div>
+  </footer>
+</div>
+
+<div class="modal" id="profilesModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div><h3>Profile Matrix</h3><p>Games supply ontology and rules; Enaction supplies reusable runtime facilities.</p></div>
+      <button class="close" data-close>×</button>
+    </div>
+    <div class="modal-body">
+      <div class="module-grid">
+        <div class="module-option" data-profile="IDApTIK"><b>IDApTIK</b><span>Stealth, networks, asymmetric roles, doctrine, epistemic play.</span></div>
+        <div class="module-option" data-profile="Chronicles of Slavia"><b>Chronicles of Slavia</b><span>Quickening, settling, living response, place-memory, Rift disruption.</span></div>
+        <div class="module-option" data-profile="Universal Modding Studio"><b>UMS Adapter</b><span>Preview, validation, package loading, deterministic simulation traces.</span></div>
+        <div class="module-option" data-profile="Blank Profile"><b>Blank Profile</b><span>Host-neutral profile SDK surface for future games.</span></div>
+        <div class="module-option" data-profile="Headless Lab"><b>Headless Lab</b><span>Run fixed-step scenarios without rendering or input.</span></div>
+        <div class="module-option" data-profile="Contract Explorer"><b>Contract Explorer</b><span>Inspect ABI, schema, guarantees, and ownership boundaries.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="contractModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div><h3 id="contractTitle">System Contract</h3><p id="contractSubtitle">Host-neutral capability declaration</p></div>
+      <button class="close" data-close>×</button>
+    </div>
+    <div class="modal-body">
+      <pre id="contractPre" style="white-space:pre-wrap;font:11px/1.6 var(--mono);color:#b8d0ca;background:#08151b;border:1px solid #24414b;border-radius:12px;padding:14px;overflow:auto"></pre>
+    </div>
+  </div>
+</div>
+
+<div class="launch-screen" id="launchScreen">
+  <div>
+    <div class="launch-glyph"><div class="brandmark" style="width:56px;height:56px"></div></div>
+    <h2>ENACTION RUNTIME LAB</h2>
+    <p id="launchText">initialising deterministic substrate…</p>
+  </div>
+</div>
+
+<script>
+const moduleData = {
+  enaction:{title:"Enaction Core",uri:"engine://core/enaction",role:"Coordinates the causal loop through which agents perceive, appraise, intend, act, and alter their worlds.",layer:"engine-wide",status:"architectural spine",neutral:"yes",ums:"through contracts",impl:"early substrate",maturity:34,deps:"Time, state, events, world model, agency, profile contracts."},
+  runtime:{title:"Deterministic Runtime",uri:"engine://runtime/time",role:"Advances simulation through whole equal steps and keeps interpolation outside causal state.",layer:"substrate",status:"implemented",neutral:"yes",ums:"preview adapter",impl:"working crate",maturity:76,deps:"Clock, state snapshots, host frame loop."},
+  idaptik:{title:"IDApTIK Profile",uri:"profile://idaptik",role:"Provides infiltration, network, security, mission, actor, and asymmetric-role semantics.",layer:"game profile",status:"primary proving ground",neutral:"no — game-owned",ums:"first-class profile",impl:"active game core",maturity:64,deps:"IDApTIK contract, Enaction runtime crates, UMS profile adapter."},
+  slavia:{title:"Chronicles of Slavia Profile",uri:"profile://chronicles-of-slavia",role:"Provides quickening, settling, living-response, place-memory, folklore, and Rift semantics.",layer:"game profile",status:"generality test",neutral:"no — game-owned",ums:"bounded Zone A profile",impl:"design + prototype",maturity:32,deps:"Slavia ontology, world influence primitives, profile SDK."},
+  ums:{title:"Universal Modding Studio",uri:"adapter://ums",role:"Authors, validates, simulates, and packages content without becoming part of the shipping runtime.",layer:"external tooling",status:"independent bridge",neutral:"yes",ums:"self",impl:"formal core, UI target",maturity:48,deps:"Profile SDK, package contracts, optional Enaction preview adapter."},
+  cognition:{title:"Cognition",uri:"engine://mind/cognition",role:"Models perception, attention, memory, belief, inference, anticipation, and planning.",layer:"agent systems",status:"planned family",neutral:"yes",ums:"profile-configurable",impl:"designed",maturity:18,deps:"Perception events, memory, epistemic state, goals."},
+  affect:{title:"Affect",uri:"engine://mind/affect",role:"Models appraisal, significance, atmosphere, attachment, trust, fear, and dynamically evolving response.",layer:"agent + world systems",status:"planned family",neutral:"yes",ums:"profile-configurable",impl:"designed",maturity:16,deps:"Events, appraisal, time, relationships, expression."},
+  conation:{title:"Conation",uri:"engine://mind/conation",role:"Models needs, motives, goals, commitment, persistence, inhibition, and action selection.",layer:"agent systems",status:"planned family",neutral:"yes",ums:"profile-configurable",impl:"designed",maturity:17,deps:"Cognition, affect, goals, capabilities, action policies."},
+  world:{title:"World & Environment",uri:"engine://world",role:"Owns spatial, physical, ecological, institutional, and affordance-bearing world state.",layer:"world systems",status:"future engine family",neutral:"yes",ums:"profile-defined domains",impl:"conceptual",maturity:10,deps:"Space, state, events, host physics/render boundaries."},
+  action:{title:"Action & Effect",uri:"engine://agency/action",role:"Applies situated capabilities to the world and records explicit consequences.",layer:"agency systems",status:"planned family",neutral:"yes",ums:"verbs + contracts",impl:"designed",maturity:20,deps:"Capabilities, conation, world state, event emission."},
+  perception:{title:"Perception",uri:"engine://mind/perception",role:"Transforms world-accessible signals into situated observations without granting omniscience.",layer:"cognitive boundary",status:"planned family",neutral:"yes",ums:"sensor definitions",impl:"designed",maturity:14,deps:"World signals, viewpoint, occlusion, attention."},
+  memory:{title:"Memory",uri:"engine://mind/memory",role:"Stores episodic, semantic, procedural, relational, and place-associated traces.",layer:"cognitive + world",status:"planned family",neutral:"yes",ums:"profile-specific schemas",impl:"designed",maturity:12,deps:"Events, identity, time, decay, reinforcement."},
+  time:{title:"Time",uri:"engine://runtime/time",role:"Provides deterministic stepping, interpolation boundaries, and discontinuity handling.",layer:"substrate",status:"implemented",neutral:"yes",ums:"simulation control",impl:"enaction-time",maturity:82,deps:"Host clock only."}
+};
+
+const viewCopy = {
+ overview:["Engine Observatory","A deterministic, type-safe game engine for worlds shaped through perception, affect, intention, action and consequence."],
+ runtime:["Runtime Substrate","The causal floor: fixed time, state, events, snapshots, replay, and host boundaries."],
+ world:["World & Space","Environments are not scenery; they hold affordances, histories, institutions, ecologies, and consequences."],
+ agency:["Agency & Embodiment","Bodies, capabilities, roles, viewpoints, relationships, and situated action."],
+ cognition:["Cognitive Systems","Perception, attention, belief, memory, inference, anticipation, and planning."],
+ affect:["Affective Systems","Appraisal, significance, atmosphere, trust, fear, attachment, and world resonance."],
+ conation:["Conative Systems","Needs, motives, commitments, goals, inhibition, persistence, and action selection."],
+ presentation:["Presentation & Host","Rendering, sound, input, animation, assets, and platform integration remain downstream of simulation truth."],
+ network:["Network, Snapshot & Replay","Deterministic state can be synchronised, inspected, restored, and compared across hosts."],
+ tooling:["Tooling & UMS","Profiles, package contracts, preview adapters, validation, and authoring surfaces."],
+ verification:["Verification & Provenance","Every claim is tied to tests, evidence, provenance, and an explicit maturity state."]
+};
+
+function selectModule(key){
+  const d=moduleData[key]||moduleData.enaction;
+  document.querySelectorAll(".card").forEach(c=>c.classList.toggle("active",c.dataset.module===key));
+  document.getElementById("inspectorTitle").textContent=d.title;
+  document.getElementById("inspectorSub").textContent=d.uri;
+  document.getElementById("inspectorRole").textContent=d.role;
+  document.getElementById("kvLayer").textContent=d.layer;
+  document.getElementById("kvStatus").textContent=d.status;
+  document.getElementById("kvNeutral").textContent=d.neutral;
+  document.getElementById("kvUms").textContent=d.ums;
+  document.getElementById("kvImpl").textContent=d.impl;
+  document.getElementById("maturityBar").style.width=d.maturity+"%";
+  document.getElementById("dependencyText").textContent=d.deps;
+  document.getElementById("statusMessage").textContent=d.title+" selected • maturity "+d.maturity+"%";
+  window.selectedModule=key;
+}
+document.querySelectorAll("[data-module]").forEach(el=>el.addEventListener("click",e=>{
+  e.stopPropagation();selectModule(el.dataset.module);
+}));
+
+document.querySelectorAll(".nav-item").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+  const [t,d]=viewCopy[btn.dataset.view]||viewCopy.overview;
+  document.getElementById("viewTitle").textContent=t;
+  document.getElementById("viewDescription").textContent=d;
+  document.getElementById("statusMessage").textContent=t+" active";
+}));
+
+document.querySelectorAll("[data-open='profiles']").forEach(btn=>btn.addEventListener("click",()=>{
+  document.getElementById("profilesModal").classList.add("show");
+}));
+document.querySelectorAll("[data-close]").forEach(btn=>btn.addEventListener("click",()=>{
+  btn.closest(".modal").classList.remove("show");
+}));
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{
+  if(e.target===m)m.classList.remove("show");
+}));
+document.querySelectorAll(".module-option").forEach(opt=>opt.addEventListener("click",()=>{
+  document.getElementById("statusMessage").textContent=opt.dataset.profile+" opened in profile matrix";
+  document.getElementById("profilesModal").classList.remove("show");
+}));
+
+document.getElementById("inspectButton").addEventListener("click",()=>{
+  const key=window.selectedModule||"enaction", d=moduleData[key];
+  document.getElementById("contractTitle").textContent=d.title+" Contract";
+  document.getElementById("contractSubtitle").textContent=d.uri;
+  document.getElementById("contractPre").textContent=
+`system = "${key}"
+title = "${d.title}"
+layer = "${d.layer}"
+status = "${d.status}"
+host_neutral = "${d.neutral}"
+ums_exposure = "${d.ums}"
+
+guarantees = [
+  "deterministic state transition",
+  "explicit ownership boundary",
+  "profile-specific vocabulary stays outside universal core",
+  "presentation never mutates simulation truth"
+]
+
+depends_on = "${d.deps}"`;
+  document.getElementById("contractModal").classList.add("show");
+});
+
+document.getElementById("traceButton").addEventListener("click",()=>{
+  const log=document.getElementById("traceLog");
+  const tick=146+log.children.length;
+  const line=document.createElement("div");
+  line.className="log-line";
+  line.innerHTML=`<span class="tick">${String(tick).padStart(6,"0")}</span><span class="kind">TRACE</span><span class="msg">${(moduleData[window.selectedModule||"enaction"]).title.toLowerCase()} contract evaluated</span>`;
+  log.appendChild(line);
+  log.scrollTop=log.scrollHeight;
+  document.getElementById("statusMessage").textContent="deterministic trace advanced one step";
+});
+document.getElementById("docsButton").addEventListener("click",()=>{
+  document.getElementById("statusMessage").textContent="documentation portal selected for "+moduleData[window.selectedModule||"enaction"].title;
+});
+document.getElementById("pinButton").addEventListener("click",e=>{
+  e.target.textContent=e.target.textContent==="Pin system"?"Pinned":"Pin system";
+});
+
+document.getElementById("launchLab").addEventListener("click",()=>{
+  const screen=document.getElementById("launchScreen"), text=document.getElementById("launchText");
+  screen.classList.add("show");
+  const msgs=["initialising deterministic substrate…","loading profile contracts…","binding world ↔ agent loop…","runtime lab ready"];
+  let i=0;text.textContent=msgs[0];
+  const timer=setInterval(()=>{
+    i++;
+    if(i<msgs.length){text.textContent=msgs[i]}
+    else{
+      clearInterval(timer);
+      setTimeout(()=>{screen.classList.remove("show");document.getElementById("statusMessage").textContent="runtime lab session active"},700);
+    }
+  },650);
+});
+
+document.getElementById("runtimeStatus").addEventListener("click",e=>{
+  e.currentTarget.classList.toggle("ok");
+  e.currentTarget.textContent=e.currentTarget.classList.contains("ok")?"runtime stable":"runtime paused";
+  document.getElementById("statusMessage").textContent=e.currentTarget.classList.contains("ok")?"deterministic clock resumed":"deterministic clock paused";
+});
+
+document.getElementById("themeButton").addEventListener("click",()=>{
+  document.body.classList.toggle("dense");
+  const compact=document.body.classList.contains("dense");
+  document.querySelectorAll(".card").forEach(c=>c.style.padding=compact?"11px":"15px");
+  document.getElementById("statusMessage").textContent=compact?"compact density enabled":"comfortable density enabled";
+});
+
+const commandInput=document.getElementById("commandInput");
+document.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();commandInput.focus()}
+  if(e.key==="Escape"){
+    document.querySelectorAll(".modal.show").forEach(m=>m.classList.remove("show"));
+    document.getElementById("launchScreen").classList.remove("show");
+    commandInput.blur();
+  }
+});
+commandInput.addEventListener("input",()=>{
+  const q=commandInput.value.trim().toLowerCase();
+  document.querySelectorAll(".card").forEach(card=>{
+    card.style.opacity=!q||card.textContent.toLowerCase().includes(q)?"1":".25";
+  });
+});
+selectModule("enaction");
+</script>
+</body>
+</html>

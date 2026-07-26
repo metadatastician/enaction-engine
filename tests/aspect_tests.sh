@@ -39,7 +39,7 @@ fail() { red "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 warn() { yellow "  WARN: $1"; WARN=$((WARN + 1)); }
 
 echo "═══════════════════════════════════════════════════════════════"
-echo "  AFFECTIVE_ENGINE — Aspect Tests (Cross-Cutting Concerns)"
+echo "  ENACTION_ENGINE — Aspect Tests (Cross-Cutting Concerns)"
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 

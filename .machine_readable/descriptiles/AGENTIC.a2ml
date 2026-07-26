@@ -21,7 +21,8 @@ can-create-files = true
 # - Never commit secrets or credentials
 # - Never use banned languages (TypeScript, Python, Go, etc.)
 # - Never place state files in repository root (must be in .machine_readable/)
-# - Never use AGPL license (use AGPL-3.0-or-later)
+# - Preserve the repository's deliberate AGPL-3.0-or-later code licence and
+#   CC-BY-SA-4.0 prose licence; do not normalise either to an estate default.
 
 [maintenance-integrity]
 fail-closed = true

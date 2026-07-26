@@ -23,10 +23,10 @@ validates the result, and runs k9-svc checks if available.
 sed -i 's/Jonathan D.A. Jewell/Jane Doe/g' $(grep -rl 'Jonathan D.A. Jewell' .)
 sed -i 's/jonathan.jewell@gmail.com/jane@example.org/g' $(grep -rl 'jonathan.jewell@gmail.com' .)
 sed -i 's/metadatastician/my-org/g' $(grep -rl 'metadatastician' .)
-sed -i 's/Affective Engine/my-project/g' $(grep -rl 'Affective Engine' .)
-sed -i 's/AFFECTIVE_ENGINE/MY_PROJECT/g' $(grep -rl 'AFFECTIVE_ENGINE' .)
-sed -i 's/affective_engine/my_project/g' $(grep -rl 'affective_engine' .)
-sed -i 's/affective-engine/my-project/g' $(grep -rl 'affective-engine' .)
+sed -i 's/Sample Project/my-project/g' $(grep -rl 'Sample Project' .)
+sed -i 's/SAMPLE_PROJECT/MY_PROJECT/g' $(grep -rl 'SAMPLE_PROJECT' .)
+sed -i 's/sample_project/my_project/g' $(grep -rl 'sample_project' .)
+sed -i 's/sample-project/my-project/g' $(grep -rl 'sample-project' .)
 sed -i 's/github.com/github.com/g' $(grep -rl 'github.com' .)
 sed -i "s/2026/$(date +%Y)/g" $(grep -rl '2026' .)
 sed -i "s/2026-07-22/$(date +%Y-%m-%d)/g" $(grep -rl '2026-07-22' .)
@@ -50,11 +50,11 @@ sed -i "s/2026-07-22/$(date +%Y-%m-%d)/g" $(grep -rl '2026-07-22' .)
 
 | Placeholder | Description | Example | Files |
 |---|---|---|---|
-| `Affective Engine` | Human-readable project name | `My Project` | SECURITY.md, CODE_OF_CONDUCT.md, TOPOLOGY.md, STATE.a2ml, Justfile, GOVERNANCE.md, MAINTAINERS.md, devcontainer.json |
-| `A game engine: deterministic fixed-timestep simulation with render interpolation.` | One-line description | `A tool for X` | README.adoc, container/Containerfile |
-| `AFFECTIVE_ENGINE` | Uppercase identifier (for Idris2 modules, C macros) | `MY_PROJECT` | ABI-FFI-README.md, src/interface/abi/*.idr, src/interface/ffi/*.zig |
-| `affective_engine` | Lowercase identifier (for C symbols, filenames) | `my_project` | ABI-FFI-README.md, src/interface/ffi/*.zig |
-| `affective-engine` | Repository name (slug) | `my-project` | CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, cliff.toml |
+| `Sample Project` | Human-readable project name | `My Project` | SECURITY.md, CODE_OF_CONDUCT.md, TOPOLOGY.md, STATE.a2ml, Justfile, GOVERNANCE.md, MAINTAINERS.md, devcontainer.json |
+| `A sample project description.` | One-line description | `A tool for X` | README.adoc, container/Containerfile |
+| `SAMPLE_PROJECT` | Uppercase identifier (for Idris2 modules, C macros) | `MY_PROJECT` | ABI-FFI-README.md, src/interface/abi/*.idr, src/interface/ffi/*.zig |
+| `sample_project` | Lowercase identifier (for C symbols, filenames) | `my_project` | ABI-FFI-README.md, src/interface/ffi/*.zig |
+| `sample-project` | Repository name (slug) | `my-project` | CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, cliff.toml |
 | `metadatastician` | GitHub/GitLab org or username | `my-org` | SPDX headers, CONTRIBUTING.md, SECURITY.md, GOVERNANCE.md, MAINTAINERS.md, CODEOWNERS, mirror.yml, cliff.toml |
 | `github.com` | Git forge domain | `github.com` | CONTRIBUTING.md |
 
@@ -73,7 +73,7 @@ sed -i "s/2026-07-22/$(date +%Y-%m-%d)/g" $(grep -rl '2026-07-22' .)
 | `jonathan.jewell@gmail.com` | Security contact email | `security@example.org` | SECURITY.md |
 | `{{PGP_FINGERPRINT}}` | 40-char PGP fingerprint | `ABCD 1234 ...` | SECURITY.md |
 | `{{PGP_KEY_URL}}` | URL to public PGP key | `https://keys.openpgp.org/...` | SECURITY.md |
-| `https://github.com/metadatastician/affective-engine` | Project website | `https://example.org` | SECURITY.md |
+| `https://github.com/metadatastician/sample-project` | Project website | `https://example.org` | SECURITY.md |
 | `jonathan.jewell@gmail.com` | Conduct reports email | `conduct@example.org` | CODE_OF_CONDUCT.md |
 | `Code of Conduct Committee` | Conduct committee name | `Code of Conduct Committee` | CODE_OF_CONDUCT.md |
 | `48 hours` | SLA for initial response | `48 hours` | CODE_OF_CONDUCT.md |
@@ -89,7 +89,7 @@ sed -i "s/2026-07-22/$(date +%Y-%m-%d)/g" $(grep -rl '2026-07-22' .)
 | Placeholder | Description | Example | Files |
 |---|---|---|---|
 | `AGPL-3.0-or-later` | License name | `AGPL-3.0-or-later` | ABI-FFI-README.md |
-| `A game engine: deterministic fixed-timestep simulation with render interpolation.` | One-line project description | `FFI bridges between languages` | STATE.a2ml |
+| `A sample project description.` | One-line project description | `FFI bridges between languages` | STATE.a2ml |
 | `{{OPENSSF_BP_ID}}` | OpenSSF Best Practices numeric project ID (from registering at bestpractices.dev). Optional — leave blank until registered; `just init` then surfaces it in the post-init "remaining placeholders" notice as a reminder. | `1234` | README.adoc (OpenSSF Best Practices badge) |
 
 ### Project Content & Onboarding (manual-fill, post-init)
@@ -103,7 +103,7 @@ surfaces any left unfilled.
 | Placeholder | Description | Example | Files |
 |---|---|---|---|
 | `UNASSIGNED` | Package / module name (slug) | `my-project` | docs/onboarding/QUICKSTART-MAINTAINER.adoc |
-| `A game engine: deterministic fixed-timestep simulation with render interpolation.` | Short repo description (forge metadata) | `A tool for X` | .github/settings.yml |
+| `A sample project description.` | Short repo description (forge metadata) | `A tool for X` | .github/settings.yml |
 | `UNASSIGNED` | Language / toolchain stack | `Idris2 + Zig` | docs/onboarding/QUICKSTART-DEV.adoc |
 | `UNASSIGNED` | Build command | `just build` | docs/onboarding/QUICKSTART-DEV.adoc |
 | `UNASSIGNED` | Test command | `just test` | docs/onboarding/QUICKSTART-DEV.adoc |

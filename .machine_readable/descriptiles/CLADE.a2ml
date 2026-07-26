@@ -15,7 +15,7 @@
 # fact anyone can recompute and check — never copy one from another repo, and
 # never make one up. Recompute this one any time with:
 #
-#     uuidgen --sha1 --namespace @url --name "github.com/metadatastician/affective-engine"
+#     uuidgen --sha1 --namespace @url --name "github.com/metadatastician/enaction-engine"
 #
 # Verify the method first by reproducing a known worked example. Running the
 # command above with the name "github.com/hyperpolymath/januskey" must print a
@@ -29,11 +29,11 @@
 # The owner segment is part of the derived name, so it is part of the IDENTITY:
 # the same repo hosted under a different owner has a different uuid. Record the
 # owner that is TRUE TODAY, and re-derive if it ever moves.
-uuid = "2886b890-6cbc-5742-a4e2-ef4f3df1135b"
+uuid = "e5a96521-5d5a-5fc1-946b-b12a79f3f173"
 primary-forge = "github"
 primary-owner = "metadatastician"
-canonical-name = "affective-engine"
-prefixed-name = "UNASSIGNED-affective-engine"   # becomes <primary>-affective-engine once the clade is chosen
+canonical-name = "enaction-engine"
+prefixed-name = "gm-enaction-engine"
 
 [clade]
 # ---------------------------------------------------------------------------
@@ -82,14 +82,14 @@ prefixed-name = "UNASSIGNED-affective-engine"   # becomes <primary>-affective-en
 # looking default here is exactly how every repo built from this template ended
 # up silently claiming "rm".
 # ---------------------------------------------------------------------------
-primary = "UNASSIGNED"
-primary-name = "UNASSIGNED"
-secondary = []                # [] unless there is a genuine SECOND core value proposition
-assigned = "2026-07-22"
-rationale = ""                # why THIS category — in value-proposition terms
+primary = "gm"
+primary-name = "Games & Interactive"
+secondary = []
+assigned = "2026-07-25"
+rationale = "The core value proposition is a complete game engine for interactive worlds; Rust and deterministic simulation are implementation properties, not its clade."
 
 [forges]
-github = "metadatastician/affective-engine"
+github = "metadatastician/enaction-engine"
 gitlab = ""       # populated if/when mirrored
 bitbucket = ""    # populated if/when mirrored
 
@@ -114,7 +114,7 @@ ended = ""
 [[status.history]]
 phase = "incubating"
 since = "2026-07-22"
-note = "created from rsr-template-repo; clade not yet chosen; not yet registered"
+note = "created from rsr-template-repo as a game-engine project; registration remains an owner action"
 
 # ---------------------------------------------------------------------------
 # REGISTRATION IS NOT DERIVATION. Deriving the uuid above does not register this

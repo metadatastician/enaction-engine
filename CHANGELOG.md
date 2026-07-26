@@ -13,3 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- Run: just changelog -->
 
 ## [Unreleased]
+
+### Changed
+
+- Adopt the canonical Enaction Engine project and repository identity.
+- Rename the initial crate to `enaction-time` and its Rust import to
+  `enaction_time`.
+- Define the complete-engine destination, evidence-gated roadmap, proving-ground
+  policy, and versioned Universal Modding Studio boundary.
