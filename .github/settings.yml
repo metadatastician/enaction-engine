@@ -38,6 +38,10 @@
 # ─── Repository Settings ───────────────────────────────────────────────────────
 
 repository:
+  name: "paint-type"
+  description: "Cross-platform open-source image editor — capable enough for real work, simple enough to reach for without thinking"
+  homepage: "https://github.com/metadatastician/paint-type"
+  private: false
   has_issues: true
   has_projects: true
   has_wiki: false
@@ -125,41 +129,32 @@ labels:
     color: "c5def5"
     description: "Code refactoring with no functional change"
 
+  - name: "proof needed"
+    color: "fbcca0"
+    description: "Formal proof required for verification"
+
+  - name: "proof complete"
+    color: "006b75"
+    description: "Formal proof has been completed and verified"
+
 # ─── Branch Protection ─────────────────────────────────────────────────────────
 
-# A required context must name a check that is actually EMITTED, or the branch
-# deadlocks: the check never reports, so it stays permanently pending, and with
-# enforce_admins even the owner cannot merge or push. This block previously
-# required three contexts, two of which no repo has ever emitted —
-#
-#   "codeql"       is emitted as `analyze (actions, none)`  (job id + matrix)
-#   "hypatia-scan" is emitted as `scan / Hypatia Neurosymbolic Analysis`
-#                  (a reusable-workflow call always reports `caller / called`)
-#
-# — while "openssf-compliance" resolved only because its job *id* is literally
-# `openssf-compliance` and it declares no `name:` and no matrix. That is the
-# rule: pin the job **id** to the context string. Note this file is applied by
-# probot on every push to the default branch, so a wrong context here does not
-# merely describe protection, it re-imposes the deadlock on every push.
-#
-# `contexts` is deliberately EMPTY rather than aspirational. Requiring a check
-# that cannot pass is the same defect as requiring one that cannot report, and
-# on this repo no check can currently run at all: GitHub Actions is billing-
-# blocked for PRIVATE repositories on this account ("The job was not started
-# because recent account payments have failed or your spending limit needs to be
-# increased"), which is why every workflow here fails with zero steps while the
-# estate's public repos run normally. Repopulate this list — one context at a
-# time, each pinned to a job id, each verified green — once Actions can run.
 branches:
   - name: "main"
     protection:
       required_pull_request_reviews:
-        required_approving_review_count: 0
+        required_approving_review_count: 1
         dismiss_stale_reviews: true
-        require_code_owner_reviews: false
+        require_code_owner_reviews: true
+        require_last_push_approval: true
+        required_review_thread_resolution: true
       required_status_checks:
         strict: true
-        contexts: []
+        contexts:
+          - "Cargo check + clippy + fmt"
+          - "Cargo test"
+          - "analyze (javascript-typescript, none)"
+          - "openssf-compliance"
       enforce_admins: true
       required_signatures: true
       restrictions: null
