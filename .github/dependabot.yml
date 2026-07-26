@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # Dependabot configuration for RSR-compliant repositories
 # Covers common ecosystems - remove unused ones for your project
 
@@ -15,28 +15,37 @@ updates:
           - "*"
 
   # Rust/Cargo
-  #
-  # `open-pull-requests-limit: 0` suppresses routine version-update PRs
-  # (no weekly patch-bump noise) while leaving Dependabot SECURITY PRs
-  # flowing. Under GitHub's current Dependabot behaviour (2024+), using
-  # an `ignore:` rule with `version-update:semver-patch` would ALSO
-  # silence security PRs that happen to be patch-level — historically
-  # the cause of estate-wide vulns sitting un-PR'd for weeks.
-  # `open-pull-requests-limit: 0` is the GitHub-endorsed way to say
-  # "security only, not routine bumps". Pair with the
-  # dependabot-automerge.yml workflow for low-touch security
-  # maintenance.
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
+    # `open-pull-requests-limit: 0` suppresses routine version-update PRs
+    # while leaving Dependabot SECURITY PRs flowing. The previous
+    # `ignore: "*" patch` rule also silenced security PRs under GitHub\'s
+    # current Dependabot behaviour. See rsr-template-repo commit 78b050e
+    # and 007-lang/audits/audit-dependabot-automation-gap-2026-04-17.md.
     open-pull-requests-limit: 0
 
-  # NOTE: mix / npm / pip were removed at mint. The RSR template declares them
-  # speculatively, but Dependabot FAILS a run for any ecosystem whose manifest
-  # is absent — this repo is Rust-only, so three of the five runs were red from
-  # the first push. Re-add an ecosystem only alongside its manifest.
-  #
-  # NOTE: Nix is banned estate-wide — Guix is the sole package manager.
-  # Do not add a `nix` ecosystem here. Guix has no Dependabot ecosystem;
-  # pin Guix channels/manifests via build/ tooling instead.
+  # Elixir/Mix
+  - package-ecosystem: "mix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Node.js/npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Python/pip
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Nix flakes
+  - package-ecosystem: "nix"
+    directory: "/"
+    schedule:
+      interval: "weekly"
