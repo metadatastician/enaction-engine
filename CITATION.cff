@@ -3,15 +3,15 @@ message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Jewell"
   given-names: "Jonathan D.A."
-  orcid: "https://orcid.org/0000-0000-0000-0000" # Placeholder
-title: "Affective Engine"
+title: "Enaction Engine"
 version: 0.1.0
 date-released: "2026-07-22"
-url: "https://github.com/metadatastician/affective-engine"
-repository-code: "https://github.com/metadatastician/affective-engine"
+url: "https://github.com/metadatastician/enaction-engine"
+repository-code: "https://github.com/metadatastician/enaction-engine"
 license: AGPL-3.0-or-later
 keywords:
-  - "rsr"
-  - "formal-verification"
-  - "neurosymbolic"
-  - "provenance"
+  - "game-engine"
+  - "deterministic-simulation"
+  - "fixed-timestep"
+  - "render-interpolation"
+  - "enaction"

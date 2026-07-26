@@ -49,10 +49,10 @@ Remediating the copies without fixing the source guarantees the problem returns.
 Two obligations follow from this, and they are not optional:
 
 * *Find the source.* Before acting, trace the thing back to where it is actually
-  defined — the template, the generator, the canon, the single point that
-  everything else inherits from. The estate's structure is
-  `standards → affective-engine → (every repo)`; a fix that belongs at the
-  template does not belong in 380 leaves.
+  defined — the template, generator, canon, or single point that consumers
+  inherit from. Enaction Engine is an RSR-derived project, not the RSR template;
+  engine-specific fixes belong here while shared RSR fixes belong in their
+  actual standards or template source.
 * *Be mindful of every up- and down-stream.* A change at a source propagates.
   Before you make it, know what feeds into the thing you are changing (upstream)
   and what depends on it (downstream), and make sure the change is safe across
@@ -81,4 +81,4 @@ boundaries are real; and equivalence as identity.
 * *Licence:* CC-BY-SA-4.0 (documentation).
 * *Canon:* `hyperpolymath/standards` is the source of truth for these principles;
   `hyperpolymath/manifesto` states the doctrine in the owner's voice. This file
-  operationalises them for the RSR template and its descendants.
+  operationalises them for Enaction Engine.

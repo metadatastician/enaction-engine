@@ -40,7 +40,7 @@ k9_paired_runner    = "../bust/bust.ncl"
 [signed_by]
 user    = "Jonathan D.A. Jewell"
 date    = "2026-04-18"
-context = "bust trident — canonical template in affective-engine. Completes the blocking-authority triple (must + trust + bust). Specialises in deprecated-path-reintroduction catchment. Declares hard-stop / expiry / must-not-run conditions. Copy this trident into a new repo and declare its real breakage / expiry conditions."
+context = "Enaction Engine bust trident: blocking authority for declared deterministic, identity, architecture, and dependency failures."
 
 [[history]]
 date = "2026-04-18"

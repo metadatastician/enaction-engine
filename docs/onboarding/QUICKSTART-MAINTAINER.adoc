@@ -1,123 +1,36 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Template: QUICKSTART-MAINTAINER.adoc — packaging, deploying, and maintaining
-// Replace affective-engine, UNASSIGNED, UNASSIGNED with actuals
-= affective-engine — Quick Start for Platform Maintainers
-:toc:
-:toclevels: 2
+= Enaction Engine Maintainer Quick Start
 
-== Overview
+== Release posture
 
-This guide covers packaging, deploying, and maintaining affective-engine for
-distribution on your platform.
+The current distributable unit is the `enaction-time` Rust crate. Do not present
+the repository as a complete engine release, executable service, or editor.
 
-== Runtime Dependencies
-
-UNASSIGNED
-
-== Build from Source
+== Maintainer verification
 
 [source,bash]
 ----
-git clone https://github.com/metadatastician/affective-engine.git
-cd affective-engine
-just build-release
+cargo fmt --all -- --check
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+just test
+just verify
+bash scripts/check-root-shape.sh
 ----
 
-Output: `UNASSIGNED`
+Review `EXPLAINME.adoc` for claim-to-evidence boundaries and
+`docs/status/EXTERNAL-ACTIONS.adoc` before enabling external badges. Provider
+projects and badges must use the canonical identity and must resolve before
+publication.
 
-== Packaging
+== Release checks
 
-=== Guix
-
-[source,bash]
-----
-guix build -f guix.scm
-----
-
-=== Container (Stapeln)
-
-[source,bash]
-----
-just stapeln-export    # Generates Containerfile
-podman build -t affective-engine .
-----
-
-=== Manual Package
-
-[source,bash]
-----
-just install --prefix=/usr/local
-----
-
-Files installed:
-
-[cols="1,2"]
-|===
-| Path | Contents
-
-| `$PREFIX/bin/`
-| Executables
-
-| `$PREFIX/share/UNASSIGNED/`
-| Data files, assets
-
-| `$PREFIX/share/doc/UNASSIGNED/`
-| Documentation
-
-| `$PREFIX/share/applications/`
-| .desktop file (Linux, if GUI)
-
-| `$PREFIX/share/man/man1/`
-| Man pages
-|===
-
-== Configuration
-
-Default config location: `$XDG_CONFIG_HOME/UNASSIGNED/config.toml`
-
-Fallback: `$HOME/.config/UNASSIGNED/config.toml`
-
-== Health Checks
-
-[source,bash]
-----
-just doctor            # Full diagnostic
-just run --version   # Version check
-just run --selftest  # Built-in self-test
-----
-
-== Updating
-
-[source,bash]
-----
-git pull
-just build-release
-just install --prefix=/usr/local
-----
-
-Or via OPSM: `opsm update UNASSIGNED`
-
-== Security Notes
-
-* License: AGPL-3.0-or-later (code) / CC-BY-SA-4.0 (docs)
-* All dependencies SHA-pinned
-* `panic-attacker` scan results: link:INSTALL-SECURITY-REPORT.adoc[]
-* OpenSSF Scorecard: see badge in README
-
-== Multi-Instance Deployment
-
-For deploying multiple instances (e.g., different users or tenants):
-
-[source,bash]
-----
-just install --prefix=/opt/UNASSIGNED-instance1 --config=/etc/UNASSIGNED/instance1.toml
-just install --prefix=/opt/UNASSIGNED-instance2 --config=/etc/UNASSIGNED/instance2.toml
-----
-
-Each instance has isolated config, data, and logs.
-
-== Reporting Issues
-
-* Upstream: https://github.com/metadatastician/affective-engine/issues
-* With diagnostic: `just help-me` (pre-fills context)
+* Confirm Cargo metadata names `enaction-time`, imported as `enaction_time`.
+* Confirm repository and package URLs use
+  `https://github.com/metadatastician/enaction-engine`.
+* Inspect every occurrence of “affective”; it is permitted only for an actual
+  affective concept or subsystem.
+* Preserve AGPL-3.0-or-later for code and CC-BY-SA-4.0 for prose.
+* Record whether code has run in IDApTIK, another game, or only repository tests.
+* Reject speculative empty subsystems and unverified complete-engine claims.

@@ -1,99 +1,131 @@
-# Architecture
+<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
+# Enaction Engine architecture
 
-The Affective Engine is a runtime for deterministic simulations. Its organising
-constraint is one sentence:
+Enaction Engine is a deterministic, type-safe game engine for worlds shaped
+through perception, affect, intention, action and consequence.
 
-> **The simulation advances in whole, equal steps, and nothing the renderer does
-> may change that.**
+Its first invariant is:
 
-Everything else follows. Variable `dt` makes a run depend on frame timing, and a
-run that depends on frame timing cannot be replayed, snapshotted, or lockstepped
-across a network. So the engine steps the simulation on a fixed clock and hands
-the renderer a *fraction* to draw with — never a partial step to simulate.
+> The simulation advances in whole, equal steps, and render interpolation never
+> feeds simulation state.
 
-## Where this comes from
+Today, only the first part of the deterministic substrate exists as the Rust
+crate `enaction-time`. The rest of this document is a target architecture, not
+an inventory of implemented features.
 
-This engine is being extracted from a working game rather than designed in the
-abstract. The proving ground is
-[metadatastician/IDApTIK](https://github.com/metadatastician/IDApTIK), an
-asymmetric two-player infiltration game whose Rust core already holds a
-deterministic, event-sourced simulation with replay and snapshot tests.
+## Layered destination
 
-The rule is that **a component earns its way in by working somewhere real
-first.** Where something has served in IDApTIK, these docs say so; where it has
-not, they say that too — because the second kind is where the bugs will be.
-See `docs/decisions/` for the decisions behind each choice.
-
-## Layout
-
-```
-.
-├── crates/
-│   └── affective-time/     # fixed-timestep stepping + render interpolation
-│       ├── src/blend.rs    #   DoubleBuffer, Blend, lerp   (proven in IDApTIK)
-│       └── src/step.rs     #   FixedStep accumulator        (new here)
-├── docs/decisions/         # architecture decision records
-├── docs/legal/             # licence notices
-├── .machine_readable/      # A2ML manifests, contractiles, descriptiles
-├── build/just/             # Justfile phases (imported by ./Justfile)
-└── scripts/                # repo-shape and validation gates
+```text
+Enaction Engine
+├── deterministic substrate
+├── world and state model
+├── agency and embodiment
+├── cognition
+├── affect
+├── conation
+├── behaviour and action
+├── physics and interaction
+├── presentation
+├── networking and persistence
+└── tooling and host integration
 ```
 
-## `affective-time`
+The destination also encompasses input, sound and music, assets and content,
+rendering, multiplayer, replay, and released-game host contracts. These
+capabilities enter only when backed by real implementation and tests.
 
-The first crate, and the seam the rest of the engine will hang off.
+## Dependency direction
 
-**`DoubleBuffer<T, N>`** holds the last two simulated states in two inline
-fixed-size arrays and samples between them. It does not allocate: `commit` is a
-copy, there is no `Vec` and no `Box`, so neither the per-frame nor the per-step
-path can stall on the allocator. A test asserts the size is exactly
-`2 * N * size_of::<T>()`, so that claim fails a check rather than living in a
-comment.
+The architectural boundaries are directional:
 
-**`FixedStep`** converts real elapsed time into a whole number of owed steps plus
-a fraction. It caps the steps one call may return and **discards** the excess, so
-a stall makes the simulation run *slow* rather than spiral — trying to catch up
-takes longer than real time, which makes the next frame later still, without
-bound.
+* Low-level deterministic facilities know nothing about game content or domain
+  ontology.
+* World and state facilities provide stable host-defined entities, events, and
+  queries without assuming one game's rules.
+* Cognition, affect, and conation are sibling dimensions that operate over
+  host-defined entities and events. None names or owns the whole engine.
+* Behaviour and action turn situated state into constrained action; games own
+  their ontology, semantics, and game-specific rules.
+* Render interpolation consumes completed simulation states and must never feed
+  a value back into simulation.
+* Presentation and tools depend on runtime contracts, not the reverse.
+* Universal Modding Studio authors and validates content but is not required by
+  a released game. No circular dependency is allowed.
 
-### The interpolation invariant
+## Implemented deterministic substrate
 
-**Nothing produced by `DoubleBuffer` may flow back into simulation state.** It is
-a pure function of two states that have already been simulated. This is the
-property determinism rests on, and it is the first thing to check in any
-integration.
+```text
+crates/enaction-time/
+├── src/blend.rs   DoubleBuffer, Blend, endpoint-exact lerp
+├── src/step.rs    FixedStep accumulator and catch-up cap
+└── tests/         timing, interpolation, discontinuity, and layout evidence
+```
 
-Two corollaries that are easy to get wrong:
+`FixedStep` converts elapsed wall time into a count of whole simulation steps
+and a render-only remainder. It caps catch-up and exposes when excess time was
+dropped. This implementation is new here and has not run in a real game.
 
-- **Only continuous quantities blend.** Booleans, enums, visibility and colour
-  are read live from the current step. Sign-like values — a facing direction —
-  are discrete in this sense even though they are stored as numbers, because
-  lerping one through zero draws the subject facing neither way.
-- **A discontinuity is `commit` then `snap`, never `snap` alone.** On a restart,
-  teleport, level load or network resync the fresh state still has to enter the
-  buffer; `snap` only discards the stale previous step. Snapping without
-  committing keeps drawing the *old* position for another interval.
+`DoubleBuffer<T, N>` holds two completed states in fixed-size inline arrays.
+`sample` interpolates continuous values for display; `curr` exposes unblended
+current values for discrete presentation. Its design and edge cases derive from
+IDApTIK experience.
 
-## Host integration
+A discontinuity is handled by committing the fresh state and then snapping the
+history. Snapping alone cannot introduce the new state.
 
-The engine does not own the frame loop; the host does. The shape is:
+The current code does not prove whole-game determinism. A host must also control
+input ordering, state representation, arithmetic, randomness, concurrency, and
+external effects.
+
+## Host boundary
+
+The host owns the frame loop and domain state:
 
 ```rust
 for _ in 0..clock.advance(real_dt) {
-    world.step();                     // whole steps only
-    buffer.commit(&world.poses());
+    world.step();                      // whole fixed step
+    poses.commit(&world.poses());
 }
-draw(buffer.sample(slot, clock.alpha()));
+
+draw(poses.sample(slot, clock.alpha())); // presentation only
 ```
 
-The engine deliberately knows nothing about *what* a slot means. The host holds
-its own indices and decides what a pose is. That boundary is what lets the same
-buffers serve a 2D platformer, a network simulation and a terminal frontend
-without the engine growing opinions about any of them.
+The engine does not assign semantic meaning to a buffer slot. Future reusable
+host contracts should expose versioned, typed events and state views without
+forcing games into an engine-owned domain ontology.
 
-## What is not here yet
+## Cognition, affect, and conation
 
-Honesty is cheaper than surprise:
+Cognition includes perception, attention, memory, belief, inference, and
+planning. Affect includes appraisal, mood, atmosphere, trust, fear, attachment,
+and significance. Conation includes needs, motives, goals, commitment,
+inhibition, and action selection.
+
+These dimensions interact through an agent situated in a world, but they remain
+separable subsystem families. Agency and embodiment connect their state to
+possible action; worlds, ecologies, and institutions supply constraints and
+consequences. No such implementation exists in this repository yet.
+
+## Proving-ground policy
+
+IDApTIK is the first proving ground. Its working simulation supplies experience
+and candidate seams, but extraction must remove game-specific assumptions.
+Chronicles of Slavia is the second planned abstraction test: a boundary is not
+general merely because the first game can use it.
+
+New components must earn entry through a real use, an implemented seam, tests,
+and honest provenance. Speculative empty crates are prohibited.
+
+## UMS and released games
+
+UMS Studio and UMS Core sit on the authoring side. A versioned game profile
+describes valid content; an optional Enaction adapter may execute previews and
+tests. The output is a validated/compiled game package consumed by the released
+game. The runtime never imports the editor application, and UMS Core is not
+hard-wired to this engine. See
+[`docs/architecture/UMS-INTEGRATION.adoc`](docs/architecture/UMS-INTEGRATION.adoc).
+
+## Current limits
 
 - **No renderer, no ECS, no asset pipeline, no audio, no input.** "Engine" here
   currently means the timing and interpolation core, and nothing more.
@@ -102,3 +134,28 @@ Honesty is cheaper than surprise:
   hostile input, and a time-accounting invariant — but tests are not service.
 - **AffineScript is the intended eventual implementation language; this is
   Rust.** See ADR-0004 for why, and for what would have to change.
+
+## UMS and game boundary
+
+Enaction is below game runtimes in the dependency graph. It never imports UMS,
+game profiles or editor vocabulary. UMS may eventually use an optional adapter
+for preview, but that adapter must translate editor data into public Enaction
+inputs; it must not reverse the dependency.
+
+The current evidence is deliberately narrow:
+
+- `DoubleBuffer`, `Blend` and endpoint-exact interpolation were extracted from
+  IDApTIK and have run in its Bevy frontend.
+- `crates/affective-time/tests/idaptik_parity.rs` compares the extraction
+  boundary for fixed-step accounting, interpolation, discontinuities, hostile
+  elapsed time, discrete versus continuous values, and restart/snapshot
+  interaction.
+- IDApTIK has not adopted this repository's `FixedStep`; it continues to use
+  Bevy's fixed clock. No replacement is justified yet.
+- `enaction-cognition` is new, game-neutral and has not run in either game.
+  IDApTIK currently uses a local game-vocabulary trace with the same six-domain
+  separation while the general seam remains revisable.
+
+Nothing has been extracted from Slavia in this pass. The UMS Slavia profile
+identifies candidate future primitives—receptive fields, place memory,
+relationships and influence—but those are designs, not engine components.

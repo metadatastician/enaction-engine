@@ -5,7 +5,7 @@
 //! tested harder than the interpolation it feeds: the spiral-of-death guard,
 //! hostile inputs, and the invariant that no simulation time is invented.
 
-use affective_time::{DoubleBuffer, FixedStep};
+use enaction_time::{DoubleBuffer, FixedStep};
 
 const HZ: f64 = 60.0;
 const DT: f64 = 1.0 / 60.0;

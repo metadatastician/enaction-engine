@@ -89,8 +89,8 @@ version = "1.0.0"
 
 # Example: a custom portfolio for this project
 # [[portfolios.custom]]
-# id = "affective_engine-dev"
-# name = "Affective Engine Development"
-# description = "Panels for Affective Engine development"
+# id = "enaction_engine-dev"
+# name = "Enaction Engine Development"
+# description = "Panels for Enaction Engine development"
 # panels = ["valence-shell", "editor-bridge", "build-dashboard"]
 # default-isolation = "native"
