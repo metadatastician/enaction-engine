@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# enaction-engine.launcher.a2ml — per-app launcher config for Enaction Engine.
+# Compliant with launcher-standard.a2ml v0.3.0
+
+[project]
+name         = "enaction-engine"
+display      = "Enaction Engine"
+description  = "Deterministic type-safe game engine"
+categories   = ["Game", "Development"]
+version      = "0.1.0"
+license      = "MPL-2.0"
+
+[repo]
+path = ""
+
+[runtime]
+kind = "process"
+startup-command-search = [
+    "{repo-dir}/target/release/enaction-engine",
+    "{repo-dir}/enaction-engine",
+    "enaction-engine",
+]
+pid-file = "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/enaction-engine.pid"
+log-file = "${XDG_STATE_HOME:-$HOME/.local/state}/enaction-engine/enaction-engine.log"
+wait-for-url-timeout-seconds = 10
+
+[version-output]
+first-line-format = "enaction-engine {version} ({build-sha-short}) [{platform}]"
+example = "enaction-engine 0.1.0 (abc1234) [linux-x86_64]"
+exit-code = 0
+
+[icon]
+source = "{repo-dir}/assets/icon-256.png"
