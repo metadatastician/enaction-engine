@@ -36,6 +36,7 @@ the current state, never blended.
 
 == Implemented now
 
+What exists is a timing crate plus one deliberately small typed event seam:
 The repository currently provides `enaction-time`:
 
 [cols="1,3,2"]
@@ -133,6 +134,27 @@ draw(buffer.sample(0, clock.alpha())); // render-only
 
 == Repository map
 
+== Current integration evidence
+
+`crates/affective-time/tests/idaptik_parity.rs` covers healthy fixed-step
+accounting, hostile elapsed time, interpolation, discrete versus continuous
+state, discontinuities and snapshot/restart interaction. It proves the
+extracted interpolation boundary; it does not prove that IDApTIK uses
+`FixedStep`. IDApTIK still uses Bevy's accumulator, and this pass deliberately
+does not replace it.
+
+Enaction is a runtime dependency candidate below games. It does not depend on
+UMS. An optional UMS preview adapter may be added later, but released games must
+not depend on the UMS UI. The current IDApTIK appraisal example is game-local;
+the general `enaction-cognition` seam is new and remains unadopted.
+
+== Language
+
+The intended long-term implementation language is **AffineScript**. This is
+Rust, deliberately and for now: AffineScript is a real working compiler, but it
+ships no release artefact and its typed-wasm bridge is still gated. The port is
+gated on both of those, and would pin to a compiler commit rather than a version.
+See link:docs/decisions/0004-rust-now-affinescript-later.adoc[ADR-0004].
 [source,text]
 ----
 crates/enaction-time/       current Rust timing and interpolation crate

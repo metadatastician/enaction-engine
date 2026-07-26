@@ -98,3 +98,8 @@ last-report = ""
 last-result = "unknown"
 open-warnings = 0
 open-failures = 0
+
+[ecosystem]
+part-of = ["metadatastician game runtime architecture"]
+depends-on = []
+consumers = ["none required; IDApTIK interpolation is extraction provenance, not a Cargo dependency"]

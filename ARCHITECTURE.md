@@ -127,8 +127,35 @@ hard-wired to this engine. See
 
 ## Current limits
 
-There is no engine renderer, ECS, audio, input, asset pipeline, physics,
-networking, persistence layer, general AI, full affective model, or UMS adapter.
-There is one Rust timing/interpolation crate. AffineScript remains conditional
-on a genuine compiler release and typed-Wasm readiness; it is not part of the
-current build.
+- **No renderer, no ECS, no asset pipeline, no audio, no input.** "Engine" here
+  currently means the timing and interpolation core, and nothing more.
+- **`FixedStep` has never run a real game.** IDApTIK borrows Bevy's accumulator,
+  so this implementation is new code. It is tested hard — the spiral guard,
+  hostile input, and a time-accounting invariant — but tests are not service.
+- **AffineScript is the intended eventual implementation language; this is
+  Rust.** See ADR-0004 for why, and for what would have to change.
+
+## UMS and game boundary
+
+Enaction is below game runtimes in the dependency graph. It never imports UMS,
+game profiles or editor vocabulary. UMS may eventually use an optional adapter
+for preview, but that adapter must translate editor data into public Enaction
+inputs; it must not reverse the dependency.
+
+The current evidence is deliberately narrow:
+
+- `DoubleBuffer`, `Blend` and endpoint-exact interpolation were extracted from
+  IDApTIK and have run in its Bevy frontend.
+- `crates/affective-time/tests/idaptik_parity.rs` compares the extraction
+  boundary for fixed-step accounting, interpolation, discontinuities, hostile
+  elapsed time, discrete versus continuous values, and restart/snapshot
+  interaction.
+- IDApTIK has not adopted this repository's `FixedStep`; it continues to use
+  Bevy's fixed clock. No replacement is justified yet.
+- `enaction-cognition` is new, game-neutral and has not run in either game.
+  IDApTIK currently uses a local game-vocabulary trace with the same six-domain
+  separation while the general seam remains revisable.
+
+Nothing has been extracted from Slavia in this pass. The UMS Slavia profile
+identifies candidate future primitives—receptive fields, place memory,
+relationships and influence—but those are designs, not engine components.
