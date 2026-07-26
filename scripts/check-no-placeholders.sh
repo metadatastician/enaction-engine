@@ -46,12 +46,10 @@ fi
 #
 # This check deliberately precedes the template exemption below. That exemption
 # is why the original incident went unseen: the gate skipped `*-template-repo`
-# entirely, so nobody noticed that .github/settings.yml shipped `name: "affective-engine"`
-# — and .github/settings.yml is not inert content in a template. probot/settings
-# applies it on every push to the default branch, in the template as much as in
-# an instantiation. The template submitted the literal `affective-engine` as its own
-# name; GitHub collapsed the illegal braces to dashes and renamed the repository
-# to `-REPO-`, which then read as a deleted repo.
+# entirely, so nobody noticed that .github/settings.yml shipped an unresolved
+# repository-name token. The file is not inert: probot/settings applies it on
+# every push. GitHub sanitised the token to an unintended slug and repeatedly
+# renamed the repository.
 #
 # So: in this one file, a placeholder is never "the product". Neither is an
 # identity key with a real value — `name`/`private` cannot be inherited by a

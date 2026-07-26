@@ -12,7 +12,7 @@ Accepted
 
 ## Context
 
-The Affective Engine is intended, long-term, to be written in **AffineScript** —
+The Enaction Engine is intended, long-term, to be written in **AffineScript** —
 the maintainer's own affine-typed language. The question is whether to start
 there or to start in Rust and port later.
 
@@ -55,7 +55,7 @@ Concretely:
   answered by running code rather than by argument.
 * **A rewrite is owed.** This is a real cost, accepted deliberately. It is
   bounded by keeping the crate small and its surface narrow — the whole of
-  `affective-time` is two files.
+  `enaction-time` is two files.
 * Writing it in Rust first is also a useful forcing function for the port: an
   affine-typed language should find a zero-allocation, no-aliasing,
   `forbid(unsafe_code)` design *easier* to express than Rust does, not harder.

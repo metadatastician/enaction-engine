@@ -1,0 +1,20 @@
+= Interface design references
+:toc:
+
+SPDX-FileCopyrightText: 2026 Enaction Engine contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+`enaction-engine-vortal.html` is the standalone Enaction Engine systems-portal
+outline provided on 2026-07-25. It is retained as an executable HTML design
+reference.
+
+The current implementation remains the narrow `enaction-time` deterministic
+substrate. Values, subsystem status, controls, traces, and integrations shown
+by the vortal are simulated in the browser and do not establish that a
+renderer, ECS, asset pipeline, networking layer, complete agency system, UMS
+adapter, or released-game integration exists.
+
+The vortal belongs to Enaction Engine's development and inspection experience.
+It is not the Universal Modding Studio portal or a game landing page. Host games
+retain their ontology, released games do not depend on the UMS application, and
+the engine must not acquire a circular dependency on UMS.

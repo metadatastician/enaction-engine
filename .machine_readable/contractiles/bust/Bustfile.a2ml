@@ -1,52 +1,51 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Bustfile — failure mode contractile for affective-engine
-# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-#
-# Paired runner: bust.ncl
-# Verb:          bust
-# Semantics:     Every declared failure mode must have a working recovery path
-#                that has been exercised. Status moves:
-#                  declared → drilled (probe run) → verified (recovery confirmed)
-#                  or → failing (recovery broken)
-#
-# CLI:
-#   contractile bust check  → list failure modes + recovery status
-#   contractile bust drill  → inject failures, verify recovery paths
-#
-# This repository: affective-engine is the canonical template for RSR compliance.
-# Failure modes here relate to template distribution and substitution.
+# Bustfile — Enaction Engine failure-mode contractile
 
 @abstract:
-Bustfile for affective-engine. Lists failure modes specific to the template
-repository itself, particularly around template distribution, substitution,
-and synchronization across the hyperpolymath estate.
+Hard-stop failure modes for deterministic timing, identity, provenance, and
+runtime/tooling boundaries.
 @end
 
 ## Failure Modes
 
-### template-substitution-failure
-- class: template_processing
-- description: Template substitution fails when initializing a new repo from this template
-- injection_probe: "cp -r affective-engine test-repo && cd test-repo && sed -i 's/affective-engine/TEST/g' .machine_readable/contractiles/Intentfile.a2ml && grep -q 'TEST' .machine_readable/contractiles/Intentfile.a2ml"
-- recovery_probe: "git -C test-repo diff --quiet .machine_readable/contractiles/Intentfile.a2ml"
-- expected_recovery_time_seconds: 10
+### partial-step-enters-simulation
+- class: deterministic_integrity
+- description: Host simulation observes a fractional render interval
+- detection_probe: "cargo test --workspace"
+- recovery: restore whole-step-only host integration and add a regression test
 - status: declared
-- notes: Verify that substitution scripts handle all placeholder replacements correctly
 
-### sync-drift-between-repos
-- class: synchronization
-- description: Drift occurs between affective-engine and other repos after template updates
-- injection_probe: "echo 'template_updated' > /tmp/test_drift_marker"
-- recovery_probe: "test -f /tmp/test_drift_marker && rm /tmp/test_drift_marker"
-- expected_recovery_time_seconds: 60
+### interpolation-feeds-simulation
+- class: deterministic_integrity
+- description: A value sampled for rendering is written back into simulation state
+- detection_probe: architecture review at every host integration
+- recovery: separate completed simulation state from presentation views
 - status: declared
-- notes: The estate-wide sync scripts (see scripts/) should prevent this; verify with scripts/verify-sync.sh
 
-### contractile-parse-error
-- class: contractile_format
-- description: A contractile file fails to parse due to syntax errors
-- injection_probe: "echo 'invalid syntax' >> affective-engine/.machine_readable/contractiles/Intentfile.a2ml"
-- recovery_probe: "git checkout affective-engine/.machine_readable/contractiles/Intentfile.a2ml"
-- expected_recovery_time_seconds: 5
+### discontinuity-loses-fresh-state
+- class: rendering_integrity
+- description: snap is called without first committing the fresh discontinuous state
+- detection_probe: "cargo test --workspace commit_then_snap"
+- recovery: commit the fresh state, then snap, and preserve the regression test
+- status: verified
+
+### identity-drift
+- class: repository_integrity
+- description: Repository, crate, import, package, URL, or generated identity diverges from the canonical enaction namespace
+- detection_probe: repository-wide identity search plus cargo metadata
+- recovery: realign every identity surface without adding aliases
 - status: declared
-- notes: All .a2ml files should be valid A2ML; use a2ml-validate runner
+
+### speculative-subsystem
+- class: architecture_integrity
+- description: An empty crate or module claims an unimplemented engine facility
+- detection_probe: workspace and source-tree review
+- recovery: remove the facade; retain destination architecture in documentation until implemented and tested
+- status: declared
+
+### ums-runtime-cycle
+- class: dependency_integrity
+- description: Enaction Engine depends on UMS Studio or released games require the editor UI
+- detection_probe: dependency and package-boundary review
+- recovery: restore versioned profile/package contracts and optional adapter direction
+- status: declared

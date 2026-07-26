@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Affective Engine container entrypoint
+# Enaction Engine container entrypoint
 #
 # Handles signal propagation, startup logging, and health check
 # preparation before exec-ing into the main application process.
@@ -15,7 +15,7 @@ set -e
 # when Podman sends stop signals (e.g. `podman stop`, `selur-compose down`).
 
 cleanup() {
-    echo "Received shutdown signal — stopping affective-engine..."
+    echo "Received shutdown signal — stopping enaction-engine..."
     # If the main process is backgrounded, kill it here:
     # kill "$MAIN_PID" 2>/dev/null || true
     # wait "$MAIN_PID" 2>/dev/null || true
@@ -27,7 +27,7 @@ trap cleanup TERM INT
 # Startup logging
 # ---------------------------------------------------------------------------
 
-echo "Starting affective-engine..."
+echo "Starting enaction-engine..."
 echo "  Host: ${APP_HOST:-[::]}"
 echo "  Port: ${APP_PORT:-8080}"
 echo "  Data: ${APP_DATA_DIR:-/data}"
@@ -56,8 +56,8 @@ fi
 #
 # TODO: Replace the command below with your application binary.
 # Examples:
-#   exec /app/affective-engine
-#   exec /app/release/bin/affective-engine start
-#   exec /app/affective-engine serve --host "${APP_HOST}" --port "${APP_PORT}"
+#   exec /app/enaction-engine
+#   exec /app/release/bin/enaction-engine start
+#   exec /app/enaction-engine serve --host "${APP_HOST}" --port "${APP_PORT}"
 
 exec "$@"

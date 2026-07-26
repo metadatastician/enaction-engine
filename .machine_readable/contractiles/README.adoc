@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Contractiles Template Set
+= Enaction Engine Contractiles
 :toc:
 :sectnums:
 
-This directory contains the canonical contractile templates for the
-hyperpolymath estate. `affective-engine` mirrors the standards master
-structure; copy `.machine_readable/contractiles/` into a new repo to
-establish a consistent operational, validation, trust, recovery,
-aspiration, and service-automation framework.
+This directory contains Enaction Engine's project-specific RSR contractiles.
+Their structure follows the estate standards; their declared invariants,
+failure modes, intent, and cleanup posture belong to this engine.
 
 Each verb directory holds a *trident* of files:
 

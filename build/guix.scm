@@ -1,13 +1,13 @@
 ;; SPDX-License-Identifier: AGPL-3.0-or-later
 ;; Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
 ;;
-;; Guix package definition for Affective Engine
+;; Guix package definition for Enaction Engine
 ;;
 ;; Usage:
 ;;   guix shell -D -f guix.scm    # Enter development shell
 ;;   guix build -f guix.scm       # Build package
 ;;
-;; TODO: Replace Affective Engine and customize inputs for your language/stack.
+;; Package environment for the current Rust timing substrate.
 ;; See: https://guix.gnu.org/manual/en/html_node/Defining-Packages.html
 
 (use-modules (guix packages)
@@ -18,7 +18,7 @@
              (gnu packages base))
 
 (package
-  (name "Affective Engine")
+  (name "enaction-engine")
   (version "0.1.0")
   (source (local-file "." "source"
                        #:recursive? #t
@@ -63,9 +63,9 @@
    (list
     ;; TODO: Add runtime dependencies
     ))
-  (home-page "https://github.com/metadatastician/Affective Engine")
-  (synopsis "A game engine: deterministic fixed-timestep simulation with render interpolation.")
-  (description "RSR-compliant project. See README.adoc for details.")
+  (home-page "https://github.com/metadatastician/enaction-engine")
+  (synopsis "Deterministic timing substrate for Enaction Engine")
+  (description "Enaction Engine is a deterministic, type-safe game engine for worlds shaped through perception, affect, intention, action and consequence. This package currently exposes its Rust timing and render-interpolation substrate.")
   (license (list
             ;; AGPL-3.0-or-later extends AGPL-3.0-or-later
             mpl2.0)))

@@ -1,4 +1,4 @@
-# AGENTS.md — Affective Engine
+# AGENTS.md — Enaction Engine
 
 Canonical, tool-agnostic instructions for every coding agent working in this
 repository. `CLAUDE.md` carries the estate-wide RSR protocol; this file carries
@@ -6,9 +6,13 @@ what is specific to *this* repo. Where they conflict, this file wins.
 
 ## What this is
 
-A runtime for deterministic simulations: fixed-timestep stepping plus render
-interpolation. **Not yet a general-purpose game engine** — there is no renderer,
-no ECS, no asset pipeline, no audio, no input. One crate, `affective-time`.
+Enaction Engine is a deterministic, type-safe game engine for worlds shaped
+through perception, affect, intention, action and consequence.
+
+The current implementation is only its first deterministic substrate:
+fixed-timestep stepping plus render interpolation. There is no renderer, ECS,
+asset pipeline, audio, input, physics, networking, or complete cognitive,
+affective, or conative subsystem. One crate exists: `enaction-time`.
 
 Read `ARCHITECTURE.md` and `docs/decisions/` before proposing anything
 structural.
@@ -80,6 +84,15 @@ Two measured results shape it, and both are counter-intuitive:
 - **Claim provenance honestly.** `DoubleBuffer` is proven in IDApTIK;
   `FixedStep` is new here and has never run a real game. Docs say so on purpose.
   Do not upgrade that language without the service to back it.
+- **Do not create speculative subsystem crates.** A component needs real
+  implementation, tests, and a proving-ground use or unavoidable substrate
+  requirement before it enters the workspace.
+- **Keep dimensions distinct.** Cognition, affect and conation are sibling
+  dimensions of agency. None names or owns the entire engine, and host games
+  retain their domain ontology and game-specific rules.
+- **Keep UMS at the contract boundary.** Enaction Engine is runtime
+  infrastructure. It must not depend on the UMS application, released games
+  consume compiled packages rather than editor UI, and cycles are forbidden.
 - **AffineScript is the eventual target, not the current language** (ADR-0004).
   Do not add it to the build.
 

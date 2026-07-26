@@ -1,36 +1,36 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Affective Engine - Citation Guide
+= Enaction Engine - Citation Guide
 :toc:
 
 == BibTeX
 
 [source,bibtex]
 ----
-@software{Affective Engine_2026,
+@software{Enaction Engine_2026,
   author = {Jewell, Jonathan D.A.},
-  title = {Affective Engine},
+  title = {Enaction Engine},
   year = {2026},
-  url = {https://github.com/metadatastician/Affective Engine},
+  url = {https://github.com/metadatastician/enaction-engine},
   license = {AGPL-3.0-or-later}
 }
 ----
 
 == Harvard Style
 
-Jewell, J. (2026) _Affective Engine_ [Computer software]. Available at: https://github.com/metadatastician/Affective Engine
+Jewell, J. (2026) _Enaction Engine_ [Computer software]. Available at: https://github.com/metadatastician/enaction-engine
 
 == OSCOLA
 
-Jonathan D.A. Jewell, 'Affective Engine' (2026) <https://github.com/metadatastician/Affective Engine>
+Jonathan D.A. Jewell, 'Enaction Engine' (2026) <https://github.com/metadatastician/enaction-engine>
 
 == MLA
 
-Jewell, Jonathan D.A. "Affective Engine." 2026, github.com/metadatastician/Affective Engine.
+Jewell, Jonathan D.A. "Enaction Engine." 2026, github.com/metadatastician/enaction-engine.
 
 == APA 7
 
-Jewell, J. (2026). _Affective Engine_ [Computer software]. GitHub. https://github.com/metadatastician/Affective Engine
+Jewell, J. (2026). _Enaction Engine_ [Computer software]. GitHub. https://github.com/metadatastician/enaction-engine
 
 == See Also
 

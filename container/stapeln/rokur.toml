@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Rokur secrets-gate configuration for Affective Engine
+# Rokur secrets-gate configuration for Enaction Engine
 #
 # Rokur (stapeln container stack) is a secrets-management gate: a small
 # Deno service that sits in front of the application and refuses to pass
@@ -16,7 +16,7 @@
 #   # or, in the stack, via compose (see compose.toml / compose.yaml)
 
 [metadata]
-name = "affective-engine-gate"
+name = "enaction-engine-gate"
 version = "0.1.0"
 
 # ============================================================================
@@ -27,7 +27,7 @@ version = "0.1.0"
 # Address rokur listens on (inside the container).
 listen = "[::]:8081"
 # The upstream application rokur fronts once the gate is satisfied.
-backend = "http://affective-engine:8080"
+backend = "http://enaction-engine:8080"
 # Health/readiness endpoints rokur exposes for vordr / orchestrators.
 health_path = "/health"
 ready_path = "/ready"

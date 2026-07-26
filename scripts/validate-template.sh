@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# RSR Template Validation Script
-# Verifies that a repository follows the RSR template structure and contains all required files
+# RSR Repository Validation Script
+# Verifies that this repository follows the required RSR structure.
 #
 # Exit codes:
 #   0 = validation passed
@@ -225,23 +225,17 @@ check_file_exists "src/interface/ffi/test/integration_test.zig" "Integration tes
 #==============================================================================
 
 echo ""
-log_info "Phase 5: Placeholder token replacement (skipped in template repo)"
+log_info "Phase 5: Placeholder token replacement"
 echo ""
 
-# Note: Template repo is allowed to have placeholders
-# For derived repos, we'd check that placeholders are replaced
-if [ "$(basename "$REPO_ROOT")" = "affective-engine" ]; then
-    log_pass "Skipping placeholder check for template repo"
-else
-    # Check that key files don't have unresolved placeholders
-    for file in "$REPO_ROOT/README.adoc" "$REPO_ROOT/Justfile" "$REPO_ROOT/.machine_readable/descriptiles/STATE.a2ml"; do
-        if [ -f "$file" ]; then
-            if has_placeholder "$file"; then
-                log_warning "File contains unresolved placeholders: $(basename "$file")"
-            fi
+# Check that key project files have no unresolved placeholders.
+for file in "$REPO_ROOT/README.adoc" "$REPO_ROOT/Justfile" "$REPO_ROOT/.machine_readable/descriptiles/STATE.a2ml"; do
+    if [ -f "$file" ]; then
+        if has_placeholder "$file"; then
+            log_warning "File contains unresolved placeholders: $(basename "$file")"
         fi
-    done
-fi
+    fi
+done
 
 #==============================================================================
 # VALIDATION PHASE 6: SPDX LICENSE HEADERS

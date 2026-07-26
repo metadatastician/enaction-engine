@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Affective Engine Component Readiness Assessment
+= Enaction Engine Component Readiness Assessment
 
 *Standard:* link:https://github.com/metadatastician/standards/tree/main/component-readiness-grades[Component Readiness Grades (CRG) v2.0 STRICT] +
 *Assessed:* 2026-07-22 +
@@ -177,7 +177,7 @@ Real-world external feedback confirming value. Populate
 
 * `docs/governance/CRG-CRITERIA.adoc` — grade definitions (boilerplate).
 * `docs/governance/CRG-AUDIT-<DATE>.adoc` — formal audit (populate from
-  `affective-engine/docs/governance/CRG-AUDIT-TEMPLATE.adoc`).
+  `enaction-engine/docs/governance/CRG-AUDIT-TEMPLATE.adoc`).
 * `docs/practice/DOGFOOD-LOG.adoc` — dated dogfood evidence (required for C).
 * `.machine_readable/descriptiles/STATE.a2ml` — authoritative state (canonical keys
   `[dogfooding-status]`, `[external-targets]`, `[issues-fed-back]`,

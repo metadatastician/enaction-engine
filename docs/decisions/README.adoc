@@ -1,3 +1,19 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= decisions Unit
+= Enaction Engine Architecture Decisions
+
+Accepted decisions are append-only records. Supersede an earlier decision with a
+new numbered ADR rather than silently rewriting its outcome.
+
+* `0001` — adopt the RSR standard
+* `0002` — variant contract
+* `0003` — forge and sustain lifecycle
+* `0004` — Rust now, AffineScript later
+* `0005` — fixed timestep and render-only interpolation
+* `0006` — Enaction Engine identity
+* `0007` — cognition, affect, and conation as siblings
+* `0008` — complete engine through incremental extraction
+* `0009` — UMS integration through versioned contracts
+* `0010` — IDApTIK and Chronicles of Slavia proving grounds
+* `0011` — repository and crate naming conventions
+* `0012` — no speculative empty subsystems

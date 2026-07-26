@@ -3,15 +3,15 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 -->
 # Clone the repository
-git clone https://github.com/metadatastician/affective-engine.git
-cd affective-engine
+git clone https://github.com/metadatastician/enaction-engine.git
+cd enaction-engine
 
 # Using Guix (recommended for reproducibility)
 guix shell -D -f guix.scm
 
 # Or using toolbox/distrobox
-toolbox create affective-engine-dev
-toolbox enter affective-engine-dev
+toolbox create enaction-engine-dev
+toolbox enter enaction-engine-dev
 # Install dependencies manually
 
 # Verify setup
@@ -21,7 +21,7 @@ just test    # Run test suite
 
 ### Repository Structure
 ```
-affective-engine/
+enaction-engine/
 ├── src/                 # Source code (Perimeter 1-2)
 ├── lib/                 # Library code (Perimeter 1-2)
 ├── extensions/          # Extensions (Perimeter 2)
@@ -94,10 +94,10 @@ Use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md) an
 
 Look for issues labelled:
 
-- [`good first issue`](https://github.com/metadatastician/affective-engine/labels/good%20first%20issue) — Simple Perimeter 3 tasks
-- [`help wanted`](https://github.com/metadatastician/affective-engine/labels/help%20wanted) — Community help needed
-- [`documentation`](https://github.com/metadatastician/affective-engine/labels/documentation) — Docs improvements
-- [`perimeter-3`](https://github.com/metadatastician/affective-engine/labels/perimeter-3) — Community sandbox scope
+- [`good first issue`](https://github.com/metadatastician/enaction-engine/labels/good%20first%20issue) — Simple Perimeter 3 tasks
+- [`help wanted`](https://github.com/metadatastician/enaction-engine/labels/help%20wanted) — Community help needed
+- [`documentation`](https://github.com/metadatastician/enaction-engine/labels/documentation) — Docs improvements
+- [`perimeter-3`](https://github.com/metadatastician/enaction-engine/labels/perimeter-3) — Community sandbox scope
 
 ---
 

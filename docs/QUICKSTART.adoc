@@ -11,14 +11,13 @@ Get up and running in 60 seconds.
 * just (command runner)
 * Your language toolchain (see Justfile for details)
 
-== From Template (New Project)
+== Checkout
 
 [source,bash]
 ----
-git clone https://github.com/metadatastician/affective-engine my-project
-cd my-project
-rm -rf .git && git init -b main
-just init       # interactive placeholder replacement
+git clone https://github.com/metadatastician/enaction-engine.git
+cd enaction-engine
+cargo test --workspace
 ----
 
 == Project Structure

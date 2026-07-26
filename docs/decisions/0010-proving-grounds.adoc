@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0010-proving-grounds
+
+
+Date: 2026-07-25
+
+== Status
+
+Accepted
+
+== Context
+
+One game can reveal real constraints but can also make its own ontology look
+universal. A reusable engine boundary needs both operational service and a
+second materially different consumer.
+
+== Decision
+
+IDApTIK is the first proving ground and source of initial extraction experience.
+Chronicles of Slavia is the second planned abstraction test. Provenance is
+recorded per component: reused experience, extracted code, and new engine code
+are not conflated.
+
+== Consequences
+
+IDApTIK-specific entities and rules do not enter low-level engine contracts.
+Passing repository tests is not described as real-game service. A component may
+be useful before the second game validates it, but its generality remains
+provisional.

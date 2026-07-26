@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= AFFIRMATION — Affective Engine, as of <UTC timestamp>
+= AFFIRMATION — Enaction Engine, as of <UTC timestamp>
 :toc: macro
 :toclevels: 2
 
@@ -30,7 +30,7 @@ toc::[]
 == What this is, and how it works
 
 *What it is.* A short, dated, signed snapshot of what metadatastician can honestly and
-verifiably claim about *Affective Engine* at one exact commit. Nothing here is
+verifiably claim about *Enaction Engine* at one exact commit. Nothing here is
 marketing and nothing is a promise about the future — those live in the README.
 This file is the receipt.
 
@@ -82,8 +82,8 @@ file. Bring a counter-example, a failing run, or a contradicting source.
 
 [cols="1,3"]
 |===
-| Project | Affective Engine
-| Repository | https://github.com/metadatastician/affective-engine
+| Project | Enaction Engine
+| Repository | https://github.com/metadatastician/enaction-engine
 | Commit (SHA) | <full commit SHA at time of signing>
 | Branch | main
 | Timestamp (UTC) | <ISO-8601 UTC timestamp>

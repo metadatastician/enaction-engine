@@ -6,11 +6,11 @@
 
 [metadata]
 version = "0.1.0"
-last-updated = "2026-04-11"
+last-updated = "2026-07-25"
 
 [project-info]
-type = "library"  # TODO: update type (library|binary|service|website|monorepo)  # library | binary | monorepo | service | website
-languages = []             # e.g. ["rust", "zig", "idris2"]
+type = "game-engine"
+languages = ["rust"]
 license = "AGPL-3.0-or-later"
 author = "Jonathan D.A. Jewell (hyperpolymath)"
 
@@ -22,7 +22,7 @@ author = "Jonathan D.A. Jewell (hyperpolymath)"
 build-tool = "just"
 container-runtime = "podman"
 ci-platform = "github-actions"
-package-manager = "guix"  # guix | cargo | mix
+package-manager = "cargo"
 
 [maintenance-axes]
 scoping-first = true
@@ -50,4 +50,6 @@ drift-risk-example = "single exception broadening into policy violation (e.g. Re
 effects-evidence = "benchmark execution/results and maintainer status dialogue/review"
 
 [design-rationale]
-# Key design decisions and their reasoning
+identity = "Enaction describes agents and worlds mutually shaping one another through situated action."
+current-substrate = "Whole fixed steps are isolated from render-only interpolation."
+growth-rule = "Subsystems enter only with real implementation, tests, and proving-ground evidence."

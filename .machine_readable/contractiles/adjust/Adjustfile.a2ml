@@ -1,72 +1,49 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Adjustfile — Drift-tolerance contract for affective-engine
-# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-#
-# Cumulative-drift catchment: tolerance bands + corrective actions.
-# Authority: advisory (Yard) — continue-with-warnings; auto_fix where deterministic.
-# Run with: adjust check
-# Fix with: adjust fix (applies deterministic patches; advisory otherwise)
+# Adjustfile — Enaction Engine drift tolerances
 
 @abstract:
-Drift tolerances and corrective actions for affective-engine. Unlike
-MUST (hard gate), ADJUST tracks cumulative drift against tolerance bands
-and proposes corrective actions. Advisory — it warns and trends, it does
-not block.
+Advisory drift checks for documentation evidence, proving-ground provenance,
+external identity, and workspace scope.
 @end
 
-## Template Drift
+## Documentation drift
 
-### placeholder-drift
-- description: Template placeholders should be replaced when copied
-- tolerance: 0 placeholder markers in copied repos
-- corrective: Search and replace all {{PLACEHOLDER}} markers
-- severity: advisory
-- notes: This check only applies to repos that copied from this template
-
-### template-version-drift
-- description: Template version should match RSR spec version
-- tolerance: Template version matches current RSR spec
-- corrective: Update template to match latest RSR spec
+### claim-evidence-alignment
+- description: Major README claims retain an EXPLAINME evidence entry
+- tolerance: Every implemented claim names an artifact, gate, proof limit, game status, and provenance
+- corrective: Narrow the README claim or extend EXPLAINME with real evidence
 - severity: advisory
 
-## Documentation Drift
-
-### readme-completeness
-- description: README should document all template features
-- tolerance: README covers all contractiles and directory structure
-- corrective: Update README.adoc with missing sections
+### implementation-status
+- description: Target architecture remains visibly distinct from implemented inventory
+- tolerance: No future subsystem is described as shipped without code and tests
+- corrective: Move unsupported claims back to intended direction
 - severity: advisory
 
-### example-accuracy
-- description: Examples in documentation should match actual template content
-- tolerance: All code examples in docs are accurate
-- corrective: Audit and fix examples in documentation
+## Proving-ground drift
+
+### provenance
+- description: Extracted, derived, and new code are not conflated
+- tolerance: IDApTIK service is recorded for interpolation; FixedStep remains new until integrated
+- corrective: Update claim wording from observed integration evidence
 - severity: advisory
 
-## Structural Drift
-
-### contractile-sync
-- description: All contractiles should have matching a2ml and ncl implementations
-- tolerance: Every .a2ml has a corresponding .ncl
-- corrective: Generate missing .ncl files from .a2ml
+### second-game-generality
+- description: One-game boundaries remain provisional until challenged by Chronicles of Slavia
+- tolerance: No untested boundary is called universally game-neutral
+- corrective: Mark the boundary provisional or add second-game evidence
 - severity: advisory
 
-### no-broken-symlinks
-- description: No broken symbolic links in template structure
-- tolerance: 0 broken symlinks
-- corrective: Run symlink-check script
+## Identity and structure drift
+
+### namespace
+- description: New crates, if earned, use the enaction-* namespace
+- tolerance: Zero off-namespace workspace packages
+- corrective: Rename before publication and update Cargo metadata, imports, docs, and tests
 - severity: advisory
 
-## Accessibility Drift
-
-### adoc-not-md
-- description: Template docs should prefer AsciiDoc
-- tolerance: New prose docs are *.adoc
-- corrective: Convert any new *.md to *.adoc
-- severity: advisory
-
-### spdx-header-consistency
-- description: All template files have correct SPDX headers
-- tolerance: 0 files missing SPDX-License-Identifier
-- corrective: Add SPDX headers to files that need them
+### external-providers
+- description: GitHub, SonarCloud, and indexed badges converge on canonical identity
+- tolerance: Unfinished provider actions are recorded in docs/status/EXTERNAL-ACTIONS.adoc
+- corrective: Complete authenticated provider rename, verify targets, then add badges
 - severity: advisory
