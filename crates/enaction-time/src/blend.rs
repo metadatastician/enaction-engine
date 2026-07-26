@@ -68,7 +68,7 @@ impl Blend for f32 {
 /// decides what a slot means and holds its own indices.
 ///
 /// ```
-/// use affective_time::DoubleBuffer;
+/// use enaction_time::DoubleBuffer;
 ///
 /// let mut buf: DoubleBuffer<f64, 2> = DoubleBuffer::new();
 /// buf.prime(&[0.0, 0.0]);
@@ -131,7 +131,7 @@ impl<T: Blend, const N: usize> DoubleBuffer<T, N> {
     /// except in motion, so it is worth a test of its own.
     ///
     /// ```
-    /// use affective_time::DoubleBuffer;
+    /// use enaction_time::DoubleBuffer;
     ///
     /// let mut buf: DoubleBuffer<f64, 1> = DoubleBuffer::new();
     /// buf.commit(&[900.0]);        // far from spawn

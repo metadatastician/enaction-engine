@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0008-complete-engine-incremental-extraction
+
+
+Date: 2026-07-25
+
+== Status
+
+Accepted
+
+== Context
+
+The long-term scope is comparable to a complete game engine: simulation, worlds,
+agency, interaction, presentation, audio, input, assets, networking,
+persistence, and tooling. Declaring all of those implemented would be false;
+narrowing the name to the current timing crate would abandon the destination.
+
+== Decision
+
+Enaction Engine is a complete long-term game-engine project built incrementally.
+A component enters the implemented architecture only with a real use, working
+code, tests, and stated provenance. Target diagrams and roadmaps label
+unimplemented facilities as direction rather than inventory.
+
+== Consequences
+
+The current release surface remains `enaction-time`. Documentation must separate
+implemented evidence from intended scope. Extraction is preferred where a real
+game reveals a reusable seam; genuinely new substrate code is identified as
+new and remains less battle-tested until it serves in a game.

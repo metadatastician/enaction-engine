@@ -1,44 +1,101 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# STATE.a2ml — Enaction Engine project state
+# STATE.a2ml — Enaction Engine project-state checkpoint
 
 [metadata]
 project = "enaction-engine"
-version = "0.1.0"
+version = "0.2.0"
 last-updated = "2026-07-25"
-status = "active"  # active | paused | archived
+status = "active"
 
 [project-context]
-name = "enaction-engine"
-purpose = "Deterministic runtime facilities: extracted interpolation, fixed-step policy and a small typed cognitive-affective-conative trace seam."
-completion-percentage = 15
+name = "Enaction Engine"
+purpose = "A deterministic, type-safe game engine for worlds shaped through perception, affect, intention, action and consequence."
+current-scope = "Early Rust deterministic timing and render-interpolation substrate."
+completion-percentage = 5
 
 [position]
-phase = "implementation"   # design | implementation | testing | maintenance | archived
-maturity = "experimental"  # experimental | alpha | beta | production | lts
+phase = "implementation"
+maturity = "experimental"
 
-[route-to-mvp]
-milestones = [
-  { name = "DoubleBuffer extracted from IDApTIK", completion = 100, evidence = "affective-time tests + idaptik_parity" },
-  { name = "FixedStep accumulator", completion = 70, notes = "Tested here; not adopted by IDApTIK" },
-  { name = "Typed cognitive-affective-conative seam", completion = 40, notes = "Serializable and tested; not adopted by either game" },
+[implemented]
+components = [
+  "fixed-timestep whole-step support",
+  "render-only interpolation",
+  "double buffering",
+  "discontinuity handling",
+  "Rust tests derived from IDApTIK experience",
 ]
 
-[blockers-and-issues]
-# No active blockers
+[not-implemented]
+components = [
+  "world and event substrate",
+  "renderer or ECS",
+  "physics and interaction",
+  "audio, music, or input",
+  "assets and content pipeline",
+  "networking, multiplayer, persistence, or engine replay",
+  "complete cognitive, affective, or conative systems",
+  "Universal Modding Studio adapter or game profile",
+  "AffineScript implementation",
+]
+
+[provenance]
+first-proving-ground = "metadatastician/IDApTIK"
+second-abstraction-test = "Chronicles of Slavia"
+interpolation = "derived from IDApTIK experience"
+fixed-step = "new engine code; not yet run in a real game"
 
 [critical-next-actions]
 actions = [
-  "Exercise FixedStep behind an IDApTIK adapter before proposing replacement",
-  "Map a game-specific trace to enaction-cognition without importing narrative vocabulary",
-  "Design field, relationship and world-memory primitives only from a second real slice",
+  "Rebase the Enaction identity-realignment line onto current origin/main before publishing runtime-contract work",
+  "Apply agent/ums-runtime-contract only after identity realignment; do not publish two competing Enaction baselines",
+  "Validate enaction-time through a real game-host integration",
+  "Preserve and extend timing/interpolation behavioural evidence",
+  "Extract only implemented, tested seams that survive game-specific ontology",
+]
+
+[cross-repository-reconciliation]
+coordination-id = "ums-idaptik-slavia-enaction-2026-07-25"
+decision-status = "working direction recorded for the next agent; publication reconciliation remains"
+role = "Game-neutral deterministic runtime facilities; never the owner of UMS profiles or either game's narrative vocabulary."
+settled = [
+  "Enaction must not depend on Universal Modding Studio",
+  "Games may adopt selected Enaction facilities only after behavioural evidence",
+  "Shared cognitive-affective-conative domains do not imply shared game vocabulary",
+]
+local-evidence-branch = "agent/ums-runtime-contract"
+local-evidence-commit = "c8edef8a4df28645513fb81658e8cda361ef91f6"
+local-evidence-status = "Clean, one commit ahead of origin/main, not present on the remote, and without a pull request."
+parallel-local-branch = "agent/enaction-engine-realignment"
+parallel-local-status = "Two identity/vortal commits diverge from two origin/main CI-remediation commits."
+proven = [
+  "IDApTIK DoubleBuffer and interpolation parity",
+  "continuous versus discrete value behaviour",
+  "commit-then-snap discontinuity behaviour",
+  "FixedStep accounting and hostile elapsed-time policy in comparison tests",
+]
+not-adopted-by-a-game = [
+  "Enaction FixedStep",
+  "enaction-cognition",
+]
+required-order = [
+  "Bring agent/enaction-engine-realignment onto current origin/main",
+  "Apply the runtime-contract evidence commit to that reconciled baseline",
+  "Rerun cargo fmt, workspace tests, warnings-as-errors Clippy, just test, and just verify",
+  "Publish one Enaction branch and one truthful pull request",
+]
+do-not = [
+  "Do not replace IDApTIK timing merely to create a dependency",
+  "Do not claim enaction-cognition has run in either game",
+  "Do not add Slavia or IDApTIK narrative enums to Enaction",
 ]
 
 [maintenance-status]
-last-run-utc = "never"
-last-report = "docs/reports/maintenance/latest.json"
-last-result = "unknown"  # unknown | pass | warn | fail
+last-run-utc = "2026-07-25"
+last-report = ""
+last-result = "unknown"
 open-warnings = 0
 open-failures = 0
 

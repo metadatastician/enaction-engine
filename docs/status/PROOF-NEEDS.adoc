@@ -2,7 +2,7 @@
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // Template: rsr-template-repo/docs/status/PROOF-NEEDS.adoc
 // Authoritative master list: ~/Desktop/PROOF-REQUIREMENTS-MASTER.adoc
-= Proof Requirements — AFFECTIVE_ENGINE
+= Proof Requirements — ENACTION_ENGINE
 
 == Proof Tier
 
@@ -26,7 +26,8 @@
 
 == Mandatory Proofs (All RSR Repos)
 
-These proofs come from the affective-engine and MUST be present in every repo:
+These RSR proof obligations come from the estate standards and are tracked here
+where they apply to Enaction Engine:
 
 === ABI/FFI Boundary Proofs (Idris2)
 

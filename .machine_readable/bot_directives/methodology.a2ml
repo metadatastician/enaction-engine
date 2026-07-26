@@ -102,14 +102,14 @@ constraints = [
 
 [methodology.state-validation]
 # A regex, not a literal list. The list form named the exact strings it was
-# meant to catch ("AFFECTIVE_ENGINE"), so `just init` substituted the detector along
-# with everything else and shipped reject-if-contains = ["MY_PROJECT", ...] —
-# a guard against unfilled tokens that had been eaten by the filling. The
+# meant to catch, so `just init` substituted the detector along with everything
+# else and shipped a guard against unfilled tokens that had itself been eaten
+# by the filling. The
 # escaped pattern below contains no token for init to match, and covers every
 # upper-snake token rather than the three anyone remembered to enumerate.
 # Enforced by scripts/check-no-placeholders.sh.
 reject-if-matches = ["\\{\\{[A-Z][A-Z0-9_]*\\}\\}"]
-reject-if-contains = ["affective-engine"]
+reject-if-contains = []
 reject-if-project-name-mismatch = true
 staleness-threshold-days = 90
 fallback-files = ["TODO.md", "TODO.adoc", "ROADMAP.adoc", "README.adoc"]

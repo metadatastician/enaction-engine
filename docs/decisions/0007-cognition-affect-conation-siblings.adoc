@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0007-cognition-affect-conation-siblings
+
+
+Date: 2026-07-25
+
+== Status
+
+Accepted
+
+== Context
+
+Situated agency involves knowing and interpreting, valuing and feeling, and
+wanting and committing. Treating one of these as the engine's root abstraction
+would distort the other two and encourage the engine to own game ontology.
+
+== Decision
+
+Cognition, affect, and conation are sibling subsystem families:
+
+* cognition: perception, attention, memory, belief, inference, and planning;
+* affect: appraisal, mood, atmosphere, trust, fear, attachment, significance;
+* conation: needs, motives, goals, commitment, inhibition, action selection.
+
+They operate through agency and embodiment over host-defined entities, events,
+worlds, ecologies, and institutions. Games retain their domain ontology and
+specific rules.
+
+== Consequences
+
+No sibling names or owns the engine. Interfaces between them require explicit
+typed state and events. This decision defines direction; none of these complete
+subsystems is implemented yet.

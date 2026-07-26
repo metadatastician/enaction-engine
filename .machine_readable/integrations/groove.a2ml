@@ -9,8 +9,8 @@
 (groove-manifest
   (version "1.0")
 
-  ; Service identity — replace affective-engine with your project name
-  (service "affective-engine")
+  ; Canonical service identity
+  (service "enaction-engine")
   (service-version "0.1.0")
 
   ; Primary port — MUST be unique across the ecosystem.

@@ -10,5 +10,5 @@
 Contact: mailto:jonathan.jewell@gmail.com
 Expires: 2026-12-31T23:59:59.000Z
 Preferred-Languages: en
-Canonical: https://github.com/metadatastician/affective-engine/.well-known/security.txt
-Policy: https://github.com/metadatastician/affective-engine/blob/main/SECURITY.md
+Canonical: https://github.com/metadatastician/enaction-engine/.well-known/security.txt
+Policy: https://github.com/metadatastician/enaction-engine/blob/main/.github/SECURITY.md

@@ -71,7 +71,9 @@ The descriptive family (working name *descriptiles*) describes what-is; the **co
 - **Before you invent, rename, or consolidate anything: STOP and check the map + IS-NOT.**
 
 ## Estate language policy (overridable per-repo via AGENTIC)
-Deny: **Nix, Node/npm, TypeScript, Python, Go, AGPL**. (Guix, not Nix.)
+Deny by estate default: **Nix, Node/npm, TypeScript, Python, Go, AGPL**.
+This repository explicitly overrides the licence default: code is deliberately
+**AGPL-3.0-or-later** and prose is **CC-BY-SA-4.0**. (Guix, not Nix.)
 
 ---
 
@@ -81,7 +83,7 @@ Deny: **Nix, Node/npm, TypeScript, Python, Go, AGPL**. (Guix, not Nix.)
 - **IS** — %{data.purpose}
 - **IS-NOT** — %{data.isnot}
 - **Where it sits** — pipeline position **%{data.pipeline_pos}**; chain `%{data.chain}`; coordination = `%{data.coordination}`.
-- **Constraints here** (AGENTIC) — fail-closed; evidence-per-step; no-silent-skip; rerun-after-fix; release-claim-requires-hard-pass. Never: banned langs (above), secrets, state files in repo root, AGPL. Details: `.machine_readable/bot_directives/{methodology,coverage,debt}.a2ml`.
+- **Constraints here** (AGENTIC) — fail-closed; evidence-per-step; no-silent-skip; rerun-after-fix; release-claim-requires-hard-pass. Never: banned languages (except the explicit licence override above is not a language rule), secrets, state files in repo root, or automated licence normalisation. Details: `.machine_readable/bot_directives/{methodology,coverage,debt}.a2ml`.
 - **Golden path** (ANCHOR) — `%{data.golden_smoke}` → %{data.golden_crit}.
 - **State** — phase %{data.phase}; maturity %{data.maturity}; %{data.completion}% complete; status %{data.status}.
 

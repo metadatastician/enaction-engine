@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0012-no-speculative-subsystems
+
+
+Date: 2026-07-25
+
+== Status
+
+Accepted
+
+== Context
+
+Empty crates and placeholder modules make an early project look broad while
+creating false API commitments. They provide neither behaviour nor evidence and
+often encode boundaries before a real game has tested them.
+
+== Decision
+
+A new subsystem or crate requires:
+
+* a concrete use in a proving ground or an unavoidable substrate need;
+* implemented behaviour rather than an empty facade;
+* tests or another proportionate verification gate;
+* documented dependency boundaries and provenance;
+* an honest statement of what remains unproved.
+
+Destination architecture belongs in documentation until these conditions hold.
+
+== Consequences
+
+The repository may look smaller than its roadmap, intentionally. Namespace
+reservation, directory symmetry, and roadmap optics are not sufficient reasons
+to add code. Reviewers may reject empty subsystem scaffolding as an
+architectural defect.

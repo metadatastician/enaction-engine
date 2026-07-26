@@ -6,7 +6,7 @@
 #
 # Placeholders — replace before first use:
 #   metadatastician — GitHub organization or username
-#   affective-engine  — GitHub repository name
+#   enaction-engine  — GitHub repository name
 
 [changelog]
 # Changelog header
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 # https://keats.github.io/tera/docs/#introduction
 body = """
 {%- macro remote_url() -%}
-  https://github.com/metadatastician/affective-engine
+  https://github.com/metadatastician/enaction-engine
 {%- endmacro -%}
 
 {% if version -%}
@@ -57,7 +57,7 @@ body = """
 # Template for the changelog footer
 footer = """
 {%- macro remote_url() -%}
-  https://github.com/metadatastician/affective-engine
+  https://github.com/metadatastician/enaction-engine
 {%- endmacro -%}
 
 {% for release in releases -%}

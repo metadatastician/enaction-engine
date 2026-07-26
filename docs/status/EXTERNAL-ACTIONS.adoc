@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= External Identity Actions
+
+The repository content uses the canonical `metadatastician/enaction-engine`
+identity. The following provider-side operations require authenticated owner
+access and are not established by editing this repository:
+
+* Rename the GitHub repository to `enaction-engine`, preserving history and
+  redirects, then set the local `origin` to
+  `git@github.com:metadatastician/enaction-engine.git`.
+* Rename or provision the SonarCloud project as
+  `metadatastician_enaction-engine` before enabling its workflow or badge.
+* After the GitHub rename is live, verify provider-indexed services such as
+  OpenSSF Scorecard and Software Heritage under the canonical URL before adding
+  their badges.
+
+Do not publish provider badges until their canonical targets resolve.

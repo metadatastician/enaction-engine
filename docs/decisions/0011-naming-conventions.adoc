@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0011-naming-conventions
+
+
+Date: 2026-07-25
+
+== Status
+
+Accepted
+
+== Context
+
+Repository, Cargo package, Rust import, and future crate names need one
+predictable identity without aliases.
+
+== Decision
+
+The repository slug is `enaction-engine`. Cargo packages use `enaction-*`.
+Their Rust import names follow Cargo's hyphen-to-underscore rule as
+`enaction_*`. The initial package is `enaction-time`, imported as
+`enaction_time`.
+
+Names describe implemented responsibility rather than aspirational completeness.
+Technical domain names such as affect, effect, and state remain unchanged when
+semantically correct.
+
+== Consequences
+
+Workspace dependency keys, paths, examples, doctests, artifacts, caches, and
+package metadata use the same namespace. A future crate needs an implemented
+purpose and cannot reserve a namespace by existing empty.

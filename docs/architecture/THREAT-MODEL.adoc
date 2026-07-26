@@ -4,13 +4,13 @@
 <!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
 <!-- Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com> -->
 
-# Threat Model: Affective Engine
+# Threat Model: Enaction Engine
 
 ## Document Info
 
 | Field         | Value                          |
 |---------------|--------------------------------|
-| Project       | Affective Engine               |
+| Project       | Enaction Engine               |
 | Version       | 1.0                            |
 | Last Reviewed | 2026-07-22                       |
 | Author        | Jonathan D.A. Jewell                     |
@@ -36,7 +36,7 @@
 
 ## System Overview
 
-Brief description of Affective Engine and its architecture.
+Brief description of Enaction Engine and its architecture.
 
 > See [STATE-VISUALIZER.adoc](../STATE-VISUALIZER.adoc) for the full architecture diagram and completion dashboard.
 

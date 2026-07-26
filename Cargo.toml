@@ -1,10 +1,10 @@
 # The Enaction Engine Cargo workspace.
 #
 # Crates are extracted from proving grounds, not designed in the abstract.
-# `affective-time` generalises the fixed-timestep interpolation first built and
-# proven in metadatastician/IDApTIK (`crates/idaptik-core/src/interp.rs`); see
-# docs/adr/0002-fixed-timestep-and-interpolation.md for what changed on the way
-# out and why the engine needs an accumulator IDApTIK does not.
+# `enaction-time` generalises fixed-timestep interpolation built and proven in
+# metadatastician/IDApTIK (`crates/idaptik-core/src/interp.rs`); see
+# docs/decisions/0005-fixed-timestep-and-interpolation.adoc for the extraction
+# boundary and why the engine also needs an accumulator IDApTIK does not.
 [workspace]
 resolver = "2"
 members = ["crates/affective-time", "crates/enaction-cognition"]
@@ -13,8 +13,8 @@ members = ["crates/affective-time", "crates/enaction-cognition"]
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-authors = ["Affective Engine contributors"]
-repository = "https://github.com/metadatastician/affective-engine"
+authors = ["Enaction Engine contributors"]
+repository = "https://github.com/metadatastician/enaction-engine"
 
 [workspace.dependencies]
 affective-time = { path = "crates/affective-time" }

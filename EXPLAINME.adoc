@@ -1,137 +1,155 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= RSR Template Repo - Explainme
-image:https://img.shields.io/badge/License-AGPL_3.0--or--later-blue.svg[License: AGPL-3.0-or-later,link="https://www.gnu.org/licenses/agpl-3.0"]
-
+= Enaction Engine: Claim-to-Evidence Map
 :toc:
 :icons: font
 
-This file explains how the key template claims map to real files.
+This document maps the principal claims in `README.adoc` to evidence. A passing
+test demonstrates only the property it observes; it does not turn the current
+timing crate into a complete game engine.
 
-== Runtime evidence boundary
+== Deterministic whole-step simulation support
 
-Claim:
-Enaction supplies deterministic runtime facilities, not an editor or narrative
-vocabulary.
+Claim:: A host can advance simulation in whole, equal steps without handing
+partial frame time to its simulation callback.
+Implementation artifact:: `crates/enaction-time/src/step.rs`:
+`FixedStep::advance`, `alpha`, `took_shortcut`, and `reset`.
+Verification gate:: `crates/enaction-time/tests/step.rs`, crate doctests,
+`cargo test --workspace`.
+Demonstrated:: Accumulation, whole-step accounting, remainder preservation,
+hostile-input handling, reset behaviour, and capped catch-up.
+Not demonstrated:: Whole-game determinism, deterministic host code, replay, or
+network lockstep.
+Real-game status:: `FixedStep` has not run in a real game.
+Provenance:: New engine code informed by accumulator practice, not extracted
+IDApTIK code.
 
-How this is implemented:
+== Interpolation is render-only
 
-* `affective-time::DoubleBuffer` is extracted from IDApTIK and parity-tested.
-* `FixedStep` is tested here but has not replaced IDApTIK's Bevy accumulator.
-* `enaction-cognition` supplies six typed domains and causal trace validation;
-  it contains no IDApTIK or Slavia terms and has not yet run in a game.
-* No crate in this repository depends on UMS.
+Claim:: `DoubleBuffer` samples two already-simulated states and is designed for
+rendering only.
+Implementation artifact:: `crates/enaction-time/src/blend.rs`; crate-level
+documentation in `src/lib.rs`.
+Verification gate:: `crates/enaction-time/tests/blend.rs` and doctests.
+Demonstrated:: Sampling does not mutate the buffer and exact endpoints expose
+the two committed states.
+Not demonstrated:: Rust's type system cannot prove that a host never writes a
+sampled value back into simulation. That remains an integration invariant.
+Real-game status:: The interpolation design has served in IDApTIK.
+Provenance:: Generalised from IDApTIK experience and its interpolation core.
 
-Caveat:
+== Continuous versus discrete values
 
-The UMS round trip executes IDApTIK's own runtime. It is not evidence that every
-new Enaction component has been adopted.
+Claim:: Continuous quantities may blend; discrete values must be read from the
+current completed step.
+Implementation artifact:: `Blend`, `DoubleBuffer::sample`, and
+`DoubleBuffer::curr` in `crates/enaction-time/src/blend.rs`.
+Verification gate:: Endpoint, monotonicity, slot, and current-state tests in
+`crates/enaction-time/tests/blend.rs`.
+Demonstrated:: Numeric continuous values blend and raw current values remain
+available.
+Not demonstrated:: The crate cannot infer whether a host's numeric field is
+semantically continuous. Facing direction, visibility, enums, and booleans
+remain host responsibilities.
+Real-game status:: The rule comes from IDApTIK rendering experience.
+Provenance:: Derived from IDApTIK bugs and tests.
 
-== Central Session Protocol Authority
+== Discontinuity handling
 
-Claim:
-Session protocols are centrally maintained and not duplicated in this template.
+Claim:: A teleport, restart, load, or resynchronisation uses `commit` then
+`snap`, not `snap` alone.
+Implementation artifact:: `DoubleBuffer::commit` and `DoubleBuffer::snap`.
+Verification gate:: `commit_then_snap_leaves_nothing_to_interpolate` and
+`snap_alone_would_lose_the_fresh_state`.
+Demonstrated:: The fresh value becomes both previous and current, preventing a
+rendered slide across the discontinuity.
+Not demonstrated:: Automatic discovery of discontinuities or coordination with
+physics, networking, or persistence.
+Real-game status:: The failure mode was observed through IDApTIK experience.
+Provenance:: Derived from IDApTIK.
 
-How this is implemented:
+== Allocation claim
 
-* The local dispatcher (`session/dispatch.sh`) maps canonical commands to central
-  protocol paths in `standards/session-management-standards`.
-* Local files (`session/custom-checks.k9`, `session/local-hooks.sh`,
-  `coordination.k9`) are integration-only.
+Claim:: The current buffer representation and timing/interpolation operations
+contain no heap-owning storage or explicit allocation.
+Implementation artifact:: `DoubleBuffer<T, N>` contains exactly two `[T; N]`
+arrays; `FixedStep` contains scalar fields.
+Verification gate:: `the_buffer_is_inline_fixed_size_storage`, source review,
+Clippy, and the Rust type layouts.
+Demonstrated:: The buffer's measured size equals two inline arrays for tested
+types, and the implementation contains no `Vec`, `Box`, or allocator call.
+Not demonstrated:: A whole-process allocation trace, allocations inside a
+host's `Blend` implementation, or allocation behaviour of future subsystems.
+Real-game status:: The buffer shape derives from IDApTIK; the crate itself has
+not replaced the game implementation.
+Provenance:: Extracted design with repository-local verification.
 
-Caveat:
+== IDApTIK provenance
 
-* If `SESSION_STANDARDS_DIR` is unset and no adjacent standards checkout exists,
-  the dispatcher records the command but cannot resolve central checklist paths.
+Claim:: IDApTIK is the first proving ground.
+Implementation artifact:: Its independent Rust core at
+`metadatastician/IDApTIK`, plus provenance comments and ADR-0005 here.
+Verification gate:: Repository-local tests reproduce the relevant behavioural
+cases; comparison with IDApTIK is a review activity, not an automated cross-repo
+gate.
+Demonstrated:: The buffer and interpolation rules are based on actual game
+experience.
+Not demonstrated:: That `enaction-time` is already integrated into IDApTIK, or
+that every engine facility is extracted from it.
+Real-game status:: The source experience is real; the extracted crate is not
+yet the game's dependency.
+Provenance:: Mixed: interpolation is derived from IDApTIK; `FixedStep` is new.
 
-== Canonical Command Surface
+== Complete engine subsystems are absent
 
-Claim:
-Template bindings align to one canonical command model.
+Claim:: The repository is currently only the first deterministic substrate.
+Implementation artifact:: The workspace lists only `crates/enaction-time`.
+Verification gate:: `cargo metadata`, workspace tests, repository-tree review,
+and the speculative-subsystem rule in ADR-0012.
+Demonstrated:: No renderer, ECS, audio, input, assets, networking, general AI,
+physics, or complete cognitive/affective/conative crate is shipped here.
+Not demonstrated:: Any of those future capabilities.
+Real-game status:: Not applicable.
+Provenance:: Honest current repository state.
 
-How this is implemented:
+== Future UMS contract
 
-* `Justfile` provides thin aliases (`intake-repo`, `checkpoint-change`,
-  `verify-maintenance`, `verify-substantial`, `verify-release`, `close-planned`,
-  `close-urgent`, `recover-repo`, `handover-*`).
-* Every alias calls `session/dispatch.sh` with canonical verb-object pairs.
+Claim:: UMS may author and validate content through versioned contracts without
+becoming a runtime dependency.
+Implementation artifact:: `docs/architecture/UMS-INTEGRATION.adoc` and ADR-0009.
+Verification gate:: Architecture review only; there is no adapter or contract
+implementation yet.
+Demonstrated:: The intended dependency boundary and prohibition on cycles.
+Not demonstrated:: Schema stability, package compatibility, preview parity, or
+an actual UMS adapter.
+Real-game status:: No.
+Provenance:: Design direction, not extracted code.
 
-Caveat:
+== Rust now, AffineScript later
 
-* Recipes are wrappers only. They do not replace protocol content from
-  the central standards repo.
+Claim:: Rust is current; AffineScript adoption is gated on release and
+typed-Wasm readiness.
+Implementation artifact:: `Cargo.toml`, `crates/enaction-time`, and ADR-0004.
+Verification gate:: Cargo formatting, tests, and Clippy. No AffineScript gate is
+present because no AffineScript implementation is claimed.
+Demonstrated:: The current Rust implementation builds and is tested.
+Not demonstrated:: A viable port, language parity, a stable compiler release,
+or typed-Wasm integration.
+Real-game status:: The IDApTIK experience is Rust; no engine AffineScript code
+has served in a game.
+Provenance:: Current implementation plus an explicitly conditional direction.
 
-== Runtime State Is Local
+== Complete-engine direction
 
-Claim:
-Session state is per-repository runtime output, not standards text.
-
-How this is implemented:
-
-* `session/dispatch.sh` writes command and continuity-core capture stubs to
-  `.session/LAST-CANONICAL-COMMAND.md` in the target repository path.
-
-Caveat:
-
-* Runtime files are intentionally lightweight and require human/agent completion.
-
-== Template Token Policy
-
-Claim:
-Placeholders are explicit template content until initialization.
-
-How this is implemented:
-
-* `README.adoc` and bootstrap recipes keep `{{TOKEN}}` placeholders visible.
-* `just init` performs token replacement.
-
-Caveat:
-
-* Uninitialized placeholders must not be treated as project-specific truth.
-
-== Dependency Updates (Dependabot)
-
-Claim:
-Dependency bumps land fast and safely, without manual chasing.
-
-How this is implemented:
-
-* `dependabot.yml` watches the Dependabot-supported ecosystems the estate
-  actually uses: `github-actions`, `cargo`, `mix` (Elixir), `docker`.
-* `dependabot-automerge.yml` auto-merges *every* bump (patch/minor/major,
-  security or routine) **once the required checks are green** — a broken bump
-  fails CI and stays open (you get an email); it never lands on a red `main`.
-
-Caveat:
-
-* Dependabot has **no Deno or Bun ecosystem**, and `pnpm` only rides under the
-  `npm` ecosystem (itself banned). For this Deno-first estate Dependabot cannot
-  watch the runtime dependencies; the `npm`/`pip` entries are retained only for
-  transitional/legacy manifests and are otherwise inert. Deno dependency
-  currency is managed via `deno.json`/`deno.lock`, not Dependabot.
-* Do **not** add Dependabot as a ruleset *bypass* actor: that lets bumps skip
-  the required checks (secret-scanning, SAST), removing the safety gate and the
-  "it broke" signal. Auto-merge-on-green gives fast merges without it.
-
-== Julia Registry Packages — Standalone Repo Requirement
-
-Claim:
-If this template is used to create a Julia package, it must remain a standalone repository registered with the Julia package registry.
-
-How this is implemented:
-
-* Julia's package registry (General.jl or other) expects each package to be a standalone GitHub repository with `Project.toml` at the repository root.
-* Installation via `Pkg.add()`, dependency resolution, and automated CI/CD all depend on this canonical structure.
-
-Caveat:
-
-* Do NOT move this repository into a monorepo or subdirectory, as this breaks registry registration and package discoverability.
-* Julia packages published to a registry must each remain a standalone top-level repository (registry registration and package discovery require it).
-* Non-registry Julia packages can be organized differently if they are not published to any registry.
-
-
-== License
-
-This project is licensed under the GNU Affero General Public License, v3.0 or later. See the `LICENSE` file for details.
-
-SPDX-License-Identifier: CC-BY-SA-4.0
+Claim:: Enaction Engine is scoped as a complete game engine in the long term.
+Implementation artifact:: `ARCHITECTURE.md`, `docs/status/ROADMAP.adoc`, and
+ADRs 0007, 0010, and 0012.
+Verification gate:: None for unimplemented direction; each future component
+must introduce its own implementation evidence and tests before documentation
+may move it into “implemented now.”
+Demonstrated:: A modular destination and admission rule.
+Not demonstrated:: Rendering, physics, audio, input, assets, networking,
+persistence, tools, or full cognition/affect/conation.
+Real-game status:: Only the timing/interpolation provenance described above.
+Provenance:: Incremental extraction strategy, with Chronicles of Slavia planned
+as the second abstraction test.

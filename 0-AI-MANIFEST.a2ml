@@ -5,11 +5,11 @@
 #
 [metadata]
 version = "0.1.0"
-last-updated = "2026-07-22"
+last-updated = "2026-07-25"
 
 [project]
-name = "Affective Engine"
-purpose = "A game engine: deterministic fixed-timestep simulation with render interpolation."
+name = "Enaction Engine"
+purpose = "A deterministic, type-safe game engine for worlds shaped through perception, affect, intention, action and consequence; currently an early timing and interpolation substrate."
 
 [ai-allocation]
 agents = [
