@@ -5,35 +5,35 @@
 
 [receipt]
 schema = "hyperpolymath.coaptation/1"
-repo = "affective-engine"
+repo = "enaction-engine"
 band = "amber"
 proposed-action = "advisory — soft drift within bands (posture/intend). Open an advisory issue; no re-anchor."
 
 [coverage]
-clauses-total = 50
-descriptile-witnessed = 3
-probe-deferred-to-hunt = 22
+clauses-total = 39
+descriptile-witnessed = 0
+probe-deferred-to-hunt = 15
 must-trust-unmeasured-gaps = 0
 note = "Yard sees descriptile evidence only; probe-deferred obligations need a Hunt-tier run for a full hard-gate."
 
 [reading.must-trust]
 grade = "boolean_gate / boolean_gate_provenance"
-witnessed = 3
+witnessed = 0
 refuted = 0
 unmeasured-gaps = 0
-probe-deferred = 22
+probe-deferred = 15
 gate = "pass"
 
 [reading.adjust]
 grade = "posture (advisory; accessibility / inclusive design)"
-satisfied = "0/1"
-posture-ok = false
+satisfied = "0/0"
+posture-ok = true
 
 [reading.intend]
 grade = "tropical (min-plus distance-to-north-star; wishes excluded)"
-committed-intents = 3
-distance = 2
-within-tolerance = true
+committed-intents = 6
+distance = 6
+within-tolerance = false
 
 [reading.bust]
 grade = "alarm (recognised break)"
@@ -41,60 +41,49 @@ alarms = 0
 
 [reading.dust]
 grade = "expected (planned exnovation)"
-items = 7
+items = 6
 
 [clauses]
-intend.repo-initialization = intent:done
-intend.contractile-completeness = intent:in_progress
-intend.automation-scripts = intent:in_progress
-intend.cross-repo-validation = wish:declared
-intend.automated-substitution = wish:declared
-intend.formal-verification = wish:declared
-intend.ecosystem-visualization = wish:declared
-must.license-present = probe-deferred
-must.readme-present = probe-deferred
-must.security-policy = probe-deferred
-must.ai-manifest = probe-deferred
-must.governance-docs = probe-deferred
-must.machine-readable-dir = witnessed
-must.contractiles-complete = probe-deferred
-must.contractiles-files-present = probe-deferred
-must.bust-dust-files-present = probe-deferred
-must.six-directory-present = witnessed
-must.anchors-directory = witnessed
-must.self-validating-structure = probe-deferred
-must.no-placeholder-values = probe-deferred
-must.template-readonly = probe-deferred
+intend.preserve-deterministic-substrate = intent:active
+intend.prove-through-games = intent:active
+intend.maintain-canonical-identity = intent:active
+intend.near = intent:
+intend.mid = intent:
+intend.far = intent:
+must.whole-steps-only = probe-deferred
+must.interpolation-render-only = probe-deferred
+must.discontinuity-commit-then-snap = probe-deferred
+must.workspace-crate = probe-deferred
+must.canonical-repository = probe-deferred
+must.no-speculative-crates = probe-deferred
+must.principal-documents = probe-deferred
+must.licence-content = probe-deferred
 must.no-untracked-contractiles = probe-deferred
-must.signed-commits = probe-deferred
+must.signed-release-commit = probe-deferred
 trust.no-secrets-committed = probe-deferred
 trust.no-private-keys = probe-deferred
-trust.no-tokens-in-source = probe-deferred
-trust.author-correct = probe-deferred
-trust.license-content = probe-deferred
-trust.template-files-readonly = probe-deferred
-trust.trust-deny-areas = probe-deferred
-trust.container-images-pinned = probe-deferred
-trust.no-dockerfile = probe-deferred
-adjust.placeholder-drift = refuted
-adjust.template-version-drift = unmeasured
-adjust.readme-completeness = unmeasured
-adjust.example-accuracy = unmeasured
-adjust.contractile-sync = unmeasured
-adjust.no-broken-symlinks = unmeasured
-adjust.adoc-not-md = unmeasured
-adjust.spdx-header-consistency = unmeasured
-dust.no-template-artifacts = expected
-dust.no-example-placeholders = expected
-dust.no-old-contractile-formats = expected
-dust.no-duplicate-justfile = expected
+trust.licence-content = probe-deferred
+trust.provider-identity = probe-deferred
+trust.ums-boundary = probe-deferred
+adjust.claim-evidence-alignment = unmeasured
+adjust.implementation-status = unmeasured
+adjust.provenance = unmeasured
+adjust.second-game-generality = unmeasured
+adjust.namespace = unmeasured
+adjust.external-providers = unmeasured
+dust.no-identity-drift = expected
+dust.no-speculative-crates = expected
+dust.no-generated-build-artifacts = expected
+dust.no-stale-provider-badges = expected
+dust.documentation-templates-aligned = expected
 dust.no-duplicate-readme-format = expected
-dust.no-stale-template-references = expected
-dust.version-sync-checked = expected
-bust.template-substitution-failure = latent
-bust.sync-drift-between-repos = latent
-bust.contractile-parse-error = latent
+bust.partial-step-enters-simulation = latent
+bust.interpolation-feeds-simulation = latent
+bust.discontinuity-loses-fresh-state = latent
+bust.identity-drift = latent
+bust.speculative-subsystem = latent
+bust.ums-runtime-cycle = latent
 
 [provenance]
-contractiles = "intend@b5248bb14c9b must@deb0cb5de0b2 trust@76884f439a88 adjust@8faad9ca0650 dust@8ce4f3c1efa0 bust@dd6a53e1fc9b"
-descriptiles = "clade@b974798d108a state@9fbef88c72f8 ecosystem@1c30abd8f618 agentic@d72859864bbe anchor@8b66b03d7736"
+contractiles = "intend@09d051846229 must@d312be72e9a4 trust@321e08d5d203 adjust@c9b6eaada524 dust@39cbf543073a bust@c39591153adf"
+descriptiles = "clade@549f215e45d4 state@c5a9edf22fdc ecosystem@81588bafccec agentic@78a8a9c28315 anchor@a4b67b588c4c"

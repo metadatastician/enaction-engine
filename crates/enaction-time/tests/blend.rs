@@ -5,7 +5,7 @@
 //! motion: an inexact endpoint pops once per step, a shimmering stationary
 //! value never settles, a mishandled discontinuity slides across the jump.
 
-use affective_time::{Blend, DoubleBuffer, lerp};
+use enaction_time::{Blend, DoubleBuffer, lerp};
 
 // ── endpoint exactness ──────────────────────────────────────────────────────
 

@@ -55,17 +55,17 @@
   # --- INTEND: a committed intent realised by the descriptive self-model ---
   "intend.repo-initialization" = {
     kind = "descriptile",
-    witnesses = [ { fact = "ecosystem.type", op = 'equals, arg = "repository-template" } ],
-    note = "ECOSYSTEM declares this repo IS a template ⇒ the init intent is realised",
+    witnesses = [ { fact = "ecosystem.type", op = 'equals, arg = "game-engine" } ],
+    note = "ECOSYSTEM declares the intended game-engine identity",
   },
 
   # --- ADJUST: accessibility/hygiene posture (advisory; never gates) ---
-  # The ANCHOR identity block still carries Affective Engine; for the template
-  # itself that is expected, but it is honestly a posture dip worth surfacing.
+  # A copied ANCHOR identity may still carry a template token; in a minted
+  # repository that signals missed rendering.
   "adjust.placeholder-drift" = {
     kind = "descriptile",
     witnesses = [ { fact = "anchor.project", op = 'not_contains, arg = "{{" } ],
-    note = "ANCHOR.identity.project is un-substituted (Affective Engine) ⇒ posture dip",
+    note = "ANCHOR.identity.project contains no unresolved project token",
   },
 
   # --- BUST: recognised break. For bust, a HOLDING witness means ALARM (active

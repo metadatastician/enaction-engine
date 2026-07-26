@@ -64,8 +64,8 @@ let methodology_guard = {
       # out of the file (in this comment too) so init cannot match it, while
       # Nickel still evaluates the element back to the full token. Do not
       # "simplify" it to a plain string. (The PLACEHOLDER token and
-      # "affective-engine" are not init tokens, so they survive as-is.)
-      reject_patterns = ["{{PLACEHOLDER}}", "{{" ++ "PROJECT}}", "affective-engine"],
+      # Other metasyntactic words are not init tokens, so they survive as-is.)
+      reject_patterns = ["{{PLACEHOLDER}}", "{{" ++ "PROJECT}}"],
     },
 
     coverage_updated = {

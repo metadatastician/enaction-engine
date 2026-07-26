@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Svalinn gatekeeper policy for Affective Engine
+# Svalinn gatekeeper policy for Enaction Engine
 #
 # Controls which operations are permitted through the edge gateway.
 # This template provides moderate security defaults — not wide-open test
@@ -65,9 +65,9 @@ rate_limits:
 trust:
   # Only accept .ctp bundles signed by these keys.
   trusted_signers:
-    - key_id: "affective-engine-release"
+    - key_id: "enaction-engine-release"
       algorithm: "Ed25519"
-      public_key_file: "/etc/svalinn/keys/affective-engine-release.pub"
+      public_key_file: "/etc/svalinn/keys/enaction-engine-release.pub"
 
   # Require these attestations on all .ctp bundles.
   required_attestations:

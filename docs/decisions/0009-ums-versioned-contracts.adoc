@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0009-ums-versioned-contracts
+
+
+Date: 2026-07-25
+
+== Status
+
+Accepted
+
+== Context
+
+Universal Modding Studio needs to author, generate, validate, preview, and
+package content without becoming part of a released game's runtime or making
+UMS Core engine-specific.
+
+== Decision
+
+Games expose versioned profiles and contracts. UMS Core consumes those contracts
+without a hard dependency on Enaction Engine. An optional UMS Enaction adapter
+may execute previews and tests. UMS produces validated, compiled packages that
+the game runtime consumes using Enaction Engine facilities.
+
+Enaction Engine never depends on the UMS application, released games do not
+require the editor UI, and circular dependencies are prohibited.
+
+== Consequences
+
+Contract versions, compatibility diagnostics, and headless validation become
+integration requirements. No adapter or contract is claimed until a real
+implementation and game profile exist. The detailed boundary is recorded in
+`docs/architecture/UMS-INTEGRATION.adoc`.

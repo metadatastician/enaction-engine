@@ -9,11 +9,11 @@ v1.1, 2026-04-07
 
 == Purpose
 
-This root document exists so humans and bots can see the hard audit posture
-without having to discover the standards repository first.
+This root document exists so humans and bots can see Enaction Engine's hard
+audit posture without having to discover the standards repository first.
 
 Canonical source documents live in the `standards` repository. This file is a
-repo-local audit gate summary for template users and automated agents.
+repo-local audit gate summary for contributors and automated agents.
 
 == Hard Rules
 
@@ -43,6 +43,6 @@ Read these as the authoritative source:
 
 == Bot Requirement
 
-Bots operating in repositories derived from this template should treat this
-document as a key root audit document and should not make optimistic release or
-publication claims that conflict with it.
+Bots operating here should treat this document as a key root audit document and
+must not make release or publication claims that outrun the current
+`enaction-time` implementation and its evidence.

@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: Affective Engine
+Upstream-Name: Enaction Engine
 Upstream-Contact: Jonathan D.A. Jewell <jonathan.jewell@gmail.com>
-Source: https://github.com/metadatastician/affective-engine
+Source: https://github.com/metadatastician/enaction-engine
 
 # Default: all files are AGPL-3.0-or-later
 Files: *

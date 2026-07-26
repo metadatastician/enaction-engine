@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Affective Engine — portable compose stack (Tier B)
+# Enaction Engine — portable compose stack (Tier B)
 #
 # This is the runtime-agnostic, OCI compose-spec file. It works unchanged with:
 #   podman compose  -f container/compose.yaml up -d
@@ -20,11 +20,11 @@ services:
   # ──────────────────────────────────────────────────────────────────────
   # Primary application service
   # ──────────────────────────────────────────────────────────────────────
-  "affective-engine":
+  "enaction-engine":
     build:
       context: ..
       dockerfile: container/Containerfile
-    image: "ghcr.io/metadatastician/affective-engine:latest"
+    image: "ghcr.io/metadatastician/enaction-engine:latest"
     ports:
       - "8080:8080"
     environment:
@@ -33,7 +33,7 @@ services:
       APP_LOG_FORMAT: "json"
       APP_DATA_DIR: "/data"
     volumes:
-      - "affective-engine-data:/data"
+      - "enaction-engine-data:/data"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
@@ -50,7 +50,7 @@ services:
   rokur:
     image: ghcr.io/hyperpolymath/rokur:latest
     environment:
-      ROKUR_BACKEND: "http://affective-engine:8080"
+      ROKUR_BACKEND: "http://enaction-engine:8080"
       ROKUR_LISTEN: "[::]:8081"
       ROKUR_REQUIRED_SECRETS: ""        # comma-separated env names that MUST be set
       ROKUR_AUDIT_LOG: "/var/log/rokur/audit.jsonl"
@@ -60,7 +60,7 @@ services:
     volumes:
       - rokur-audit:/var/log/rokur
     depends_on:
-      "affective-engine":
+      "enaction-engine":
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -95,5 +95,5 @@ services:
       retries: 3
 
 volumes:
-  "affective-engine-data":
+  "enaction-engine-data":
   rokur-audit:

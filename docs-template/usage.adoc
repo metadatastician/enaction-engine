@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 // SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
-= Usage — Affective Engine
+= Usage — Enaction Engine
 :revdate: 2026-MM-DD
 
 == Audience
 
-This document is for *consumers* of `Affective Engine` — people who depend
+This document is for *consumers* of `Enaction Engine` — people who depend
 on it, call it, or include it. For developers working *on* it, see
 link:./contributing.adoc[contributing.adoc].
 
@@ -31,7 +31,7 @@ Expected output:
 
 [source]
 ----
-Affective Engine v0.0.0
+Enaction Engine v0.0.0
 Listening on 127.0.0.1:8080
 ----
 

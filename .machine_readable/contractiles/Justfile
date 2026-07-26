@@ -19,9 +19,9 @@ set positional-arguments := true
 import? "build/contractile.just"
 
 # Project metadata — customize these
-project := "affective-engine"
+project := "enaction-engine"
 OWNER := "hyperpolymath"
-REPO := "affective-engine"
+REPO := "enaction-engine"
 version := "0.1.0"
 tier := "infrastructure"  # 1 | 2 | infrastructure
 
@@ -48,7 +48,7 @@ help recipe="":
 
 # Show this project's info
 info:
-    @echo "Project: affective_engine"
+    @echo "Project: enaction_engine"
     @echo "Version: {{version}}"
     @echo "RSR Tier: {{tier}}"
     @echo "Recipes: $(just --summary | wc -w)"
@@ -87,24 +87,11 @@ import? "build/just/assess.just"
 
 # Build the project (debug mode)
 build *args:
-    @echo "Building affective_engine (debug)..."
-    # TODO: Replace with your build command
-    # Examples:
-    #   cargo build {{args}}                    # Rust
-    #   mix compile {{args}}                    # Elixir
-    #   zig build {{args}}                      # Zig
-    #   deno task build {{args}}                # Deno/ReScript
-    @echo "Build complete"
+    cargo build --workspace {{args}}
 
 # Build in release mode with optimizations
 build-release *args:
-    @echo "Building affective_engine (release)..."
-    # TODO: Replace with your release build command
-    # Examples:
-    #   cargo build --release {{args}}
-    #   MIX_ENV=prod mix compile {{args}}
-    #   zig build -Doptimize=ReleaseFast {{args}}
-    @echo "Release build complete"
+    cargo build --workspace --release {{args}}
 
 # Build and watch for changes (requires entr or similar)
 build-watch:
@@ -231,31 +218,15 @@ fix: fmt
 
 # Format all source files [reversible: git checkout]
 fmt:
-    @echo "Formatting source files..."
-    # TODO: Replace with your formatter
-    # Examples:
-    #   cargo fmt
-    #   mix format
-    #   gleam format
-    #   deno fmt
+    cargo fmt --all
 
 # Check formatting without changes
 fmt-check:
-    @echo "Checking formatting..."
-    # TODO: Replace with your format check
-    # Examples:
-    #   cargo fmt --check
-    #   mix format --check-formatted
-    #   gleam format --check
+    cargo fmt --all -- --check
 
 # Run linter
 lint:
-    @echo "Linting source files..."
-    # TODO: Replace with your linter
-    # Examples:
-    #   cargo clippy -- -D warnings
-    #   mix credo --strict
-    #   gleam check
+    cargo clippy --workspace --all-targets -- -D warnings
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # RUN & EXECUTE
@@ -273,7 +244,7 @@ run-verbose *args: build
 
 # Install to user path
 install: build-release
-    @echo "Installing affective_engine..."
+    @echo "Installing enaction_engine..."
     # TODO: Replace with your install command
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -328,7 +299,7 @@ cookbook:
     #!/usr/bin/env bash
     mkdir -p docs
     OUTPUT="docs/just-cookbook.adoc"
-    echo "= affective_engine Justfile Cookbook" > "$OUTPUT"
+    echo "= enaction_engine Justfile Cookbook" > "$OUTPUT"
     echo ":toc: left" >> "$OUTPUT"
     echo ":toclevels: 3" >> "$OUTPUT"
     echo "" >> "$OUTPUT"
@@ -354,10 +325,10 @@ cookbook:
 man:
     #!/usr/bin/env bash
     mkdir -p docs/man
-    cat > docs/man/affective_engine.1 << EOF
-    .TH affective_engine 1 "$(date +%Y-%m-%d)" "{{version}}" "affective_engine Manual"
+    cat > docs/man/enaction_engine.1 << EOF
+    .TH enaction_engine 1 "$(date +%Y-%m-%d)" "{{version}}" "enaction_engine Manual"
     .SH NAME
-    affective_engine \- RSR-compliant project
+    enaction_engine \- RSR-compliant project
     .SH SYNOPSIS
     .B just
     [recipe] [args...]
@@ -366,7 +337,7 @@ man:
     .SH AUTHOR
     $(git config user.name 2>/dev/null || echo "Author") <$(git config user.email 2>/dev/null || echo "email")>
     EOF
-    echo "Generated: docs/man/affective_engine.1"
+    echo "Generated: docs/man/enaction_engine.1"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CI & AUTOMATION
@@ -543,7 +514,7 @@ assail:
 
 # Self-diagnostic — checks dependencies, permissions, paths
 doctor:
-    @echo "Running diagnostics for affective-engine..."
+    @echo "Running diagnostics for enaction-engine..."
     @echo "Checking required tools..."
     @command -v just >/dev/null 2>&1 && echo "  [OK] just" || echo "  [FAIL] just not found"
     @command -v git >/dev/null 2>&1 && echo "  [OK] git" || echo "  [FAIL] git not found"
@@ -553,7 +524,7 @@ doctor:
 
 # Guided tour of key features
 tour:
-    @echo "=== affective-engine Tour ==="
+    @echo "=== enaction-engine Tour ==="
     @echo ""
     @echo "1. Project structure:"
     @ls -la
@@ -568,12 +539,12 @@ tour:
 
 # Open feedback channel with diagnostic context
 help-me:
-    @echo "=== affective-engine Help ==="
+    @echo "=== enaction-engine Help ==="
     @echo "Platform: $(uname -s) $(uname -m)"
     @echo "Shell: $SHELL"
     @echo ""
     @echo "To report an issue:"
-    @echo "  https://github.com/metadatastician/affective-engine/issues/new"
+    @echo "  https://github.com/metadatastician/enaction-engine/issues/new"
     @echo ""
     @echo "Include the output of 'just doctor' in your report."
 

@@ -7,7 +7,33 @@
 # applied by the probot/settings app when changes are pushed to the default
 # branch. Install the app at: https://github.com/apps/settings
 #
-# Repository settings — configured for paint-type.
+# ─── THIS FILE MUST NEVER DECLARE REPOSITORY IDENTITY ─────────────────────────
+#
+# It carries NO `name`, `description`, `homepage` or `private` key, and it must
+# never gain one. The reason is a real incident, not a hypothetical:
+#
+#   A template once carried an unresolved repository-name token here.
+#   probot/settings applied that token on every push; GitHub sanitised it into an
+#   unintended slug and repeatedly renamed the repository. A description token
+#   was likewise applied as literal live metadata.
+#
+# Two properties make identity keys unsafe here specifically:
+#
+#   1. A copied settings file may be applied without a rendering step.
+#   2. Identity is not shareable: a downstream repository cannot safely inherit
+#      another repository's name, description, homepage, or visibility.
+#
+# Repository identity and visibility are therefore set OUT OF BAND: once per
+# repo, at creation time, by the operator (the Configure stage of ADR-0003).
+# `just init` deliberately runs NO `gh` commands — it prints the exact
+# `gh repo edit` commands as next steps instead. Fail-closed default: repos
+# stay private unless the owner flips visibility deliberately.
+#
+# Everything below is safe to inherit: it is true of every RSR repo regardless
+# of that repo's name, purpose or visibility.
+#
+# Enforced by `scripts/check-no-placeholders.sh`, which fails if this file
+# contains a `{{` token or declares any of the four identity keys.
 
 # ─── Repository Settings ───────────────────────────────────────────────────────
 

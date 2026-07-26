@@ -13,7 +13,7 @@ notice recommended by the AGPL itself.
 
 --------------------------------------------------------------------------------
 
-    Affective Engine — a deterministic simulation runtime.
+    Enaction Engine — a deterministic simulation runtime.
     Copyright (C) 2026 Jonathan D.A. Jewell
 
     This program is free software: you can redistribute it and/or modify

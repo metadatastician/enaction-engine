@@ -1,62 +1,39 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Dustfile — Cleanup and hygiene contract for affective-engine
-# Author: Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-#
-# Paired runner: dust.ncl
-# Verb:          dust
-# Semantics:     What should be cleaned up. Housekeeping, not blockers.
-#
-# This repository: affective-engine is the canonical template.
-# Cleanup items here ensure the template itself remains pristine.
+# Dustfile — Enaction Engine cleanup and hygiene contractile
 
 @abstract:
-Cleanup and hygiene items for affective-engine. These are maintenance tasks
-that ensure the template repository remains clean and ready for distribution
-to new repositories.
+Cleanup rules that keep the early engine honest, coherent, and free of
+speculative or generated residue.
 @end
 
-## Stale Files
+## Hygiene
 
-### no-template-artifacts
-- description: No generated files from template testing in root
-- run: test -z "$(ls template-test-* 2>/dev/null)"
-- severity: info
-- notes: Template testing should use /tmp or dedicated test directories
+### no-identity-drift
+- description: Canonical project, repository, package, crate, and URL identities agree
+- verification: run the identity searches documented in README.adoc
+- severity: blocking
 
-### no-example-placeholders
-- description: No example placeholder files (EXAMPLE-, SAMPLE-) in contractiles/
-- run: test -z "$(find .machine_readable/contractiles/ -name 'EXAMPLE-*' -o -name 'SAMPLE-*' 2>/dev/null)"
+### no-speculative-crates
+- description: Every workspace crate has implemented behaviour and tests
+- verification: inspect Cargo workspace membership and each crate's tests
+- severity: blocking
+
+### no-generated-build-artifacts
+- description: Cargo target output and generated temporary files are not committed
+- verification: git status --short
 - severity: warning
-- notes: All placeholders should be replaced with actual content or removed
 
-### no-old-contractile-formats
-- description: No old .contractile or .hs files remaining
-- run: test -z "$(find .machine_readable/contractiles/ \( -name '*.contractile' -o -name '*.hs' \) 2>/dev/null)"
+### no-stale-provider-badges
+- description: External badges are published only after their canonical provider targets exist
+- verification: verify each badge target before adding it to README.adoc
 - severity: warning
-- notes: All contractiles should be .a2ml format
 
-## Format Duplicates
-
-### no-duplicate-justfile
-- description: Only one Justfile (hardlinked from root to .machine_readable/contractiles/)
-- run: test $(stat -c '%i' Justfile) = $(stat -c '%i' .machine_readable/contractiles/Justfile 2>/dev/null)
+### documentation-templates-aligned
+- description: Documentation templates carry the canonical project identity and links
+- verification: review docs-template against README.adoc and repository metadata
 - severity: warning
-- notes: Justfile should be hardlinked, not copied
 
 ### no-duplicate-readme-format
-- description: Only one README format in contractiles/ (.adoc canonical)
-- run: test ! -f .machine_readable/contractiles/README.md
-- severity: info
-
-## Template Hygiene
-
-### no-stale-template-references
-- description: No references to affective-engine in generic template files
-- run: test -z "$(grep -r 'affective-engine' machine-readable-design/ 2>/dev/null)"
-- severity: warning
-- notes: Generic templates should use Affective Engine or similar placeholders
-
-### version-sync-checked
-- description: Version in canonical-directory-structure matches .machine_readable/contractiles
-- verification: compare version identifiers in both locations
+- description: Contractile documentation uses the canonical AsciiDoc format
+- verification: test ! -f .machine_readable/contractiles/README.md
 - severity: info

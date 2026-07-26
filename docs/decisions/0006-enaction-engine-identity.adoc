@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0006-enaction-engine-identity
+
+
+Date: 2026-07-25
+
+== Status
+
+Accepted
+
+== Context
+
+The project is scoped as a game engine for situated agents and changing worlds,
+not as one emotional model. Its identity must describe perception, affect,
+intention, action, and consequence without allowing one subsystem family to
+stand for the whole.
+
+== Decision
+
+The canonical project name is **Enaction Engine**, the repository slug is
+`enaction-engine`, and its definition is:
+
+> Enaction Engine is a deterministic, type-safe game engine for worlds shaped
+> through perception, affect, intention, action and consequence.
+
+The identity is a direct cut-over. Project metadata carries no compatibility
+alias or transitional name.
+
+== Consequences
+
+Repository, package, documentation, build, container, workflow, citation, and
+machine-readable identities use the canonical name. “Affective” remains valid
+only when it accurately describes an affective concept or subsystem.
