@@ -38,10 +38,13 @@
 # ─── Repository Settings ───────────────────────────────────────────────────────
 
 repository:
-  name: "paint-type"
-  description: "Cross-platform open-source image editor — capable enough for real work, simple enough to reach for without thinking"
-  homepage: "https://github.com/metadatastician/paint-type"
-  private: false
+  # IDENTITY KEYS DELIBERATELY ABSENT (name/description/homepage/private).
+  # probot/settings applies this file on every push to the default branch, so
+  # identity here is a self-rename weapon: this file arrived carrying
+  # `name: "paint-type"` — copied from another repo — and would have renamed
+  # this repository out from under itself. Identity is set once, out of band,
+  # via `gh repo edit`. This is the same incident class as the template's
+  # historical `-REPO-` rename; scripts/check-no-placeholders.sh guards it.
   has_issues: true
   has_projects: true
   has_wiki: false
