@@ -41,20 +41,38 @@ Replace the `no-speculative-crates` count invariant with:
 [source]
 ----
 ### crate-admission
-- description: Every crates/ subdirectory is a real package named enaction-*,
-  is a declared workspace member, and has src/ plus tests/
 - run: for d in crates/*/; do
          n=$(basename "$d");
          case "$n" in enaction-*) ;; *) exit 1 ;; esac;
-         test -f "$d/Cargo.toml" && test -d "$d/src" && test -d "$d/tests" || exit 1;
-         grep -q "\"crates/$n\"" Cargo.toml || exit 1;
+         test -f "$d/Cargo.toml" && test -d "$d/src" || exit 1;
+         { test -d "$d/tests" || grep -rq '#\[cfg(test)\]' "$d/src"; } || exit 1;
+         grep -q "crates/$n" Cargo.toml || exit 1;
        done
 - severity: critical
 ----
 
-This catches the current breakage, catches an empty facade, catches a crate that
-is not a member, and does not need editing when a fourth crate legitimately
-arrives.
+This catches an empty facade, catches a crate that is not a declared member, and
+does not need editing when a fourth crate legitimately arrives. Verified against
+a deliberately planted empty directory: a check that cannot fail is not a check.
+
+Tests may live in `tests/` **or** inline as `#[cfg(test)]` in `src/`. ADR-0012
+requires *"tests or another proportionate verification gate"*, not a particular
+directory layout. A first draft of this check demanded a `tests/` directory and
+consequently failed `enaction-cognition`, which tests inline and is correct to
+do so. Assert the requirement, not one way of meeting it.
+
+Pair it with a check that the workspace actually loads:
+
+[source]
+----
+### workspace-loads
+- run: cargo metadata --format-version 1 --no-deps >/dev/null
+- severity: critical
+----
+
+This is the check whose absence allowed the breakage. The invariant that was
+supposed to guard the workspace grepped for one exact `members` line, which said
+nothing about whether those members existed.
 
 === The invariant wins
 

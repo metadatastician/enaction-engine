@@ -146,7 +146,7 @@ The current evidence is deliberately narrow:
 
 - `DoubleBuffer`, `Blend` and endpoint-exact interpolation were extracted from
   IDApTIK and have run in its Bevy frontend.
-- `crates/affective-time/tests/idaptik_parity.rs` compares the extraction
+- `crates/enaction-time/tests/idaptik_parity.rs` compares the extraction
   boundary for fixed-step accounting, interpolation, discontinuities, hostile
   elapsed time, discrete versus continuous values, and restart/snapshot
   interaction.

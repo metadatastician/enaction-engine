@@ -5,7 +5,37 @@
 Open defects in this repository, recorded so that no status document has to be
 read optimistically. Remove an entry only when its check passes.
 
-== D1: the workspace does not build (critical, open)
+== D1: the workspace did not build (critical, **FIXED 2026-07-27**)
+
+Kept as a record because the failure mode is instructive: a grep-based invariant
+watched the *spelling* of the members line and reported nothing useful when the
+members stopped existing.
+
+.Resolution
+Members repointed at `crates/enaction-time` and `crates/enaction-cognition`;
+`tests/idaptik_parity.rs` moved into `crates/enaction-time/tests/` with its
+import corrected to `enaction_time`; the empty `crates/affective-time/`
+directory removed; the stale `[workspace.dependencies]` entry pointing at the
+deleted path repointed; citations in `ARCHITECTURE.md` and `README.adoc` fixed.
+
+Verified: `cargo metadata` loads, `cargo test --workspace` passes 44 tests
+including the 6 parity tests that were previously orphaned and running nowhere,
+and `cargo fmt --all -- --check` is clean.
+
+The two failing invariants were replaced rather than repaired, per ADR-0017:
+
+* `workspace-crate` grepped for one exact `members` line. Replaced by
+  `workspace-loads`, which runs `cargo metadata` — asserting the property
+  rather than the spelling.
+* `no-speculative-crates` counted directories. Replaced by `crate-admission`,
+  which asserts the rule ADR-0012 actually meant.
+* `rust-formatted` added. It was unreachable while the manifest was broken,
+  because rustfmt could not load the workspace, so formatting drift could have
+  accumulated invisibly.
+
+The original description follows.
+
+'''
 
 `cargo metadata` fails. Every claim elsewhere in this repository that tests pass
 is therefore untrue as checked out.

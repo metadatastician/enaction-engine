@@ -25,20 +25,50 @@ canonical identity, licence posture, and honest architecture claims.
 
 ## Project identity
 
-### workspace-crate
-- description: The sole current workspace crate is enaction-time
-- run: grep -q 'members = \["crates/enaction-time"\]' Cargo.toml && grep -q 'name = "enaction-time"' crates/enaction-time/Cargo.toml
+### workspace-loads
+- description: The workspace manifest is valid and every member resolves
+- run: cargo metadata --format-version 1 --no-deps >/dev/null
 - severity: critical
+- notes: |
+  This is the check that was missing. The previous invariant grepped for one
+  exact members line, which said nothing about whether the members existed.
+  A merge landed a members entry pointing at a directory with no Cargo.toml,
+  and `cargo metadata` failed for a day while the grep-based checks reported
+  only that the string had changed.
+
+  Assert the property, not the spelling.
 
 ### canonical-repository
 - description: Cargo repository metadata uses the canonical repository URL
 - run: grep -q 'https://github.com/metadatastician/enaction-engine' Cargo.toml
 - severity: critical
 
-### no-speculative-crates
-- description: The workspace must not contain empty aspirational subsystem crates
-- run: test "$(find crates -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1
+### crate-admission
+- description: Every crates/ subdirectory is a real, named, declared package (ADR-0017)
+- run: for d in crates/*/; do n=$(basename "$d"); case "$n" in enaction-*) ;; *) exit 1 ;; esac; test -f "$d/Cargo.toml" && test -d "$d/src" || exit 1; { test -d "$d/tests" || grep -rq '#\[cfg(test)\]' "$d/src"; } || exit 1; grep -q "crates/$n" Cargo.toml || exit 1; done
 - severity: critical
+- notes: |
+  Replaces a crate-count check that asserted exactly one directory under
+  crates/. A count is a fake check the moment the number legitimately
+  changes, and it had already rotted: it failed because a half-finished
+  rename left an empty directory behind, which is not what it was written
+  to detect.
+
+  This asserts the rule ADR-0012 actually meant -- no empty facades, no
+  namespace reservations, no undeclared members -- and needs no editing when
+  a fourth crate legitimately arrives.
+
+  Tests may live in tests/ or inline as #[cfg(test)] in src/. ADR-0012
+  requires "tests or another proportionate verification gate", not a
+  particular directory layout: enaction-cognition tests inline, and an
+  earlier draft of this check wrongly failed it for that.
+
+### rust-formatted
+- description: The workspace is rustfmt-clean
+- run: cargo fmt --all -- --check
+- severity: critical
+- notes: Unreachable while the workspace manifest was broken, since rustfmt
+  could not load it. Drift could have accumulated invisibly.
 
 ## Evidence and governance
 
