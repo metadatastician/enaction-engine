@@ -152,7 +152,7 @@ The current evidence is deliberately narrow:
   interaction.
 - IDApTIK has not adopted this repository's `FixedStep`; it continues to use
   Bevy's fixed clock. No replacement is justified yet.
-- `enaction-cognition` is new, game-neutral and has not run in either game.
+- `enaction-trace` is new, game-neutral and has not run in either game.
   IDApTIK currently uses a local game-vocabulary trace with the same six-domain
   separation while the general seam remains revisable.
 

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 [package]
-name = "enaction-cognition"
+name = "enaction-trace"
 description = "Small typed event seam for deterministic cognitive-affective-conative traces."
 version.workspace = true
 edition.workspace = true

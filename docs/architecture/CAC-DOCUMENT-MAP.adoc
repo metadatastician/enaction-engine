@@ -149,10 +149,12 @@ Where the code actually is. None of it is in this repository.
   insertion order. Donor only — nothing depends on it (ADR-0016). Under version
   control since 2026-07-27.
 
-| `crates/enaction-cognition/src/lib.rs`
+| `crates/enaction-trace/src/lib.rs`
 | enaction-engine
 | ~130 lines. A domain enum, a trace event, a structural validator. Contains no
-  cognition; renamed to `enaction-trace` by ADR-0017.
+  cognition, which is why ADR-0017 renamed it from `enaction-cognition`: under
+  ADR-0011 a name describes implemented responsibility, and the old one was a
+  namespace reservation for work not done.
 
 | `crates/ums-ai-edit/src/microkanren.rs`
 | idaptik-ums

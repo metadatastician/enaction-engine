@@ -60,7 +60,7 @@ canonical identity, licence posture, and honest architecture claims.
 
   Tests may live in tests/ or inline as #[cfg(test)] in src/. ADR-0012
   requires "tests or another proportionate verification gate", not a
-  particular directory layout: enaction-cognition tests inline, and an
+  particular directory layout: enaction-trace tests inline, and an
   earlier draft of this check wrongly failed it for that.
 
 ### rust-formatted
