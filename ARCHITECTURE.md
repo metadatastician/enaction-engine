@@ -146,13 +146,13 @@ The current evidence is deliberately narrow:
 
 - `DoubleBuffer`, `Blend` and endpoint-exact interpolation were extracted from
   IDApTIK and have run in its Bevy frontend.
-- `crates/affective-time/tests/idaptik_parity.rs` compares the extraction
+- `crates/enaction-time/tests/idaptik_parity.rs` compares the extraction
   boundary for fixed-step accounting, interpolation, discontinuities, hostile
   elapsed time, discrete versus continuous values, and restart/snapshot
   interaction.
 - IDApTIK has not adopted this repository's `FixedStep`; it continues to use
   Bevy's fixed clock. No replacement is justified yet.
-- `enaction-cognition` is new, game-neutral and has not run in either game.
+- `enaction-trace` is new, game-neutral and has not run in either game.
   IDApTIK currently uses a local game-vocabulary trace with the same six-domain
   separation while the general seam remains revisable.
 

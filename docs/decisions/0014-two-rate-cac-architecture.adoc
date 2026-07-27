@@ -1,0 +1,158 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0014-two-rate-cac-architecture
+
+
+Date: 2026-07-27
+
+== Status
+
+Accepted
+
+Extends 0007 (cognition, affect and conation as siblings), which named the three
+dimensions but did not say how they interact.
+
+== Context
+
+Three games in this estate have each implemented a different third of one
+cognitive architecture, independently, without knowing about each other.
+
+Chronicles of Slavia has the cognition: a microKanren solver, belief as a
+baseline plus ordered per-entity deltas, theory of mind, and the sharp idea that
+confidence is the *number of solutions* — `Contradiction`, `Unified`,
+`Ambiguous` — with no suspicion float anywhere. It is deterministic by contract.
+
+cac-engine has the affect and the conation: six cross-coupled emotions, a
+Pleasure–Arousal–Dominance summary, homeostatic drives, utility arbitration with
+commitment hysteresis, and an action-verification gate. It is continuous,
+numeric, and not deterministic.
+
+IDApTIK has the integration and the rigour: an evidence ledger with fixed-point
+Dempster–Shafer masses, a VSM-shaped supervisor, and a running six-stage
+cognition-affect-conation trace, all inside a byte-parity replay regime.
+
+Each is good. They are not the same shape.
+
+The obvious move — unify the update functions — is wrong, and both codebases say
+so in their own words. Slavia's ESM module states: *"Event-gated, never
+per-frame. The solver runs only on epistemic events… Do not call `kanren::run`
+from a frame loop."* Every line of cac-engine's affective layer is
+`x += rate * dt`.
+
+**Appraisal is a process. Inference is an act.** A kernel that forces them onto
+one clock deforms whichever one loses.
+
+== Decision
+
+Cognition and affect run at different rates and are joined only at a typed,
+event-sourced ledger. Neither reads the other's internal representation. Exactly
+two values cross, in opposite directions, and everything else is forbidden.
+
+=== Crossing A — quantisation (affect to cognition)
+
+Continuous affect may cross into cognition in exactly two forms, both discrete:
+
+. an **affect token** — the argmax over a declared, ordered emotion vocabulary,
+  with a declared tie-break and a hysteresis band;
+. a **`Mass`-typed modulation of attention and priority — never of truth**.
+
+The second clause is the most important constraint in this decision.
+
+cac-engine currently violates it. Its cognitive layer contains
+`paranoiaMultiplier = 0.4 + fear`, applied to the rate at which a belief about
+another agent's hostile intent is learned. A frightened animal *believes* faster.
+That is excellent gameplay and it breaks two invariants of the kernel contract:
+every non-derived belief must have a provenance event, and an implementation
+must not confuse confidence with truth. If fear can move a belief directly, no
+trace can explain why the belief moved.
+
+The reframing that keeps the behaviour and fixes the epistemics: **fear buys
+attention, not belief.** Fear raises the rate at which the observer *samples*
+the subject. More samples produce more evidence items in the ledger, which
+raises belief faster. The emergent behaviour is identical, it is fully
+replayable, and every step carries provenance.
+
+This is not a new mechanism invented for the kernel. It is what IDApTIK's patrol
+attention allocation already does at the team level; this applies the same
+mechanism at the level of an individual agent.
+
+=== Crossing B — salience (cognition to affect)
+
+`Contradiction` **is** the algedonic signal.
+
+The VSM working note asks for algedonic signalling — urgent pain or reward
+bypassing normal coordination — and requires that it be *bounded and
+provenance-bearing*. The intent read is bounded: three cases, total. It is
+provenance-bearing: its solutions derive from ordered belief deltas. Beer's
+requirement is already met by code that exists. Do not design a second
+mechanism.
+
+* `Contradiction` produces a bounded arousal spike, with the failed query as its
+  provenance. This is the moment an agent discovers it was deceived.
+* `Ambiguous(n)` produces a smaller spike scaling with ambiguity. This is
+  curiosity, with a cause.
+* `Unified` produces nothing.
+
+Slavia's manga-symbol legibility layer already binds these three cases to
+on-screen symbols, so legibility comes free and unchanged.
+
+=== Everything else is forbidden
+
+No other value crosses. No float ever crosses. An intent read never becomes a
+number inside the kernel (ADR-0016). Utility scores never leave the conative
+layer — only the argmax is published, because a ranking is invariant under any
+monotone rescale and its absolute magnitude is not information anyone outside is
+entitled to.
+
+This is precisely what allows Slavia's claim — *"there is no suspicion float
+here, no tuned heuristic"* — to remain literally true while a numeric conative
+layer sits beside it.
+
+=== Where the evidence ledger sits
+
+[source]
+----
+evidence (fixed-point masses)
+  -> projection policy (declared, versioned)
+    -> ground fact set
+      -> relational solver
+        -> intent read (solution count)
+          -> conation (reads the read AND the retained belief interval)
+----
+
+**The solver reads the projection, not the ledger.** A relational solver unifies
+ground terms and has no opinion about mass. At the moment a query runs,
+everything is ground and certain *for that agent under that policy*.
+
+This is why the two notions of confidence never collide: one lives upstream of
+the solver and one downstream, and they are about different things. Upstream
+uncertainty appears as *several* ground facts being admitted — which is exactly
+what produces an `Ambiguous` read. Downstream uncertainty is the belief interval
+the conative policy consults.
+
+Slavia's baseline-plus-deltas model is the **certain projection** of the ledger,
+at the policy *admit p if and only if belief in p is full mass*. Learning a fact
+is an evidence item at full mass; unlearning it is a retraction event, after
+which the projection omits it.
+
+That subsumption is a **conformance fixture, not an assertion**: run Slavia's
+existing ESM test suite against a ledger-backed projection and require identical
+results. If the fixture passes, the ledger has earned Slavia's trust. If it
+fails, the ledger is wrong, not Slavia.
+
+== Consequences
+
+* Affect and conation may be built numerically and continuously without
+  contaminating a symbolic cognition layer, and vice versa.
+* cac-engine's paranoia multiplier must be re-expressed as attention allocation
+  before it enters Rust. This is a real, named porting cost.
+* A donated algorithm that cannot be expressed within the two crossings does not
+  enter the kernel. It stays in the donor sandbox.
+* One honest gap: the subsumption argument is clean except that Dempster–Shafer
+  requires a declared frame of discernment per question, and Slavia's belief
+  space is open-ended. That gap is real and is recorded as an open problem, not
+  papered over.
+
+Real-game status:: No two-rate implementation exists. This decision describes
+how three existing implementations relate and what a unification may and may not
+do. The crossings have never been executed.

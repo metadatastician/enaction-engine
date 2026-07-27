@@ -1,0 +1,120 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Known defects
+
+Open defects in this repository, recorded so that no status document has to be
+read optimistically. Remove an entry only when its check passes.
+
+== D1: the workspace did not build (critical, **FIXED 2026-07-27**)
+
+Kept as a record because the failure mode is instructive: a grep-based invariant
+watched the *spelling* of the members line and reported nothing useful when the
+members stopped existing.
+
+.Resolution
+Members repointed at `crates/enaction-time` and `crates/enaction-cognition`;
+`tests/idaptik_parity.rs` moved into `crates/enaction-time/tests/` with its
+import corrected to `enaction_time`; the empty `crates/affective-time/`
+directory removed; the stale `[workspace.dependencies]` entry pointing at the
+deleted path repointed; citations in `ARCHITECTURE.md` and `README.adoc` fixed.
+
+Verified: `cargo metadata` loads, `cargo test --workspace` passes 44 tests
+including the 6 parity tests that were previously orphaned and running nowhere,
+and `cargo fmt --all -- --check` is clean.
+
+The two failing invariants were replaced rather than repaired, per ADR-0017:
+
+* `workspace-crate` grepped for one exact `members` line. Replaced by
+  `workspace-loads`, which runs `cargo metadata` — asserting the property
+  rather than the spelling.
+* `no-speculative-crates` counted directories. Replaced by `crate-admission`,
+  which asserts the rule ADR-0012 actually meant.
+* `rust-formatted` added. It was unreachable while the manifest was broken,
+  because rustfmt could not load the workspace, so formatting drift could have
+  accumulated invisibly.
+
+The original description follows.
+
+'''
+
+`cargo metadata` fails. Every claim elsewhere in this repository that tests pass
+is therefore untrue as checked out.
+
+.Symptom
+[source]
+----
+Cargo.toml:  members = ["crates/affective-time", "crates/enaction-cognition"]
+
+crates/affective-time/     tests/idaptik_parity.rs        <- no Cargo.toml, no src/
+crates/enaction-cognition/ Cargo.toml + src/              <- member, real
+crates/enaction-time/      Cargo.toml + src/ + tests/     <- NOT a member, real
+----
+
+`crates/affective-time/tests/idaptik_parity.rs` opens with
+`use affective_time::{DoubleBuffer, FixedStep, lerp};` — a crate name that no
+longer exists anywhere in the tree.
+
+.Cause
+Two pull requests landed four minutes apart, in the wrong order.
+
+* `34eb909` (PR #5, 09:32) renamed `crates/affective-time` to
+  `crates/enaction-time`, per ADR-0011.
+* `8e71a70` (PR #6, 09:36) was squash-merged from a **pre-rename base**. It
+  reverted the `members` line and recreated files under the old path.
+
+Neither PR was wrong on its own. The merge order was, and nothing caught it.
+
+.Consequent failures
+Two `severity: critical` invariants in
+`.machine_readable/contractiles/must/Mustfile.a2ml` fail right now:
+
+* `workspace-crate` — expects `members = ["crates/enaction-time"]`
+* `no-speculative-crates` — expects exactly one directory under `crates/`;
+  finds three
+
+`docs/ARCHITECTURE.md` also cites `crates/affective-time/tests/idaptik_parity.rs`
+as evidence, so the prose has drifted with the tree.
+
+.Remedy
+. Point `members` at the crates that exist: `enaction-time`,
+  `enaction-cognition`.
+. Move `tests/idaptik_parity.rs` into `crates/enaction-time/tests/` and fix its
+  import to `enaction_time`.
+. Delete the empty `crates/affective-time/` directory.
+. Regenerate `Cargo.lock`, which still names `enaction-time` while the manifest
+  names `affective-time`.
+. Update the `docs/ARCHITECTURE.md` citation.
+. Replace the `no-speculative-crates` count check with the crate-admission rule
+  check (ADR-0017) — a count is a fake check the moment the number legitimately
+  changes, and it has already rotted once.
+
+This is roughly a five-line repair. It is listed as critical not because it is
+hard but because every other status claim in the repository depends on it, and
+it has been broken since 2026-07-26.
+
+== D2: the parity test is not a cross-repository gate (open, by design — but say so)
+
+`idaptik_parity.rs` defines its own `reference_lerp` inline, a copy of IDApTIK's
+algorithm, and asserts bit-for-bit equality against it. It does not import,
+link, fetch or check out anything from IDApTIK.
+
+`EXPLAINME.adoc` already states this correctly: *"comparison with IDApTIK is a
+review activity, not an automated cross-repo gate."* The defect is that the file
+name and its location invite the opposite reading.
+
+Under ADR-0015 the remedy is to promote its four proven behaviours — `lerp`
+endpoint clamping, the one-term interior form, `commit`-then-`snap`, and the
+`FixedStep` catch-up cap — into a versioned, hashed conformance fixture that
+IDApTIK vendors with a recorded digest. Then the parity claim is enforced rather
+than asserted.
+
+== D3: the repository is named for a tradition it does not cite (open)
+
+Grep across the whole tree for `varela`, `thompson`, `di paolo`, `autopoiesis`,
+`sensorimotor`, `sense-making`, `enactivism`, `rosch`, `noë` and `gallagher`
+returns nothing. `docs/theory/` contains a README and a `.gitkeep`.
+
+Recorded as a defect rather than a naming preference because this repository's
+own standard — `EXPLAINME.adoc`'s claim-to-evidence map, and AGENTS.md's *"no
+fake checks"* — applies to ideas as well as code. See ADR-0018, which sets a
+review date and pre-agrees the consequence of missing it.
