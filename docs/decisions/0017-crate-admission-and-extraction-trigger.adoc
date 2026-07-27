@@ -1,0 +1,131 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0017-crate-admission-and-extraction-trigger
+
+
+Date: 2026-07-27
+
+== Status
+
+Accepted
+
+Extends 0010 (proving grounds) and 0012 (no speculative subsystems).
+
+== Context
+
+Two failures, one week apart, in a repository that had already written rules
+against both.
+
+**The crate-count invariant rotted.** `no-speculative-crates` asserts that
+exactly one directory exists under `crates/`. There are three. A count is a fake
+check the moment the number legitimately changes, and this one now fails for a
+reason it was never meant to detect: a half-finished rename left an empty
+directory behind. See `docs/status/DEFECTS.adoc`.
+
+**A merge silently contradicted an invariant and nothing stopped it.** Two pull
+requests landed four minutes apart; the second, from a pre-rename base, reverted
+the first's workspace change. Two critical invariants have failed ever since,
+and the repository has not built since 2026-07-26.
+
+Separately, extraction pressure is building. IDApTIK is growing an evidence
+ledger and a VSM supervisor that the ownership table says belong here. Moving
+them now would design a kernel from a single example, in a repository with no
+game to be wrong against.
+
+== Decision
+
+=== Crate admission is a rule, not a count
+
+Replace the `no-speculative-crates` count invariant with:
+
+[source]
+----
+### crate-admission
+- description: Every crates/ subdirectory is a real package named enaction-*,
+  is a declared workspace member, and has src/ plus tests/
+- run: for d in crates/*/; do
+         n=$(basename "$d");
+         case "$n" in enaction-*) ;; *) exit 1 ;; esac;
+         test -f "$d/Cargo.toml" && test -d "$d/src" && test -d "$d/tests" || exit 1;
+         grep -q "\"crates/$n\"" Cargo.toml || exit 1;
+       done
+- severity: critical
+----
+
+This catches the current breakage, catches an empty facade, catches a crate that
+is not a member, and does not need editing when a fourth crate legitimately
+arrives.
+
+=== The invariant wins
+
+When a merge contradicts a `Mustfile.a2ml` invariant, the invariant wins. The
+merge is reverted, or the invariant is changed by ADR. It is never left failing.
+
+A failing critical invariant is a stop-the-line condition, not a known issue.
+
+=== The extraction trigger: all three, not any one
+
+`ENGINE_EXTRACTION_NOTES.md` in IDApTIK set the precedent — extract when a
+second host wants the same thing. That rule is right *for a double buffer*,
+because a double buffer has a **falsifiable** contract: it is correct or the
+picture judders, and the judder does not care who wrote the second caller.
+
+An epistemic kernel's contract is **semantic**. Two callers can both be
+satisfied by a boundary that quietly encodes one game's ontology, because the
+second caller is being written by the same person who wrote the first.
+**Same-author second callers do not supply independence.** That is the
+load-bearing difference, and it is why the precedent is strengthened rather than
+reused.
+
+Extraction requires all three:
+
+**T1 — a second caller, with the want recorded first.** A second consumer must
+want the seam, and the want must be written down in that consumer's own
+repository *before* the extraction is designed. Retrofitted justification does
+not count. This is the guard against author-confirmation bias.
+
+**T2 — bidirectional conformance fixtures.** The seam ships with fixtures that
+run in the donor *and* in the kernel and produce identical canonical bytes,
+per ADR-0015.
+
+**T3 — a recorded surprise.** Extraction is permitted only after the donor has
+*taught* something: at least one documented case where the naive boundary turned
+out to be wrong. `ENGINE_EXTRACTION_NOTES.md` is literally a list of these — five
+coupling boundaries and two measured floating-point results.
+
+**A candidate with no recorded surprises has not been used in anger.** T3 would
+have prevented the rename that broke this repository: it had no surprise behind
+it, so it should never have started.
+
+=== What this admits and refuses now
+
+**Admitted.** `enaction-cognition` is renamed to `enaction-trace`. This is a
+rename, not a new crate: the crate contains a domain enum, a trace event and a
+validator, and *no cognition whatsoever*. Under ADR-0011, names describe
+implemented responsibility rather than aspirational completeness, so the current
+name is a namespace reservation that ADR-0011 already forbids. Renaming also
+frees `enaction-cognition` for a crate that one day contains cognition.
+
+**Refused: `enaction-affect` and `enaction-conation` must not be created.** The
+estate contains zero lines of Rust affect or conation code. cac-engine is
+unversioned JavaScript; Slavia's affect is design-only and explicitly deferred;
+IDApTIK's is six constants in a fixture. Creating those crates now is exactly
+the defect ADR-0012 describes. Affect and conation live as a Nickel profile
+schema plus a fixture set, and as the donor sandbox, until a game has running
+Rust affect that has taught somebody something.
+
+This is stated as a decision, not an omission, because affect and conation are
+two of the three things this engine is named for.
+
+== Consequences
+
+* The crate check stops being a number to maintain and starts being a rule.
+* "The build is red but we know why" stops being an acceptable state.
+* The extraction bar is higher than the interpolation precedent, deliberately,
+  and the difference is argued rather than assumed.
+* This repository will look narrower than its ambitions for longer. That is the
+  same trade ADR-0012 already accepted.
+
+Real-game status:: Neither the crate-admission check nor the trigger has been
+exercised. The first candidate they will be applied to is IDApTIK's evidence
+ledger, which currently satisfies none of T1, T2 or T3.

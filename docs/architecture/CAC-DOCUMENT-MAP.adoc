@@ -1,0 +1,175 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= CAC document map
+
+Every cognition/affect/conation document in the estate, with its status and
+whether it has authority. This material spans six repositories and had no index
+until 2026-07-27; one of the most detailed specifications in it was untracked.
+
+Start here, then read `CAC-KERNEL.adoc`.
+
+== Normative
+
+Documents that bind. One semantic authority per layer.
+
+|===
+| Document | Repository | Covers
+
+| `docs/architecture/CAC-KERNEL.adoc`
+| enaction-engine
+| The reduction contract, data model, invariants, profiles, the two-rate
+  structure. **The one place kernel semantics are defined.**
+
+| `docs/decisions/0013`–`0018`
+| enaction-engine
+| Two-layer estate; two-rate architecture; determinism; `Mass` and intent reads;
+  crate admission and the extraction trigger; the enactive claim.
+
+| `docs/architecture/esm-contract-and-repo-boundaries.md` §5–§7
+| IDApTIK
+| Ownership table, package hand-off flow, validation and compatibility. IDApTIK
+  owns the versioned package boundary under its ADR-0007. §2–§4 have moved to
+  `CAC-KERNEL.adoc`; §9 records the open problems.
+
+| `docs/adr/0009`–`0011`
+| IDApTIK
+| Kernel dependency direction; the CAC kernel stays in `idaptik-core` until the
+  trigger fires; cognitive-model work is documented in the open.
+
+| `docs/decisions/0004-hybrid-fsm-esm-mind-body-architecture.adoc`
+| chronicles-of-slavia
+| The mind/body split across three tempos. The body never reasons; the solver is
+  event-gated, never per-frame.
+
+| `docs/decisions/0006-sgs-is-the-public-authoring-schema.adoc`
+| chronicles-of-slavia
+| The mechanism/content line: the engine owns the solver, the relations, decay
+  and intent classification; data owns which entities have minds and what they
+  start believing. *"Modders do not write new reasoning."*
+|===
+
+== Design specifications
+
+Detailed, serious, not yet accepted as decisions.
+
+|===
+| Document | Repository | Status
+
+| `docs/architecture/evidence-ledger-design-private.md`
+| idaptik-ums-canonical
+| Draft v0.1, 241 lines. Frames of discernment, fixed-point mass, uncommitted
+  mass, provenance, `independence_group` to stop double-counting derived
+  reports, discounting rather than prior-mutation, combination policies, the
+  rule against normalising high conflict, an evidence query interface that must
+  not return an action, nine conformance fixtures. **The most rigorous CAC
+  document in the estate.** Untracked until 2026-07-27. Moves to IDApTIK
+  `docs/architecture/` under the UMS consolidation, `-private` dropped.
+
+| `docs/architecture/idaptik-ai-model-private.md`
+| idaptik-ums-canonical
+| The working loop; observer-relative guard model; Dempster–Shafer as candidate
+  substrate; VSM-shaped supervision. Moves with the above.
+
+| `docs/design/20-cognitive-npcs-and-theory-of-mind.md`
+| chronicles-of-slavia
+| The ESM design. Belief as baseline plus deltas; being tricked as a
+  contradiction the player caused; the guilty-conscience trap proved as a test
+  rather than built as a feature.
+
+| `docs/design/21-manpu-legibility.md`
+| chronicles-of-slavia
+| *"An NPC that reasons invisibly is indistinguishable from an NPC that
+  cheats."* The intent read maps to on-screen symbols. Required to live in the
+  render layer.
+
+| `docs/design/10-emotional-world-reaction.md`
+| chronicles-of-slavia
+| Three-layer affect driving world physics: personal, relational (trust,
+  conflict, guilt, reunion), narrative. **Design only, deferred** — waiting on
+  mood and relationship state existing at all. Reads almost exactly like a
+  requirements document for what cac-engine already implements.
+|===
+
+== Working hypotheses
+
+Explicitly not accepted architecture.
+
+|===
+| Document | Repository | Status
+
+| `docs/dev-notes/cognitive-model-hypothesis-2026-07-26.md`
+| IDApTIK
+| Rejects a strict pipeline for a loop passing through the world. *"The
+  epistemic state machine is the persistent centre of the loop; miniKanren is a
+  reasoning mechanism over that state, not the state itself."*
+
+| `docs/dev-notes/vsm-relevance-hypothesis-2026-07-26.md`
+| IDApTIK
+| Beer's Viable System Model as cybernetic organisation. Flags algedonic
+  signalling as promising for affective salience *if* bounded and
+  provenance-bearing — a requirement ADR-0014 argues is already met by the
+  contradiction case.
+
+| `docs/theory/ENACTIVE-COMMITMENTS.adoc`
+| enaction-engine
+| **Does not exist.** Required by ADR-0018 with a review date; the name changes
+  if it is missing.
+|===
+
+== Implementations
+
+Where the code actually is. None of it is in this repository.
+
+|===
+| Code | Repository | State
+
+| `engine/slavia-core/src/esm/`
+| chronicles-of-slavia
+| ~1655 lines, 51 tests. `kanren.rs` (microKanren, eager streams — a recorded
+  negative), `belief.rs` (baseline plus ordered deltas), `intent.rs`
+  (contradiction / unified / ambiguous), `decay.rs` (memory erodes with motion,
+  injected generator). Float-free. **The estate's cognition.**
+
+| `crates/idaptik-core/src/scenario/vsm.rs`
+| IDApTIK
+| Evidence ledger and VSM supervisor. Fixed-point, float-free, one caller, three
+  weeks old. Held in place by IDApTIK ADR-0010.
+
+| `crates/idaptik-core/src/package.rs`
+| IDApTIK
+| The running six-stage CAC trace, gated in the package round trip. Its own
+  comment anticipates an adapter onto this engine's domain type.
+
+| `src/{affective,cognitive,conative,brain}.js`
+| cac-engine
+| ~364 lines. Six cross-coupled emotions, PAD summary, homeostatic drives,
+  utility arbitration with commitment hysteresis, action-verification gate.
+  **The estate's only implementation of affect and conation.** Not deterministic:
+  variable timestep in all three layers, and an argmax whose tie-break is object
+  insertion order. Donor only — nothing depends on it (ADR-0016). Under version
+  control since 2026-07-27.
+
+| `crates/enaction-cognition/src/lib.rs`
+| enaction-engine
+| ~130 lines. A domain enum, a trace event, a structural validator. Contains no
+  cognition; renamed to `enaction-trace` by ADR-0017.
+
+| `crates/ums-ai-edit/src/microkanren.rs`
+| idaptik-ums
+| ~478 lines. Lazy interleaved streams and a persistent substitution — better
+  than Slavia's on both counts — but allocates variables from a process-global
+  atomic counter, which disqualifies it as written. The synthesis is this
+  crate's streams with Slavia's state-local variable allocation.
+|===
+
+== Reading order
+
+For someone arriving cold:
+
+. `CAC-KERNEL.adoc` — what the contract is.
+. ADR-0014 — why cognition and affect are not unified at a function.
+. ADR-0016 — why there are three kinds of confidence and only one of them is a
+  number.
+. `slavia-core/src/esm/intent.rs` — the sharpest idea in the estate, in 199
+  lines.
+. IDApTIK ADR-0010 — why none of this has moved yet.

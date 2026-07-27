@@ -1,0 +1,131 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0016-mass-is-the-kernel-confidence-type
+
+
+Date: 2026-07-27
+
+== Status
+
+Accepted
+
+Closes the confidence-representation question left open in the shared ESM
+contract.
+
+== Context
+
+The estate currently holds four different notions of confidence, and they are
+not variations on one idea.
+
+* Slavia's intent read: confidence *is* the cardinality of a solution set.
+  Zero solutions means a contradiction; one means a unified reading; many mean
+  ambiguity. There is no float.
+* The evidence ledger: Dempster–Shafer belief masses in fixed point, with
+  uncommitted mass representing ignorance explicitly.
+* The shared ESM contract: confidence must be "typed and bounded", unspecified.
+* cac-engine: unbounded floats. A flee utility of `safety * 1.5 + fear` reaches
+  2.5.
+
+Worse, one file already contains two incompatible scales with a mislabelled
+comment. IDApTIK's VSM module documents a hypothesis confidence as *"basis
+points (`0..=1000`)"* — basis points are one ten-thousandth, not one thousandth
+— while the mass total governing focal masses in the same file is 10,000. The
+trace value in the package result is a third scale.
+
+This is what an unsettled type looks like twenty lines apart.
+
+== Decision
+
+=== The kernel confidence type
+
+[source,rust]
+----
+/// A justification budget in units of 1/10_000.
+/// NOT a probability. NOT a truth value. NOT comparable across frames.
+pub struct Mass(u16);          // invariant: 0..=10_000
+----
+
+Stored as `u16`, combined with widened `u32` arithmetic so combination cannot
+overflow. `u16` halves the wire size of the highest-cardinality field in a
+lockstep trace, and makes "someone stored 40,000" unrepresentable.
+
+`Mass` is a **budget**, not a probability. It is how much of an observer's
+justification has been committed to a proposition. It does not sum to one across
+a partition — that is the entire point of tracking uncommitted mass separately.
+It is not calibrated against frequency. It is meaningless across frames.
+
+=== An intent read is not a confidence
+
+An intent read is the *cardinality of a solution set*. It is categorically a
+different kind of thing from a justification budget, and the kernel promotes it
+verbatim alongside `Mass` rather than converting between them.
+
+**A conversion from an intent read to `Mass` is forbidden in the kernel.** Put a
+comment saying so at the definition site, because someone will try.
+
+If a numeric conative layer needs a number, a profile declares a *named,
+versioned* read policy, and the policy identifier is recorded in the trace entry
+— so a reviewer can see the lossy step and audit it. That is the only honest way
+to let utility arbitration consume an intent read while Slavia's claim that
+there is no suspicion float remains literally true.
+
+=== Belief status derives from the interval, not a threshold
+
+A belief's status is **not** derived from a point mass by a hardcoded threshold.
+The mapping is a versioned profile policy, and the default consults the belief
+and plausibility *interval* — otherwise the entire Dempster–Shafer substrate is
+wasted effort.
+
+Evaluated in this order, which is normative:
+
+[source]
+----
+Known      if belief == FULL
+Rejected   if plausibility <= rejected_ceiling
+Unknown    if plausibility - belief >= unknown_band     // ignorance, not disagreement
+Believed   if belief >= believed_floor
+Suspected  if plausibility >= suspected_floor
+otherwise  Unknown
+----
+
+A contradiction is **not** a status. It is retained conflict mass plus a
+diagnostic, and it coexists with whatever status the interval yields. High
+conflict is never normalised away.
+
+=== Unbounded utilities do not map, and must not be clamped
+
+Clamping a flee utility of 2.5 into `Mass` would silently change arbitration
+behaviour. The rule is therefore a **scope rule, not a range rule**:
+
+* Affect *intensities* quantise to `Mass` at the affect-to-cognition crossing.
+* Conative *utilities* never cross at all. Only the argmax is published, with a
+  declared tie-break.
+
+Utility is an internal ranking. Rankings are invariant under monotone rescaling,
+so their absolute magnitudes are not information anyone outside the conative
+layer is entitled to. This removes the unbounded-float problem by boundary
+rather than by arithmetic, and changes nothing about how arbitration behaves.
+
+=== Display scales are not decision inputs
+
+A per-mille trace value is telemetry, signed because deltas are signed. It must
+never be an input to a decision. The instant it is read by anything other than a
+renderer or a debugger, it becomes `Mass` and the sign becomes an explicit
+direction field.
+
+== Consequences
+
+* IDApTIK's VSM module has one scale to converge on and one mislabelled comment
+  to fix.
+* Slavia loses nothing. Its intent read survives as a first-class kernel type
+  rather than being laundered into a number.
+* cac-engine's affect intensities need a quantisation step; its utilities need
+  none, because they stop at the layer boundary.
+* Anyone who wants a single scalar "how sure is this agent" is going to be
+  disappointed, deliberately. Ignorance, disagreement and ambiguity are three
+  different things and the type system keeps them apart.
+
+Real-game status:: `Mass` does not exist as a Rust type in this repository. The
+fixed-point ledger it describes runs in IDApTIK, on a branch, with one caller
+and its own scale confusion still present. This ADR settles the type; it does
+not report an implementation.
