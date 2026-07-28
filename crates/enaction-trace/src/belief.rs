@@ -376,6 +376,7 @@ mod tests {
             tropes: vec![
                 Trope {
                     id: TropeId(1),
+                    holders: Vec::new(),
                     bearer: "billy".into(),
                     about: Some("note".into()),
                     kind: "interest".into(),
@@ -383,6 +384,7 @@ mod tests {
                 },
                 Trope {
                     id: TropeId(2),
+                    holders: Vec::new(),
                     bearer: "billy".into(),
                     about: Some("note".into()),
                     kind: "object_theory".into(),
