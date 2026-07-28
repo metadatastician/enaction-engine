@@ -84,3 +84,7 @@ GEMINI.md                  # pointer to AGENTS.md
 .gitleaks.toml             # repo-local gitleaks baseline; the standards secret-scanner reusable passes no --config, so the caller must carry its own
 .hypatia-ignore
 CLAUDE.md
+enaction-engine-launcher.sh # estate launcher convention (cf. idaptik-ums-canonical): entry script lives at root
+enaction-engine.launcher.a2ml # launcher manifest paired with the script above
+.oikos.yml                 # OikosBot sustainability config; the bot reads it from the repo root
+CODE_OF_CONDUCT.md         # community-health file; GitHub accepts root OR .github/ — same class as the CONTRIBUTING.md/SECURITY.md entries above

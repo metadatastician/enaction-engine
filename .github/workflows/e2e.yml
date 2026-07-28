@@ -28,8 +28,9 @@ on:
       - 'src/interface/ffi/**'
       - 'tests/**'
   workflow_dispatch:
-permissions: read-all
+permissions:
   actions: read
+  contents: read
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true

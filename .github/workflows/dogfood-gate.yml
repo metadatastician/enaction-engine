@@ -43,10 +43,10 @@ jobs:
 
       - name: Validate A2ML manifests
         if: steps.detect.outputs.count > 0
-        uses: hyperpolymath/a2ml-validate-action@56f6e4f6c9f9396f4b880632f47da33729b1046b # main
-        with:
-          path: '.'
-          strict: 'false'
+        # The marketplace action repo was deleted upstream (404), which
+        # startup-failed this gate estate-wide. The repo ships its own
+        # validator; running it directly cannot be broken by a remote deletion.
+        run: bash .githooks/validate-a2ml.sh
 
       - name: Write summary
         run: |
@@ -92,10 +92,8 @@ jobs:
 
       - name: Validate K9 contracts
         if: steps.detect.outputs.k9_count > 0
-        uses: hyperpolymath/k9-validate-action@0aedc05171f6cc5cdb1f6140b3deda5c7483539c # main
-        with:
-          path: '.'
-          strict: 'false'
+        # Same deleted-upstream-action fix as the A2ML step above.
+        run: bash .githooks/validate-k9.sh
 
       - name: Write summary
         run: |

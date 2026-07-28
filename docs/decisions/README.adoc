@@ -17,3 +17,9 @@ new numbered ADR rather than silently rewriting its outcome.
 * `0010` — IDApTIK and Chronicles of Slavia proving grounds
 * `0011` — repository and crate naming conventions
 * `0012` — no speculative empty subsystems
+* `0013` — two-layer estate: runtime kernel and authoring studio
+* `0014` — two-rate CAC architecture: discrete cognition, continuous affect
+* `0015` — kernel determinism contract
+* `0016` — `Mass` is the kernel confidence type; an intent read is not one
+* `0017` — crate admission and the three-part extraction trigger
+* `0018` — the enactive claim

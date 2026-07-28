@@ -136,7 +136,7 @@ draw(buffer.sample(0, clock.alpha())); // render-only
 
 == Current integration evidence
 
-`crates/affective-time/tests/idaptik_parity.rs` covers healthy fixed-step
+`crates/enaction-time/tests/idaptik_parity.rs` covers healthy fixed-step
 accounting, hostile elapsed time, interpolation, discrete versus continuous
 state, discontinuities and snapshot/restart interaction. It proves the
 extracted interpolation boundary; it does not prove that IDApTIK uses
@@ -146,7 +146,7 @@ does not replace it.
 Enaction is a runtime dependency candidate below games. It does not depend on
 UMS. An optional UMS preview adapter may be added later, but released games must
 not depend on the UMS UI. The current IDApTIK appraisal example is game-local;
-the general `enaction-cognition` seam is new and remains unadopted.
+the general `enaction-trace` seam is new and remains unadopted.
 
 == Language
 

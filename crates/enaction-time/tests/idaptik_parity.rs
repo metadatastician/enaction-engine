@@ -6,7 +6,7 @@
 //! the excessive-elapsed-time cap is a deliberate Enaction policy and is not
 //! evidence that IDApTIK has adopted this accumulator.
 
-use affective_time::{DoubleBuffer, FixedStep, lerp};
+use enaction_time::{DoubleBuffer, FixedStep, lerp};
 
 const DT: f64 = 1.0 / 60.0;
 
