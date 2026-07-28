@@ -36,6 +36,16 @@
 //!   and the next call it epistemic. Domain consistency stops being something
 //!   a validator has to hope for.
 //!
+//! # Other minds are modelled, not shared
+//!
+//! [`Trope::holders`] carries an *ascription path*: whose model this
+//! particular lives inside. Empty is ground truth; `["billy"]` is Billy's
+//! model of someone's state; `["billy", "anya"]` is Billy's model of Anya's
+//! model. Because it is a path and not a reference, an agent can model a
+//! state that does not exist — which is what being wrong about someone is,
+//! and the reason [`Trace::divergence`] and [`Trace::projections`] can
+//! measure it.
+//!
 //! # What the engine does *not* supply
 //!
 //! A game supplies the vocabulary in [`Trope::kind`] and [`Trope::about`]; the
@@ -83,7 +93,23 @@ pub struct TropeId(pub u64);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Trope {
     pub id: TropeId,
-    /// Whose property-instance this is.
+    /// The ascription path: whose *model* this particular lives inside,
+    /// outermost first.
+    ///
+    /// Empty is ground truth — the bearer's own state. `["billy"]` is Billy's
+    /// model of the bearer's state. `["billy", "anya"]` is Billy's model of
+    /// Anya's model of the bearer's state. Length is the order of theory of
+    /// mind (Dennett), and is bounded by the contract's declared maximum.
+    ///
+    /// **This is a path, not a reference, and that is the whole point.** An
+    /// ascription must be able to describe a state that does not exist —
+    /// Billy may model a suspicion Anya has never held. A reference to Anya's
+    /// actual trope would make false ascription unrepresentable, and being
+    /// wrong about other minds is the phenomenon this field exists to carry.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub holders: Vec<String>,
+    /// Whose property-instance this is *about*. For ground truth this is also
+    /// who holds it; for an ascription it is the modelled agent.
     pub bearer: String,
     /// Its intentional object, where it has one — what the state is *about*.
     /// `None` for non-relational states such as bare arousal.
@@ -107,6 +133,46 @@ impl Trope {
     #[must_use]
     pub fn resembles(&self, other: &Self) -> bool {
         self.domain == other.domain && self.kind == other.kind && self.about == other.about
+    }
+
+    /// Who actually holds this particular: the outermost ascriber, or the
+    /// bearer themself when this is ground truth.
+    #[must_use]
+    pub fn holder(&self) -> &str {
+        self.holders
+            .first()
+            .map_or(self.bearer.as_str(), String::as_str)
+    }
+
+    /// Whether this is a model of someone's state rather than the state.
+    #[must_use]
+    pub fn is_ascription(&self) -> bool {
+        !self.holders.is_empty()
+    }
+
+    /// The order of theory of mind: 0 = ground truth, 1 = "he thinks she
+    /// feels…", 2 = "he thinks she thinks he feels…".
+    #[must_use]
+    pub fn order(&self) -> usize {
+        self.holders.len()
+    }
+
+    /// Whether `other` is what this ascription is *about* — the state one
+    /// level closer to the ground.
+    ///
+    /// `["billy"]/anya/suspicion` has counterpart `[]/anya/suspicion`:
+    /// Anya's actual suspicion, which Billy is modelling. Comparing their
+    /// magnitudes is how wrong Billy is.
+    ///
+    /// Returns `false` for ground truth, which ascribes nothing.
+    #[must_use]
+    pub fn is_ascription_of(&self, other: &Self) -> bool {
+        self.is_ascription()
+            && self.holders[1..] == other.holders[..]
+            && self.bearer == other.bearer
+            && self.kind == other.kind
+            && self.about == other.about
+            && self.domain == other.domain
     }
 
     /// Whether this trope resembles `other` but is borne by someone else.
@@ -145,6 +211,15 @@ impl TraceEvent {
     }
 }
 
+/// Default bound on theory-of-mind order.
+///
+/// The shared ESM contract's first implementation slice declares "one level of
+/// nested belief, with a declared maximum depth"; this is that declaration's
+/// default. Unbounded nesting is on the contract's own reject list, because
+/// "he thinks she thinks he thinks…" has no natural floor and a malicious or
+/// buggy producer can exhaust a consumer with it.
+pub const DEFAULT_MAX_TOM_ORDER: usize = 1;
+
 /// A trace: the particulars, and what happened to them.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Trace {
@@ -159,6 +234,15 @@ impl Trace {
     ///
     /// Returns every violation found, not only the first.
     pub fn validate(&self) -> Result<(), Vec<String>> {
+        self.validate_to_order(DEFAULT_MAX_TOM_ORDER)
+    }
+
+    /// Validate, bounding theory-of-mind nesting at `max_order`.
+    ///
+    /// # Errors
+    ///
+    /// Returns every violation found, not only the first.
+    pub fn validate_to_order(&self, max_order: usize) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
 
         // Pass 1 — index the particulars.
@@ -169,6 +253,20 @@ impl Trace {
             }
             if trope.bearer.is_empty() || trope.kind.is_empty() {
                 errors.push(format!("trope {} has an empty bearer or kind", trope.id.0));
+            }
+            if trope.holders.iter().any(String::is_empty) {
+                errors.push(format!(
+                    "trope {} has an empty name in its ascription path",
+                    trope.id.0
+                ));
+            }
+            if trope.order() > max_order {
+                errors.push(format!(
+                    "trope {} nests theory of mind to order {}, beyond the declared \
+                     maximum of {max_order}",
+                    trope.id.0,
+                    trope.order()
+                ));
             }
         }
 
@@ -233,6 +331,61 @@ impl Trace {
         self.events.sort_by_key(TraceEvent::stamp);
     }
 
+    /// The most recent value recorded for `trope`, in milliunits.
+    ///
+    /// "Most recent" by the engine's canonical `(tick, id)` order, so the
+    /// answer does not depend on how the caller happened to order the slice.
+    #[must_use]
+    pub fn latest_value(&self, trope: TropeId) -> Option<i32> {
+        self.events
+            .iter()
+            .filter(|e| e.trope == trope)
+            .max_by_key(|e| e.stamp())
+            .map(|e| e.value_milli)
+    }
+
+    /// The actual state an ascription is about, if the trace records one.
+    ///
+    /// `None` means the ascriber is modelling something that is not there —
+    /// see [`projections`](Self::projections).
+    #[must_use]
+    pub fn counterpart_of<'a>(&'a self, ascription: &Trope) -> Option<&'a Trope> {
+        self.tropes.iter().find(|t| ascription.is_ascription_of(t))
+    }
+
+    /// How wrong an ascription is: ascribed magnitude minus actual, in
+    /// milliunits.
+    ///
+    /// `Some(0)` is an accurate model. `None` means either side has no
+    /// recorded value, or there is no counterpart at all — absence of
+    /// evidence, reported as such rather than as agreement.
+    ///
+    /// This is the engine's thesis reduced to an integer: a model that can be
+    /// wrong, and by how much.
+    #[must_use]
+    pub fn divergence(&self, ascription: &Trope) -> Option<i32> {
+        let actual = self.counterpart_of(ascription)?;
+        Some(self.latest_value(ascription.id)? - self.latest_value(actual.id)?)
+    }
+
+    /// Ascriptions with no counterpart: states an agent models in someone who
+    /// does not have them.
+    ///
+    /// Pure projection. A guard who ascribes `intent: expose-secret` to every
+    /// passer-by is reading his own preoccupation into other people, and this
+    /// query is what makes that visible without anyone scripting it — his
+    /// paranoia becomes data.
+    pub fn projections(&self) -> impl Iterator<Item = &Trope> {
+        self.tropes
+            .iter()
+            .filter(|t| t.is_ascription() && self.counterpart_of(t).is_none())
+    }
+
+    /// Every trope held by `holder`, ground truth and ascriptions alike.
+    pub fn held_by<'a>(&'a self, holder: &'a str) -> impl Iterator<Item = &'a Trope> {
+        self.tropes.iter().filter(move |t| t.holder() == holder)
+    }
+
     /// Every trope that resembles `subject` but is borne by someone else.
     ///
     /// The primitive that [`Domain::SocialRelational`] reasoning is built from.
@@ -248,10 +401,36 @@ mod tests {
     fn trope(id: u64, bearer: &str, kind: &str, domain: Domain) -> Trope {
         Trope {
             id: TropeId(id),
+            holders: Vec::new(),
             bearer: bearer.into(),
             about: None,
             kind: kind.into(),
             domain,
+        }
+    }
+
+    /// `holders` ascribing the state that `trope(..)` would build as ground.
+    fn ascribed(id: u64, holders: &[&str], bearer: &str, kind: &str, domain: Domain) -> Trope {
+        Trope {
+            holders: holders.iter().map(|h| (*h).to_string()).collect(),
+            ..trope(id, bearer, kind, domain)
+        }
+    }
+
+    fn about(t: Trope, o: &str) -> Trope {
+        Trope {
+            about: Some(o.into()),
+            ..t
+        }
+    }
+
+    fn valued(id: u64, tick: u64, trope: u64, value_milli: i32) -> TraceEvent {
+        TraceEvent {
+            id,
+            tick,
+            trope: TropeId(trope),
+            value_milli,
+            caused_by: vec![],
         }
     }
 
@@ -430,6 +609,288 @@ mod tests {
         let billy = &trace.tropes[0];
         let peers: Vec<_> = trace.peers_of(billy).map(|t| t.bearer.as_str()).collect();
         assert_eq!(peers, vec!["dave", "erin"]);
+    }
+
+    // ── Theory of mind ──────────────────────────────────────────────────────
+
+    #[test]
+    fn an_ascription_is_held_by_the_ascriber_not_the_bearer() {
+        let ground = trope(1, "anya", "suspicion", Domain::Epistemic);
+        let billys = ascribed(2, &["billy"], "anya", "suspicion", Domain::Epistemic);
+
+        assert_eq!(ground.holder(), "anya");
+        assert!(!ground.is_ascription());
+        assert_eq!(ground.order(), 0);
+
+        assert_eq!(billys.holder(), "billy", "Billy holds his model of Anya");
+        assert!(billys.is_ascription());
+        assert_eq!(billys.order(), 1);
+        assert!(billys.is_ascription_of(&ground));
+        assert!(
+            !ground.is_ascription_of(&billys),
+            "ground truth ascribes nothing"
+        );
+    }
+
+    #[test]
+    fn second_order_ascribes_the_first_order_not_the_ground() {
+        let ground = trope(1, "dave", "fear", Domain::Affective);
+        let anyas = ascribed(2, &["anya"], "dave", "fear", Domain::Affective);
+        let billys = ascribed(3, &["billy", "anya"], "dave", "fear", Domain::Affective);
+
+        assert!(billys.is_ascription_of(&anyas), "Billy models Anya's model");
+        assert!(
+            !billys.is_ascription_of(&ground),
+            "second order is about the first order, not about Dave directly"
+        );
+        assert!(anyas.is_ascription_of(&ground));
+    }
+
+    #[test]
+    fn a_self_model_is_a_legitimate_particular() {
+        // ["anya"] over bearer "anya" is Anya's model of her own state, which
+        // is NOT the same thing as the state: introspection can be wrong, and
+        // an engine whose thesis is "models can be wrong" must not rule out
+        // being wrong about oneself.
+        let actual = trope(1, "anya", "calm", Domain::Affective);
+        let self_model = ascribed(2, &["anya"], "anya", "calm", Domain::Affective);
+        assert!(self_model.is_ascription_of(&actual));
+        assert_ne!(actual, self_model);
+
+        let trace = Trace {
+            tropes: vec![actual, self_model],
+            events: vec![],
+        };
+        assert_eq!(
+            trace.validate(),
+            Ok(()),
+            "metacognition is not a contract breach"
+        );
+    }
+
+    #[test]
+    fn nesting_beyond_the_declared_order_is_rejected() {
+        let deep = ascribed(1, &["a", "b", "c"], "d", "suspicion", Domain::Epistemic);
+        let trace = Trace {
+            tropes: vec![deep],
+            events: vec![],
+        };
+
+        let errors = trace.validate().unwrap_err(); // default max order = 1
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("beyond the declared maximum")),
+            "{errors:?}"
+        );
+        assert_eq!(
+            trace.validate_to_order(3),
+            Ok(()),
+            "explicitly permitted depth"
+        );
+    }
+
+    #[test]
+    fn an_empty_name_in_the_path_is_rejected() {
+        let bad = ascribed(1, &["billy", ""], "anya", "x", Domain::Epistemic);
+        let trace = Trace {
+            tropes: vec![bad],
+            events: vec![],
+        };
+        let errors = trace.validate_to_order(2).unwrap_err();
+        assert!(
+            errors.iter().any(|e| e.contains("empty name")),
+            "{errors:?}"
+        );
+    }
+
+    #[test]
+    fn divergence_measures_how_wrong_a_model_is() {
+        let trace = Trace {
+            tropes: vec![
+                trope(1, "anya", "suspicion", Domain::Epistemic),
+                ascribed(2, &["billy"], "anya", "suspicion", Domain::Epistemic),
+                ascribed(3, &["erin"], "anya", "suspicion", Domain::Epistemic),
+            ],
+            events: vec![
+                valued(1, 10, 1, 30_000), // Anya is mildly suspicious
+                valued(2, 10, 2, 30_000), // Billy reads her exactly right
+                valued(3, 10, 3, 90_000), // Erin thinks she is furious
+            ],
+        };
+        let billys = &trace.tropes[1];
+        let erins = &trace.tropes[2];
+
+        assert_eq!(trace.divergence(billys), Some(0), "an accurate model");
+        assert_eq!(trace.divergence(erins), Some(60_000), "wrong by 60 units");
+        assert_eq!(
+            trace.divergence(&trace.tropes[0]),
+            None,
+            "ground truth cannot diverge from itself"
+        );
+    }
+
+    #[test]
+    fn the_guilty_conscience_trap_shows_up_as_projection() {
+        // A guard hiding something ascribes `expose-secret` intent to a
+        // passer-by who has no such intent. Nobody scripted a tell; his own
+        // belief state betrays him, and the query finds it.
+        let trace = Trace {
+            tropes: vec![
+                about(
+                    trope(1, "player", "walking", Domain::Mechanical),
+                    "corridor",
+                ),
+                about(
+                    ascribed(
+                        2,
+                        &["guard"],
+                        "player",
+                        "intent_expose_secret",
+                        Domain::Conative,
+                    ),
+                    "secret",
+                ),
+                // A correctly-grounded ascription, to prove the query
+                // discriminates rather than flagging every model.
+                about(
+                    trope(3, "player", "curiosity", Domain::Affective),
+                    "corridor",
+                ),
+                about(
+                    ascribed(4, &["guard"], "player", "curiosity", Domain::Affective),
+                    "corridor",
+                ),
+            ],
+            events: vec![],
+        };
+
+        let projected: Vec<_> = trace.projections().map(|t| t.kind.as_str()).collect();
+        assert_eq!(
+            projected,
+            vec!["intent_expose_secret"],
+            "only the ungrounded ascription is projection"
+        );
+    }
+
+    #[test]
+    fn sally_anne_the_ascription_tracks_sallys_evidence_not_the_world() {
+        // The false-belief task, executable. The marble starts in the basket,
+        // Sally sees it, Sally leaves, Anne moves it to the box. Sally's
+        // belief must not update — nothing reached her — and an observer with
+        // working theory of mind ascribes the STALE belief, not the world.
+        const BASKET: i32 = 1_000;
+        const BOX: i32 = 2_000;
+
+        let trace = Trace {
+            tropes: vec![
+                about(
+                    trope(1, "world", "marble_location", Domain::Mechanical),
+                    "marble",
+                ),
+                about(
+                    trope(2, "sally", "marble_location", Domain::Epistemic),
+                    "marble",
+                ),
+                about(
+                    trope(3, "anne", "marble_location", Domain::Epistemic),
+                    "marble",
+                ),
+                about(
+                    ascribed(
+                        4,
+                        &["observer"],
+                        "sally",
+                        "marble_location",
+                        Domain::Epistemic,
+                    ),
+                    "marble",
+                ),
+            ],
+            events: vec![
+                // t=1 marble in basket; Sally and Anne both witness it.
+                valued(1, 1, 1, BASKET),
+                TraceEvent {
+                    caused_by: vec![1],
+                    ..valued(2, 1, 2, BASKET)
+                },
+                TraceEvent {
+                    caused_by: vec![1],
+                    ..valued(3, 1, 3, BASKET)
+                },
+                // t=3 Anne moves it. The world changes; Anne witnesses it.
+                valued(4, 3, 1, BOX),
+                TraceEvent {
+                    caused_by: vec![4],
+                    ..valued(5, 3, 3, BOX)
+                },
+                // Sally: NO event. Absence of provenance is the whole test —
+                // a belief only moves when something reaches its holder.
+                // t=4 the observer ascribes what Sally must still think.
+                TraceEvent {
+                    caused_by: vec![2],
+                    ..valued(6, 4, 4, BASKET)
+                },
+            ],
+        };
+        assert_eq!(trace.validate(), Ok(()));
+
+        assert_eq!(
+            trace.latest_value(TropeId(1)),
+            Some(BOX),
+            "the world moved on"
+        );
+        assert_eq!(
+            trace.latest_value(TropeId(3)),
+            Some(BOX),
+            "Anne saw it move"
+        );
+        assert_eq!(
+            trace.latest_value(TropeId(2)),
+            Some(BASKET),
+            "Sally's belief is stale, because nothing updated it"
+        );
+
+        let observer = &trace.tropes[3];
+        assert_eq!(
+            trace.divergence(observer),
+            Some(0),
+            "PASSES SALLY-ANNE: the ascription tracks Sally's belief exactly"
+        );
+        assert_ne!(
+            trace.latest_value(observer.id),
+            trace.latest_value(TropeId(1)),
+            "...and therefore differs from the world, which is the point"
+        );
+
+        // The failure mode, for contrast: an observer without theory of mind
+        // reports the world and is wrong about Sally by exactly the distance
+        // the marble travelled.
+        let mut naive = trace.clone();
+        naive.events.push(TraceEvent {
+            caused_by: vec![4],
+            ..valued(7, 5, 4, BOX)
+        });
+        assert_eq!(
+            naive.divergence(&naive.tropes[3].clone()),
+            Some(BOX - BASKET)
+        );
+    }
+
+    #[test]
+    fn held_by_separates_an_agents_world_from_the_world() {
+        let trace = Trace {
+            tropes: vec![
+                trope(1, "anya", "suspicion", Domain::Epistemic),
+                ascribed(2, &["billy"], "anya", "suspicion", Domain::Epistemic),
+                ascribed(3, &["billy"], "dave", "fear", Domain::Affective),
+                trope(4, "billy", "resolve", Domain::Conative),
+            ],
+            events: vec![],
+        };
+        let billys: Vec<_> = trace.held_by("billy").map(|t| t.id.0).collect();
+        assert_eq!(billys, vec![2, 3, 4], "his models and his own states");
+        assert_eq!(trace.held_by("anya").count(), 1, "her actual state only");
     }
 
     #[test]
