@@ -49,6 +49,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod belief;
+
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
