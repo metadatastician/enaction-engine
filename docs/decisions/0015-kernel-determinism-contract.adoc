@@ -1,0 +1,126 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0015-kernel-determinism-contract
+
+
+Date: 2026-07-27
+
+== Status
+
+Accepted
+
+== Context
+
+Three consumers need incompatible-looking things. IDApTIK needs byte-identical
+replay across a network under delay lockstep. Slavia needs a wasm-clean, provable
+core with no ambient randomness. cac-engine integrates continuous quantities
+against a caller-supplied timestep.
+
+The estate also contradicts itself about floating point. IDApTIK's ADR-0004
+permits `f64` in world simulation and achieves byte parity anyway. This
+repository's `lerp` is float, and its exact form was *measured* rather than
+reasoned. Slavia forbids floats in cognition entirely. The evidence ledger
+mandates fixed point.
+
+Without a stated rule, each new subsystem re-litigates this.
+
+== Decision
+
+=== The binding rule
+
+A kernel reduction is a pure function of `(kernel_version, profile_version,
+prior_state, ordered_event, context)`. It may read nothing else. Its output must
+be byte-identical under canonical encoding on every supported target.
+
+=== What it forbids
+
+. **No ambient clock.** Time enters as a tick in the event, never from the
+  system.
+. **No ambient randomness.** A generator is a value *in state*, seeded from the
+  event stream and captured in snapshots. Slavia's injected generator is the
+  model.
+. **No iteration over an unordered map on any path affecting output.** Live
+  hazards today: a `HashMap`-backed substitution in Slavia's solver (currently
+  sound because only lookups are ordered-insensitive — one refactor from
+  unsound); an argmax over JavaScript object insertion order in cac-engine,
+  which is exactly the value that crosses into cognition; focal-set ordering in
+  the evidence ledger.
+. **No global mutable state.** Live hazard: UMS's relational engine allocates
+  logic variables from a process-global atomic counter, so a reified unbound
+  variable serialises differently depending on how many unrelated queries ran
+  first. Variable identity must be state-local.
+. **No process identity, thread identity, mailbox arrival order, hash seed, or
+  address-derived ordering.**
+. **Floats, scoped.** The rule is not "no floats". It is:
++
+--
+**A float is permitted only where its value never becomes an identity or an
+ordering.**
+
+* Render interpolation may use `f64`. Interpolated output never re-enters
+  simulation, which is already a design invariant of this repository.
+* World simulation may use `f64` for continuous world quantities, under the
+  byte-parity regime a consuming game already operates.
+* **The CAC kernel is float-free.** Every value participating in belief,
+  evidence, confidence, salience, drive level, attention allocation or action
+  ranking is fixed-point integer.
+
+The rationale is precise. A comparison against a threshold turns a float into a
+discrete decision, and that is where a one-ULP difference becomes a divergent
+replay and a desynced peer. IDApTIK already passes this rule. Slavia already
+keeps it. It tells cac-engine's port exactly what to change.
+--
+. **Fixed step for continuous integrators.** An affect integrator uses a
+  constant timestep supplied by the kernel, never a caller-supplied one.
+  cac-engine's `const dt = sensorData.dt || 0.016` appears in all three of its
+  layers and is the single largest porting task in that codebase. It cannot be
+  fixed by seeding; it is non-determinism in the integrator itself.
+. **Canonical encoding before any hash or parity comparison.** Sorted keys,
+  sorted focal-set members, fixed-point scalars, explicit version fields, no
+  dependence on map iteration.
+
+=== Wire encoding
+
+Canonical CBOR for bytes and parity comparison; JSON for human-readable
+fixtures; a round-trip equality test between them. This closes the corresponding
+open question in the shared ESM contract.
+
+=== Conformance fixtures as the cross-repository currency
+
+A shared contract is real only when a **fixture** and its **expected output** are
+versioned together, live with the contract owner, and are vendored by every
+consumer with a recorded digest. A consumer's build fails if the digest does not
+match.
+
+* Owner side: `conformance/<contract>/v1/{cases,expected,SHA256SUMS}`.
+* Consumer side: a vendored copy plus a `sha256sum -c` invariant.
+
+The first fixture set is deliberately **not** the ESM. It is the four behaviours
+that already have byte-parity evidence in the existing parity test: `lerp`
+endpoint clamping, the one-term interior form, `commit`-then-`snap`, and the
+`FixedStep` catch-up cap. The work is promoting them from a test file into a
+versioned, hashed fixture.
+
+Every fixture runs twice in one process, in two separate processes, on x86-64,
+aarch64 and wasm32, and with snapshot and restore at *every* tick rather than
+only at the end. Per AGENTS.md, a target whose toolchain is absent is a failure,
+not a skip.
+
+== Consequences
+
+* Each prohibition names a hazard that exists in the estate today rather than a
+  hypothetical one. They are checkable.
+* The float rule ends the contradiction without forcing a rewrite of code that
+  already achieves parity: existing float usage in world simulation and
+  interpolation stays legal; the CAC surface does not acquire any.
+* cac-engine's numerics are structurally incompatible with this contract.
+  Donated algorithms are re-expressed as fixed-point per-tick before entering
+  Rust; the sandbox keeps its floats and is never a source of truth.
+* The fixture requirement binds nothing on the day it is accepted, because no
+  consumer vendors anything yet. It binds the *next* extraction. Stated here so
+  it does not read as a present-tense claim.
+
+Real-game status:: The whole-estate determinism this describes is not
+demonstrated. `FixedStep` has not run in a real game. The conformance harness
+does not exist. What is true today is narrower: IDApTIK achieves byte parity
+under its own regime, and Slavia's cognition layer is float-free.

@@ -1,0 +1,222 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= The CAC kernel contract
+
+Status: **normative**
+
+This is the authoritative statement of the shared cognition/affect/conation
+kernel contract for the estate. It receives the reduction contract, data model
+and profile rules that were drafted in IDApTIK's
+`docs/architecture/esm-contract-and-repo-boundaries.md`, which now keeps only
+the package-boundary sections it owns under its own ADR-0007.
+
+It is deliberately small. It defines seams and invariants before any repository
+is asked to implement a complete theory of mind.
+
+Accepted by ADR-0013 (two-layer estate), ADR-0014 (two-rate architecture),
+ADR-0015 (determinism), ADR-0016 (confidence types), ADR-0017 (crate admission
+and extraction).
+
+WARNING: No implementation of this contract exists in this repository. The
+reduction below is a specification. The working evidence ledger is in IDApTIK,
+kept there by its ADR-0010 until the extraction trigger fires.
+
+== 1. Scope and vocabulary
+
+An **epistemic state** is an agent's current, provenance-bearing model of what
+is known, believed, suspected or unknown about a world and about other agents.
+It is not the world state itself.
+
+A **trace** is the ordered record from which an epistemic state can be
+reconstructed.
+
+A **profile** supplies game- or scenario-specific vocabulary and policy without
+changing kernel semantics.
+
+The contract covers observations and their provenance; beliefs, hypotheses,
+confidence and explicit uncertainty; nested beliefs; contradiction and
+supersession; deterministic ordering and replay; and optional affective and
+conative annotations.
+
+It does not prescribe a cognitive architecture, a machine-learning model, a
+planner, a renderer or a multiplayer protocol.
+
+== 2. Normative reduction contract
+
+An implementation MUST expose a deterministic reduction equivalent to:
+
+[source]
+----
+reduce(
+  prior_state: EpistemicState,
+  event: EpistemicEvent,
+  context: ReductionContext
+) -> ReductionResult
+----
+
+where `ReductionResult` contains:
+
+[source]
+----
+{
+  state: EpistemicState,
+  derived: [Belief | Hypothesis | Intention | AffectAnnotation],
+  trace_entry: TraceEntry,
+  diagnostics: [Diagnostic]
+}
+----
+
+For the same contract version, prior state, event and context, the result MUST
+be canonically equivalent byte for byte. Wall-clock time, process identity,
+mailbox arrival order, hash-map iteration order and renderer state MUST NOT
+alter the result. The full prohibition list is ADR-0015.
+
+The reduction is event-sourced. A snapshot is an optimisation and MUST be
+reconstructible or verifiable against the ordered event trace.
+
+== 3. Minimum data model
+
+Conceptual wire fields. Concrete Rust, Elixir, Idris2, Nickel or UMS
+representations may differ, but field meaning and required invariants must
+remain compatible.
+
+[source]
+----
+EpistemicEvent {
+  event_id: EventId,
+  sequence: uint,
+  tick: uint,
+  observer: AgentId,
+  subject: AgentId | World,
+  kind: Observation | Communication | Inference | ActionOutcome | Correction,
+  proposition: Proposition,
+  confidence: Mass,
+  provenance: Provenance,
+  affect: optional AffectAnnotation,
+  conation: optional ConativeAnnotation
+}
+
+Belief {
+  belief_id: BeliefId,
+  holder: AgentId,
+  proposition: Proposition,
+  status: Known | Believed | Suspected | Rejected | Unknown,
+  confidence: Mass,
+  source_events: [EventId],
+  valid_from: Tick,
+  supersedes: optional BeliefId
+}
+----
+
+=== Required invariants
+
+. `event_id` is globally unique within a trace.
+. `(tick, sequence)` gives a total order for reduction.
+. Every non-derived belief has at least one provenance event.
+. A contradiction is represented explicitly; it is not silently overwritten.
+. Nested theory of mind is represented as a belief whose holder is another
+  agent, subject to a declared depth and resource policy. Per ADR-0015, any such
+  cap MUST be counted in deterministic units — inferences, unifications, stream
+  nodes — never in milliseconds.
+. `Unknown` is a first-class status, distinct from rejected or false.
+. Confidence is typed and bounded, and an implementation must not confuse
+  confidence with truth. The type is `Mass`; belief status derives from the
+  belief-plausibility *interval* via a versioned profile policy, never from a
+  hardcoded threshold. See ADR-0016.
+
+== 4. The two-rate structure
+
+Cognition is discrete and event-gated. Affect is continuous and per-tick. They
+are joined only here, at the ledger, and exactly two values cross. ADR-0014 is
+normative; the summary:
+
+[source]
+----
+evidence (fixed-point masses)
+  -> projection policy (declared, versioned)
+    -> ground fact set
+      -> relational solver
+        -> intent read (solution count)
+          -> conation (reads the read AND the retained belief interval)
+----
+
+**Crossing A, affect to cognition.** An affect token (argmax over a declared
+ordered vocabulary, declared tie-break, hysteresis band), or a `Mass`-typed
+modulation of *attention and priority — never of truth*. Affect buys attention,
+not belief.
+
+**Crossing B, cognition to affect.** A contradiction is the algedonic signal: a
+bounded, provenance-bearing arousal spike. Ambiguity produces a smaller spike
+scaling with the ambiguity. A unified reading produces nothing.
+
+Nothing else crosses. No float crosses. An intent read never becomes a number
+inside the kernel. Conative utilities never leave the conative layer; only the
+argmax is published.
+
+== 5. Profiles and extensions
+
+The kernel owns event ordering, provenance, status transitions, contradiction
+handling, snapshots and replay.
+
+A profile may add propositions, predicates, actor roles, affect dimensions,
+conative drives and transition policies. A profile MUST:
+
+* declare the kernel and profile version it targets;
+* use namespaced extension identifiers;
+* provide a validator and a migration story for breaking changes;
+* remain loadable without UMS being installed;
+* avoid redefining kernel fields with different meanings.
+
+The initial profiles are `idaptik/esm/v1` and `slavia/esm/v1`. They are
+profiles, not separate semantics.
+
+== 6. Validation and compatibility
+
+Every package MUST declare its kernel version, profile identifier and version,
+schema version, source provenance and content digest, supported migration
+range, deterministic seed or seed policy, and its declared event and snapshot
+guarantees.
+
+Loaders MUST reject unknown incompatible major versions, invalid provenance,
+duplicate event identifiers, non-monotonic ordering, unbounded nested-belief
+expansion, and packages whose digest does not match their contents. A diagnostic
+should identify the stable field path and the compatibility rule that failed.
+
+Conformance fixtures are the cross-repository currency, per ADR-0015: a contract
+is real only when a fixture and its expected output are versioned together with
+the owner and vendored by consumers against a recorded digest.
+
+== 7. First interoperable slice
+
+Deliberately narrow:
+
+. `Observation`, `Communication`, `Inference` and `Correction` events.
+. `Known`, `Believed`, `Suspected`, `Rejected` and `Unknown` statuses.
+. One level of nested belief, with a declared maximum depth.
+. Provenance, confidence, contradiction, replay and snapshot verification.
+. A small IDApTIK Ghost Lobby profile with fixtures shared with UMS.
+. A transport-neutral fixture set for Rust and Elixir consumers.
+
+Affect and conation attach as optional typed annotations in this slice. They do
+not force the first kernel to settle the complete Slavia model.
+
+== 8. Open problems
+
+These are unsolved. They are recorded so they are not silently assumed. The full
+statements live in IDApTIK's `esm-contract-and-repo-boundaries.md` §9.
+
+* **The proposition language**, and whether a Dempster–Shafer focal set can
+  contain a non-ground proposition. This is the hardest one and it blocks a
+  single reduction crate. If irreconcilable, "one kernel" weakens to "one trace,
+  two reasoners".
+* **Frames do not compose.** DS needs a declared frame per question; a belief
+  space is open-ended.
+* **Theory-of-mind depth accounting.**
+* **Affect's clock**, which sets the scale ceiling.
+* **Whether affect is state or annotation.** This document permits only the
+  latter; a continuous appraisal layer is the former.
+* **What "verified" means**, and the rule that a veto must be an event.
+* **The domain-to-stage correspondence**, which is 1:1 for exactly one scenario
+  and may be a deep result or a frozen accident.
+* **Nothing has been benchmarked.** No measurement exists for a solver query, a
+  ledger combine, or a tick of affect.

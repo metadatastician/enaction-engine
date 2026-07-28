@@ -78,7 +78,7 @@ proven = [
 ]
 not-adopted-by-a-game = [
   "Enaction FixedStep",
-  "enaction-cognition",
+  "enaction-trace",
 ]
 required-order = [
   "Bring agent/enaction-engine-realignment onto current origin/main",
@@ -88,7 +88,7 @@ required-order = [
 ]
 do-not = [
   "Do not replace IDApTIK timing merely to create a dependency",
-  "Do not claim enaction-cognition has run in either game",
+  "Do not claim enaction-trace has run in either game",
   "Do not add Slavia or IDApTIK narrative enums to Enaction",
 ]
 

@@ -1,0 +1,95 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0018-the-enactive-claim
+
+
+Date: 2026-07-27
+
+== Status
+
+Accepted
+
+Qualifies 0006 (the repository name and its functional gloss).
+
+== Context
+
+This repository is named for a tradition in cognitive science that it does not
+cite. A search of the whole tree for `varela`, `thompson`, `di paolo`,
+`autopoiesis`, `sensorimotor`, `sense-making`, `enactivism`, `rosch`, `noë` and
+`gallagher` returns nothing. ADR-0006 defines the name purely by a functional
+gloss — perception, affect, intention, action and consequence — with no
+reference to the literature. `docs/theory/` contains a README and a `.gitkeep`.
+
+The uncomfortable part is not the missing bibliography. It is that the kernel as
+currently designed is **representationalist to its bones**. A belief with a
+proposition, a status, a confidence and a set of source events is a
+sentence-shaped inner model of an outer world, and the shared contract's central
+concern is the provenance of representations. That is close to the thing
+enactivism was formulated against: Varela, Thompson and Rosch argue that
+cognition is not the recovery of a pregiven world by a pregiven mind, and Di
+Paolo grounds sense-making in the *precarious* self-maintenance of an autonomous
+system. Nothing in this kernel can die, and everything in it is a proposition.
+
+So "add the grounding" is not a bibliography task. It is either a redesign or an
+argument — and the argument is genuinely makeable, which is why the answer is
+not simply to rename.
+
+== Decision
+
+State plainly that the name is currently an **aspiration, not a citation**. This
+is the same standard the repository already applies to its code, where
+`EXPLAINME.adoc` records that `FixedStep` has never run in a real game.
+
+Commit one document, `docs/theory/ENACTIVE-COMMITMENTS.adoc`, naming which
+enactive commitments this engine makes and which it declines, with citations.
+
+Three commitments the engine can honestly claim:
+
+. **Operational closure of the epistemic state.** Belief is a baseline plus that
+  entity's own deltas, and the ledger rule is that an observer's state is never
+  constructed by consulting hidden world truth. An agent's state is determined by
+  its own history of couplings. That is a real autonomy claim, and *operational
+  closure* is a better name for it than *observer-relative*, because it comes
+  with a literature the invariant can be checked against.
+. **Breakdown as sense-making.** A contradiction is not an error path; it is the
+  moment meaning is constituted by a failure of coupling. Slavia's own comment —
+  that the zero-solution case is the good one, the moment the agent discovers he
+  was deceived — is closer to Heidegger by way of Winograd and Flores than
+  anything else in the estate, and it is implemented rather than aspirational.
+. **The loop, not the pipeline.** The cognitive-model working note already
+  rejects a strict pipeline in favour of a loop that passes through the world.
+  That rejection is the Varelian move, and it is already written down.
+
+Two commitments the engine declines, and should say so:
+
+* **Autopoiesis and precariousness.** Nothing here self-maintains against
+  dissolution.
+* **Anti-representationalism.** Beliefs are propositions with provenance,
+  deliberately, because inspectability is a hard requirement — an agent that
+  reasons invisibly is indistinguishable from an agent that cheats.
+
+Set a review date. **If `ENACTIVE-COMMITMENTS.adoc` does not exist by then, the
+name changes.** That consequence is agreed here, in advance, rather than argued
+later.
+
+== Consequences
+
+* Faking it was never available. AGENTS.md says a check that cannot fail is not
+  a check; ADR-0012 says an empty crate creates a false commitment. A Varela
+  bibliography with no design consequence is the identical defect one level up,
+  in ideas rather than code. The currently empty `docs/theory/` is at least
+  honest.
+* Renaming is cheapest now and gets monotonically more expensive. ADR-0011 pins
+  `enaction-*` across crate names, import paths, the repository URL, containers,
+  CI, the citation file and the launcher config. Bounded but wide today; near
+  impossible after publication or first citation.
+* The intellectual risk is real: writing the document honestly may force the
+  concession that the name does not fit. That risk is the point of setting the
+  deadline.
+* The upside is concrete. Commitment 1 gives the kernel's central invariant a
+  name with a literature behind it, which is worth more than the label on the
+  repository.
+
+Real-game status:: The engine makes no enactive claim that has been tested
+against the literature. This ADR records the gap and its deadline; it does not
+close it.

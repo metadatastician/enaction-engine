@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0013-two-layer-estate-kernel-and-studio
+
+
+Date: 2026-07-27
+
+== Status
+
+Accepted
+
+Refines 0009 (UMS versioned contracts), which states the dependency rules in
+prose in `docs/architecture/UMS-INTEGRATION.adoc`.
+
+== Context
+
+Six repositories hold pieces of one games platform: this engine, Universal
+Modding Studio, IDApTIK, Chronicles of Slavia, and the Project Ovine and
+cac-engine experiments. The boundaries between them were written down four
+times, in four repositories, in documents that agreed with each other and bound
+nothing.
+
+Two of those repositories both claimed engine territory. UMS describes itself as
+an authoring, generation, validation and packaging platform; this repository
+describes itself as a deterministic engine for worlds shaped through perception,
+affect, intention, action and consequence. Nothing said which one a game links.
+
+== Decision
+
+The estate has exactly two shared layers, in separate repositories, with
+separate release artefacts.
+
+**The Enaction Engine is the runtime kernel.** It owns event and state
+semantics, ordering, replay, snapshots, timing and interpolation. A shipped game
+links it.
+
+**Universal Modding Studio is the authoring studio.** It owns the profile SDK,
+the package compiler, the DLC envelope and, later, the studio interface. It
+emits packages. It is not linked by a game.
+
+They are separate repositories for one reason, and it is a hard requirement
+rather than a preference: **a released game must build and run with neither UMS
+source nor UMS binaries present.** An editor and a runtime have different
+consumers, different release cadences and different failure consequences.
+
+The dependency direction is a strict partial order:
+
+[source]
+----
+        enaction-engine  (kernel)
+              ^
+   +----------+----------+
+IDApTIK           chronicles-of-slavia        Ovine / cac-engine
+   ^                     ^                    (donor - nothing depends on it)
+   +----------+----------+
+        idaptik-ums  (studio)
+----
+
+Six edges:
+
+. This engine depends on nothing else in the estate.
+. IDApTIK depends on this engine only. Never on UMS, never on Slavia.
+. Slavia depends on this engine only. Never on UMS, never on IDApTIK.
+. UMS depends on **no game runtime crate, ever**. It reads a game's published
+  contract files as data, by path. That
+  `ums_profiles::compile_idaptik()` takes an `--idaptik-root` argument rather
+  than a Cargo dependency is the architecture, not an implementation detail.
+. UMS may depend on this engine only through a feature-gated preview adapter,
+  per ADR-0009.
+. Nothing depends on Ovine or cac-engine. Donation is one-way (ADR-0016).
+
+== Consequences
+
+* The question "which repository is the engine" has one answer, and the answer
+  is checkable rather than asserted.
+* This engine is currently far smaller than this decision implies. That is
+  recorded, not hidden: see `docs/status/DEFECTS.adoc` and the readiness grade.
+  This ADR fixes direction; it does not report an inventory.
+* Each edge gets an executable check. The local half of every boundary must be
+  checkable with **no sibling repository present** — a check that silently skips
+  when a sibling is absent is not a check. The cross-repository half lives in
+  `idaptik-ums/scripts/check-architecture-boundaries.sh`, which hard-exits on a
+  missing sibling and is release-blocking.
+* Anyone wanting to collapse the two layers into one repository, or to convert
+  UMS's path argument into a crate dependency, must supersede this ADR first.
+
+Real-game status:: No game links this engine today. The boundary is enforced in
+both directions by grep-level invariants; the integration it describes has not
+happened.
