@@ -31,22 +31,24 @@ jobs:
     if: vars.OIKOSBOT_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    container:
-      image: ghcr.io/hyperpolymath/oikos:v2.0.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
+      # OikosBot's own composite action runs the published CLI container.
+      # It replaces the former hand-rolled job, which could never work:
+      # it pinned ghcr.io/hyperpolymath/oikos:v2.0.0 (a tag that has never
+      # existed on the package) as a `container:` image, and masked the
+      # resulting failure with `|| echo`. Config comes from .oikos.yml.
       - name: Run OikosBot analysis
-        run: |
-          oikosbot report /github/workspace \
-            --format sarif \
-            --output /github/workspace/results.sarif \
-            --config /github/workspace/.oikos.yml \
-            --eco-threshold 50 || echo "OikosBot analysis completed"
+        uses: hyperpolymath/oikosbot@bb95ab5063ab9b43a948e21ed8b3fe35b1d1768b  # v0.1.0
+        with:
+          mode: report
+          path: .
+          output: results.sarif
 
       - name: Upload SARIF to GitHub Security
         if: always()
-        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4 — same verified pin as codeql.yml; 39a73d6 is not a commit in github/codeql-action
+        uses: github/codeql-action/upload-sarif@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v3 — verified pin; 39a73d6 is not a commit in github/codeql-action
         with:
-          sarif_file: /github/workspace/results.sarif
+          sarif_file: results.sarif
           category: oikosbot
