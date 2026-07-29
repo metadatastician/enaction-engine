@@ -104,7 +104,52 @@ inhibition, and action selection.
 These dimensions interact through an agent situated in a world, but they remain
 separable subsystem families. Agency and embodiment connect their state to
 possible action; worlds, ecologies, and institutions supply constraints and
-consequences. No such implementation exists in this repository yet.
+consequences.
+
+### What is implemented (`enaction-trace`)
+
+The **seam** exists, and part of the affective and epistemic content with it.
+The engine supplies identity, ordering, causality and domain separation; a game
+supplies every word.
+
+**Typed by domain.** `Domain` separates `Mechanical`, `Epistemic`, `Affective`,
+`Conative`, `BehaviouralSelection` and `SocialRelational`. Affect never
+silently becomes knowledge, and nothing selects behaviour without an explicit
+selection event. `domain` lives on the trope rather than the event, so a
+particular cannot be reclassified mid-history.
+
+**Particularised by trope.** A `Trope` is an *abstract particular* — this
+bearer's this property-instance, with identity (Williams/Campbell: properties
+are particulars, not universals). Two guards suspecting the same object are two
+particulars with independent causal histories that merely *resemble* one
+another; `resembles` / `is_peer_of` / `peers_of` make that a query rather than
+an equality test, which is what `SocialRelational` reasoning is built over.
+
+**Theory of mind by ascription path.** `Trope::holders` records whose model a
+particular lives inside, outermost first: `[]` is ground truth, `["billy"]` is
+Billy's model of the bearer's state, `["billy","anya"]` is Billy's model of
+Anya's model. Dennett's orders are path length; the shared ESM contract's
+declared depth bound is `holders.len()`, enforced by `DEFAULT_MAX_TOM_ORDER`.
+
+It is a **path, not a reference**, and that is the design. An ascription must
+be able to describe a state that does not exist — an agent may model a belief
+no one holds. A reference would make false ascription unrepresentable, and
+being wrong about other minds is the phenomenon the field exists to carry. From
+it: `divergence()` (how wrong a model is, in milliunits) and `projections()`
+(states an agent models in someone who lacks them). The **Sally-Anne
+false-belief task runs as a test**.
+
+**Interest and belief kinetics** (`enaction-trace::belief`), extracted from
+IDApTIK with bit-for-bit parity: meters climb per observation channel, decay
+while unobserved unless *pinned*, and belief forms over the highest once it
+crosses a threshold. Observation channels are caller-supplied data
+(`ChannelTable`), and the advance parameter is any monotone accumulator —
+seconds for IDApTIK, steps-walked for Chronicles' "memory erodes with motion".
+
+**Not yet implemented:** the belief store (baseline plus per-bearer deltas),
+the bounded confidence type, retraction/revision events, valence, goal and
+commitment machinery, and behavioural-selection chain enforcement. No game
+consumes any of this yet.
 
 ## Proving-ground policy
 
@@ -128,7 +173,13 @@ hard-wired to this engine. See
 ## Current limits
 
 - **No renderer, no ECS, no asset pipeline, no audio, no input.** "Engine" here
-  currently means the timing and interpolation core, and nothing more.
+  means the deterministic timing/interpolation substrate plus the cognitive
+  trace seam — and nothing more.
+- **Nothing consumes the cognition seam yet.** The trope, belief and
+  theory-of-mind machinery is tested but unadopted; a component in use is
+  extracted, a component merely present is copied. IDApTIK adoption is
+  sequenced after its own in-flight work; Chronicles is the generalisation
+  test.
 - **`FixedStep` has never run a real game.** IDApTIK borrows Bevy's accumulator,
   so this implementation is new code. It is tested hard — the spiral guard,
   hostile input, and a time-accounting invariant — but tests are not service.
