@@ -15,20 +15,8 @@ permissions:
 jobs:
   oikosbot:
     name: Sustainability Analysis
-    # GATED OFF until the analyser container actually exists.
-    #
-    # This job pulls ghcr.io/hyperpolymath/oikos:v2.0.0, which has never been
-    # published: hyperpolymath/oikosbot has no container-publishing workflow
-    # and its only tag is v0.1.0, so the pull fails "manifest unknown" on
-    # every run. A gate that cannot pass is not a gate — it is a red light
-    # people learn to ignore, which is worse than no light.
-    #
-    # The workflow is kept rather than deleted because the intent is real and
-    # the repo declares .oikos.yml. To enable, set the repository variable
-    # OIKOSBOT_ENABLED to 'true' once the image is published — and check the
-    # image NAME as well as the tag while doing it: the analyser repo is
-    # `oikosbot`, but this pulls `oikos`, which is the economics DSL.
-    if: vars.OIKOSBOT_ENABLED == 'true'
+    # Runs the published composite action (hyperpolymath/oikosbot@v0.1.0).
+    # This repo is the proven pilot: 101 SARIF results ingested on PR #21.
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
