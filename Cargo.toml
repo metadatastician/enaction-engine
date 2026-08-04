@@ -7,7 +7,11 @@
 # boundary and why the engine also needs an accumulator IDApTIK does not.
 [workspace]
 resolver = "2"
-members = ["crates/enaction-time", "crates/enaction-trace"]
+members = [
+    "crates/enaction-time",
+    "crates/enaction-trace",
+    "crates/enaction-contracts",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -19,4 +23,5 @@ repository = "https://github.com/metadatastician/enaction-engine"
 [workspace.dependencies]
 enaction-time = { path = "crates/enaction-time" }
 enaction-trace = { path = "crates/enaction-trace" }
+enaction-contracts = { path = "crates/enaction-contracts" }
 serde = { version = "1", features = ["derive"] }

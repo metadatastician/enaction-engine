@@ -1,0 +1,81 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0019-enaction-contracts-crate
+
+Date: 2026-08-04
+
+== Status
+
+Accepted
+
+== Context
+
+`docs/architecture/CAC-KERNEL.adoc` is the normative statement of the shared
+cognition/affect/conation contract, promoted out of IDApTIK's
+`esm-contract-and-repo-boundaries.md`. Until now it existed only as prose, and
+its WARNING said so. The estate's own next-actions list called the promotion of
+that prose into a crate the top task: the game owned the spec the engine must
+implement, which is inverted.
+
+ADR-0017 gates crate admission on a proving ground and a second caller. This is
+a *contract promotion*, not a behaviour extraction: the reduction behaviour
+stays in IDApTIK's evidence ledger (its ADR-0010), while the second callers of
+the contract *types* are already named in the contract itself — UMS `schemas/`
+and Chronicles' `slavia-core` are the declared consumers, and the surprises the
+trigger asks for are the ESM document's own §9 ledger.
+
+== Decision
+
+`crates/enaction-contracts` expresses CAC-KERNEL §§2, 3, 5 and 6 as types and
+validators. The prose stays normative; where crate and prose disagree, the
+prose wins and the crate has a bug.
+
+* `version` — `ContractVersion` and the compatibility rule. CAC-KERNEL §6 only
+  mandates rejecting incompatible majors; this ADR rules the minor direction:
+  **same major, and the declared minor at or below the host's** — additive
+  features a host lacks are exactly as unloadable as a wrong major.
+* `belief` — the §3 data model. Nesting is an ascription path (`holders`),
+  the same representation as `enaction_trace::Trope::holders`, with the depth
+  default read from `DEFAULT_MAX_TOM_ORDER` — one authority for both. The
+  belief–plausibility interval and the interval-derived status policy encode
+  ADR-0016, including its normative evaluation order. The affect and conation
+  annotations enforce ADR-0014's crossings by shape: no truth-bearing field on
+  affect, no utility field on conation.
+* `reduce` — the §2 reduction signature as a trait, plus a replay harness. No
+  implementation ships.
+* `package` — the §6 MUST-declare manifest and MUST-reject list as
+  `validate_package`, reporting every fault with a stable field path and rule
+  name. A package must be strictly `(tick, sequence)`-monotonic — stricter
+  than `Trace::validate`, deliberately: a compiled artifact had every chance
+  to sort.
+
+`Mass` itself lives in `enaction-trace` (`mass.rs`): a trace event may carry a
+confidence, the contracts crate depends on the trace crate, and one authority
+with no cycle beats a tidier-looking layering.
+
+=== What the crate refuses to contain
+
+* No reduction implementation (IDApTIK's ADR-0010 keeps the ledger until the
+  extraction trigger fires).
+* No game vocabulary; `Proposition` is an opaque string the kernel never
+  reads, the `Trope::kind` convention.
+* No settlement of the proposition language (§8's hardest open problem);
+  `Derived` omits `Hypothesis` and `Intention` (`#[non_exhaustive]`) because
+  nothing in the estate defines their shape yet.
+* No hashing dependency: `validate_package` compares a caller-computed digest.
+* No UMS dependency, ever (ADR-0013).
+
+=== Deferred
+
+Conformance fixtures stay inline in the crate's tests for now; promotion to
+`conformance/esm/v1/` follows ADR-0015's own sequencing (its first fixture set
+is deliberately not the ESM). `serde_json` is a dev-dependency only; the
+runtime closure is serde + enaction-trace.
+
+== Consequences
+
+* CAC-KERNEL's WARNING weakens to the true statement: the contract types and
+  validators exist here; the reduction remains unimplemented.
+* IDApTIK's ESM document can cite the crate instead of duplicating §§2–4.
+* UMS and Chronicles consume field names and bounds as data — citation, not a
+  Cargo dependency, per ADR-0013's edge rules.

@@ -1,0 +1,510 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//! Package declaration and validation (CAC-KERNEL §6).
+//!
+//! A package is a *compiled artifact*, and that difference from a live trace
+//! is deliberate policy here: `enaction_trace::Trace::validate` tolerates
+//! unsorted events because causality is judged by stamp, but §6 puts
+//! non-monotonic ordering on the loader's reject list — a compiler had every
+//! opportunity to sort, so arriving unsorted is evidence of a broken producer,
+//! not a lenient caller.
+
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
+
+use crate::DepthPolicy;
+use crate::belief::{Belief, BeliefId, EpistemicEvent, EventId};
+use crate::version::{ContractVersion, ProfileRef};
+
+/// How a package obtains its deterministic seed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SeedPolicy {
+    /// A literal seed, fixed at compile time.
+    Fixed(u64),
+    /// A named, versioned policy the host resolves. The kernel never
+    /// interprets the name.
+    Policy(String),
+}
+
+/// Everything a package MUST declare (CAC-KERNEL §6).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PackageManifest {
+    pub kernel_version: ContractVersion,
+    pub profile: ProfileRef,
+    pub schema_version: ContractVersion,
+    /// Source provenance: where this package was compiled from.
+    pub source: String,
+    /// Content digest, hex-encoded. The caller computes the digest over the
+    /// package contents — this crate deliberately takes no hashing
+    /// dependency, so [`validate_package`] *compares* a supplied digest
+    /// rather than computing one.
+    pub digest: String,
+    /// The oldest declared version this package can migrate from.
+    pub migration_from: ContractVersion,
+    pub seed: SeedPolicy,
+    /// Declared event and snapshot guarantees, as namespaced strings. Two
+    /// real packages need to exist before a typed vocabulary would be more
+    /// than guesswork.
+    pub guarantees: Vec<String>,
+}
+
+/// A validated unit of epistemic content: manifest, events, beliefs.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EpistemicPackage {
+    pub manifest: PackageManifest,
+    pub events: Vec<EpistemicEvent>,
+    pub beliefs: Vec<Belief>,
+}
+
+/// One reason a loader MUST reject a package (CAC-KERNEL §6).
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PackageFault {
+    IncompatibleKernel {
+        declared: ContractVersion,
+        host: ContractVersion,
+    },
+    DuplicateEventId(EventId),
+    DuplicateBeliefId(BeliefId),
+    NonMonotonicOrder {
+        at: EventId,
+        prev: (u64, u64),
+        this: (u64, u64),
+    },
+    NestingBeyondDeclaredMax {
+        belief: BeliefId,
+        order: usize,
+        max: usize,
+    },
+    /// A non-derived belief with no provenance events at all.
+    MissingProvenance(BeliefId),
+    /// A belief citing an event the package does not contain.
+    UnknownSourceEvent {
+        belief: BeliefId,
+        event: EventId,
+    },
+    SupersedesUnknownBelief {
+        belief: BeliefId,
+        superseded: BeliefId,
+    },
+    /// Supersession chains must not loop: contradiction history is a line,
+    /// not a circle.
+    SupersessionCycle(BeliefId),
+    EmptyNameInAscriptionPath(BeliefId),
+    DigestMismatch {
+        declared: String,
+        computed: String,
+    },
+}
+
+impl PackageFault {
+    /// The stable field path the fault is about (CAC-KERNEL §6).
+    #[must_use]
+    pub fn path(&self) -> String {
+        match self {
+            PackageFault::IncompatibleKernel { .. } => "manifest.kernel_version".into(),
+            PackageFault::DigestMismatch { .. } => "manifest.digest".into(),
+            PackageFault::DuplicateEventId(id) => format!("events[event_id={}]", id.0),
+            PackageFault::NonMonotonicOrder { at, .. } => format!("events[event_id={}]", at.0),
+            PackageFault::DuplicateBeliefId(id)
+            | PackageFault::SupersessionCycle(id)
+            | PackageFault::MissingProvenance(id)
+            | PackageFault::EmptyNameInAscriptionPath(id) => {
+                format!("beliefs[belief_id={}]", id.0)
+            }
+            PackageFault::NestingBeyondDeclaredMax { belief, .. } => {
+                format!("beliefs[belief_id={}].holders", belief.0)
+            }
+            PackageFault::UnknownSourceEvent { belief, .. } => {
+                format!("beliefs[belief_id={}].source_events", belief.0)
+            }
+            PackageFault::SupersedesUnknownBelief { belief, .. } => {
+                format!("beliefs[belief_id={}].supersedes", belief.0)
+            }
+        }
+    }
+
+    /// The contract rule that failed, by stable name.
+    #[must_use]
+    pub fn rule(&self) -> &'static str {
+        match self {
+            PackageFault::IncompatibleKernel { .. } => "kernel-version-compatible",
+            PackageFault::DuplicateEventId(_) => "event-id-unique",
+            PackageFault::DuplicateBeliefId(_) => "belief-id-unique",
+            PackageFault::NonMonotonicOrder { .. } => "events-monotonic",
+            PackageFault::NestingBeyondDeclaredMax { .. } => "nesting-bounded",
+            PackageFault::MissingProvenance(_) => "belief-has-provenance",
+            PackageFault::UnknownSourceEvent { .. } => "source-events-present",
+            PackageFault::SupersedesUnknownBelief { .. } => "supersedes-present",
+            PackageFault::SupersessionCycle(_) => "supersession-acyclic",
+            PackageFault::EmptyNameInAscriptionPath(_) => "ascription-names-nonempty",
+            PackageFault::DigestMismatch { .. } => "digest-matches",
+        }
+    }
+}
+
+/// Validate a package against a host, collecting **every** fault rather than
+/// stopping at the first — the same contract as `Trace::validate`, because a
+/// producer fixing one fault at a time from single-fault reports is a
+/// miserable loop.
+///
+/// `computed_digest` is the digest the caller computed over the package
+/// contents; `None` skips the digest check (this crate takes no hashing
+/// dependency, so it can compare but not compute).
+///
+/// # Errors
+///
+/// Every fault found, in a stable order.
+pub fn validate_package(
+    package: &EpistemicPackage,
+    host: ContractVersion,
+    depth: &DepthPolicy,
+    computed_digest: Option<&str>,
+) -> Result<(), Vec<PackageFault>> {
+    let mut faults = Vec::new();
+
+    // Manifest.
+    if !host.accepts(package.manifest.kernel_version) {
+        faults.push(PackageFault::IncompatibleKernel {
+            declared: package.manifest.kernel_version,
+            host,
+        });
+    }
+    if let Some(computed) = computed_digest
+        && computed != package.manifest.digest
+    {
+        faults.push(PackageFault::DigestMismatch {
+            declared: package.manifest.digest.clone(),
+            computed: computed.to_string(),
+        });
+    }
+
+    // Events: unique ids, strictly increasing (tick, sequence). Equal stamps
+    // are non-monotonic too — a total order with ties is not a total order.
+    let mut event_ids = BTreeSet::new();
+    for event in &package.events {
+        if !event_ids.insert(event.event_id) {
+            faults.push(PackageFault::DuplicateEventId(event.event_id));
+        }
+    }
+    for pair in package.events.windows(2) {
+        if pair[1].stamp() <= pair[0].stamp() {
+            faults.push(PackageFault::NonMonotonicOrder {
+                at: pair[1].event_id,
+                prev: pair[0].stamp(),
+                this: pair[1].stamp(),
+            });
+        }
+    }
+
+    // Beliefs.
+    let mut belief_ids = BTreeSet::new();
+    let mut supersedes = BTreeMap::new();
+    for belief in &package.beliefs {
+        if !belief_ids.insert(belief.belief_id) {
+            faults.push(PackageFault::DuplicateBeliefId(belief.belief_id));
+        }
+        if let Some(target) = belief.supersedes {
+            supersedes.insert(belief.belief_id, target);
+        }
+        if belief.order() > depth.max_order {
+            faults.push(PackageFault::NestingBeyondDeclaredMax {
+                belief: belief.belief_id,
+                order: belief.order(),
+                max: depth.max_order,
+            });
+        }
+        if belief.holders.iter().any(String::is_empty) {
+            faults.push(PackageFault::EmptyNameInAscriptionPath(belief.belief_id));
+        }
+        if belief.source_events.is_empty() {
+            faults.push(PackageFault::MissingProvenance(belief.belief_id));
+        }
+        for source in &belief.source_events {
+            if !event_ids.contains(source) {
+                faults.push(PackageFault::UnknownSourceEvent {
+                    belief: belief.belief_id,
+                    event: *source,
+                });
+            }
+        }
+    }
+    for belief in &package.beliefs {
+        if let Some(target) = belief.supersedes
+            && !belief_ids.contains(&target)
+        {
+            faults.push(PackageFault::SupersedesUnknownBelief {
+                belief: belief.belief_id,
+                superseded: target,
+            });
+        }
+    }
+    // Supersession cycles: walk each chain; revisiting the start is a cycle.
+    // Chains are short (a contradiction history), so the walk is cheap.
+    for &start in supersedes.keys() {
+        let mut seen = BTreeSet::from([start]);
+        let mut current = start;
+        while let Some(&next) = supersedes.get(&current) {
+            if !seen.insert(next) {
+                faults.push(PackageFault::SupersessionCycle(start));
+                break;
+            }
+            current = next;
+        }
+    }
+
+    if faults.is_empty() {
+        Ok(())
+    } else {
+        Err(faults)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::belief::{
+        BeliefInterval, BeliefStatus, EventKind, Proposition, Provenance, Subject,
+    };
+    use crate::version::KERNEL_CONTRACT_VERSION;
+    use enaction_trace::Mass;
+
+    fn manifest() -> PackageManifest {
+        PackageManifest {
+            kernel_version: KERNEL_CONTRACT_VERSION,
+            profile: ProfileRef {
+                id: "idaptik/esm/v1".into(),
+                version: ContractVersion { major: 1, minor: 0 },
+                targets_kernel: KERNEL_CONTRACT_VERSION,
+            },
+            schema_version: ContractVersion { major: 1, minor: 0 },
+            source: "ums:ghost-lobby".into(),
+            digest: "abc123".into(),
+            migration_from: ContractVersion { major: 1, minor: 0 },
+            seed: SeedPolicy::Fixed(7),
+            guarantees: vec!["esm/replay-deterministic".into()],
+        }
+    }
+
+    fn event(id: u64, tick: u64, sequence: u64) -> EpistemicEvent {
+        EpistemicEvent {
+            event_id: EventId(id),
+            sequence,
+            tick,
+            observer: "guard".into(),
+            subject: Subject::Agent("intruder".into()),
+            kind: EventKind::Observation,
+            proposition: Proposition("intruder in lobby".into()),
+            confidence: Mass::new(8_000).unwrap(),
+            provenance: Provenance {
+                origin: "sight".into(),
+                channel: Some("visual".into()),
+            },
+            affect: None,
+            conation: None,
+        }
+    }
+
+    fn belief(id: u64, holders: &[&str], sources: &[u64]) -> Belief {
+        Belief {
+            belief_id: BeliefId(id),
+            holders: holders.iter().map(|h| (*h).to_string()).collect(),
+            bearer: "guard".into(),
+            proposition: Proposition("intruder in lobby".into()),
+            status: BeliefStatus::Believed,
+            confidence: BeliefInterval::new(Mass::new(8_000).unwrap(), Mass::new(9_500).unwrap())
+                .unwrap(),
+            source_events: sources.iter().map(|s| EventId(*s)).collect(),
+            valid_from: 1,
+            supersedes: None,
+        }
+    }
+
+    /// A small valid Ghost-Lobby-shaped package: two events, the guard's own
+    /// belief, and one order-1 ascription of it.
+    fn ghost_lobby() -> EpistemicPackage {
+        EpistemicPackage {
+            manifest: manifest(),
+            events: vec![event(1, 1, 1), event(2, 1, 2)],
+            beliefs: vec![belief(1, &[], &[1]), belief(2, &["observer"], &[2])],
+        }
+    }
+
+    fn validate(package: &EpistemicPackage) -> Result<(), Vec<PackageFault>> {
+        validate_package(
+            package,
+            KERNEL_CONTRACT_VERSION,
+            &DepthPolicy::default(),
+            None,
+        )
+    }
+
+    #[test]
+    fn a_valid_package_validates() {
+        assert_eq!(validate(&ghost_lobby()), Ok(()));
+    }
+
+    #[test]
+    fn a_wrong_kernel_major_is_rejected() {
+        let mut package = ghost_lobby();
+        package.manifest.kernel_version = ContractVersion { major: 2, minor: 0 };
+        let faults = validate(&package).unwrap_err();
+        assert!(matches!(faults[0], PackageFault::IncompatibleKernel { .. }));
+        assert_eq!(faults[0].rule(), "kernel-version-compatible");
+    }
+
+    #[test]
+    fn a_newer_minor_than_the_host_is_rejected() {
+        let mut package = ghost_lobby();
+        package.manifest.kernel_version = ContractVersion { major: 1, minor: 9 };
+        assert!(validate(&package).is_err());
+    }
+
+    #[test]
+    fn duplicate_ids_are_rejected_for_events_and_beliefs() {
+        let mut package = ghost_lobby();
+        package.events.push(event(1, 2, 3)); // id 1 again
+        package.beliefs.push(belief(1, &[], &[1])); // id 1 again
+        let faults = validate(&package).unwrap_err();
+        assert!(faults.contains(&PackageFault::DuplicateEventId(EventId(1))));
+        assert!(faults.contains(&PackageFault::DuplicateBeliefId(BeliefId(1))));
+    }
+
+    #[test]
+    fn decreasing_and_equal_stamps_are_both_non_monotonic() {
+        let mut package = ghost_lobby();
+        package.events = vec![event(1, 2, 1), event(2, 1, 9)]; // tick goes back
+        let faults = validate(&package).unwrap_err();
+        assert!(matches!(
+            faults
+                .iter()
+                .find(|f| f.rule() == "events-monotonic")
+                .unwrap(),
+            PackageFault::NonMonotonicOrder { .. }
+        ));
+
+        let mut tied = ghost_lobby();
+        tied.events = vec![event(1, 1, 1), event(2, 1, 1)]; // equal stamp
+        assert!(
+            validate(&tied)
+                .unwrap_err()
+                .iter()
+                .any(|f| f.rule() == "events-monotonic"),
+            "a total order with ties is not a total order"
+        );
+    }
+
+    #[test]
+    fn nesting_is_bounded_at_the_declared_maximum_exactly() {
+        let mut package = ghost_lobby();
+        package.beliefs.push(belief(3, &["a", "b"], &[1])); // order 2 > max 1
+        let faults = validate(&package).unwrap_err();
+        assert!(matches!(
+            faults[0],
+            PackageFault::NestingBeyondDeclaredMax {
+                order: 2,
+                max: 1,
+                ..
+            }
+        ));
+        // Exactly at the maximum is accepted — the bound is a bound, not an
+        // off-by-one.
+        assert_eq!(validate(&ghost_lobby()), Ok(()));
+    }
+
+    #[test]
+    fn a_belief_without_provenance_is_rejected() {
+        let mut package = ghost_lobby();
+        package.beliefs.push(belief(3, &[], &[]));
+        let faults = validate(&package).unwrap_err();
+        assert!(faults.contains(&PackageFault::MissingProvenance(BeliefId(3))));
+        assert_eq!(
+            faults[0].path(),
+            "beliefs[belief_id=3]",
+            "the diagnostic names the field path"
+        );
+    }
+
+    #[test]
+    fn a_source_event_the_package_lacks_is_rejected() {
+        let mut package = ghost_lobby();
+        package.beliefs.push(belief(3, &[], &[99]));
+        let faults = validate(&package).unwrap_err();
+        assert!(faults.contains(&PackageFault::UnknownSourceEvent {
+            belief: BeliefId(3),
+            event: EventId(99),
+        }));
+    }
+
+    #[test]
+    fn supersession_must_name_a_real_belief_and_must_not_loop() {
+        let mut package = ghost_lobby();
+        package.beliefs[0].supersedes = Some(BeliefId(42));
+        let faults = validate(&package).unwrap_err();
+        assert!(faults.contains(&PackageFault::SupersedesUnknownBelief {
+            belief: BeliefId(1),
+            superseded: BeliefId(42),
+        }));
+
+        let mut cyclic = ghost_lobby();
+        cyclic.beliefs[0].supersedes = Some(BeliefId(2));
+        cyclic.beliefs[1].supersedes = Some(BeliefId(1));
+        let faults = validate(&cyclic).unwrap_err();
+        assert!(
+            faults
+                .iter()
+                .any(|f| matches!(f, PackageFault::SupersessionCycle(_))),
+            "contradiction history is a line, not a circle: {faults:?}"
+        );
+    }
+
+    #[test]
+    fn an_empty_name_in_an_ascription_path_is_rejected() {
+        let mut package = ghost_lobby();
+        package.beliefs.push(belief(3, &[""], &[1]));
+        let faults = validate(&package).unwrap_err();
+        assert!(faults.contains(&PackageFault::EmptyNameInAscriptionPath(BeliefId(3))));
+    }
+
+    #[test]
+    fn the_digest_is_compared_when_supplied_and_skipped_when_not() {
+        let package = ghost_lobby();
+        assert_eq!(
+            validate_package(
+                &package,
+                KERNEL_CONTRACT_VERSION,
+                &DepthPolicy::default(),
+                Some("abc123"),
+            ),
+            Ok(())
+        );
+        let faults = validate_package(
+            &package,
+            KERNEL_CONTRACT_VERSION,
+            &DepthPolicy::default(),
+            Some("something-else"),
+        )
+        .unwrap_err();
+        assert!(matches!(faults[0], PackageFault::DigestMismatch { .. }));
+        assert_eq!(faults[0].rule(), "digest-matches");
+    }
+
+    #[test]
+    fn every_fault_is_reported_not_only_the_first() {
+        let mut package = ghost_lobby();
+        package.manifest.kernel_version = ContractVersion { major: 9, minor: 0 };
+        package.events.push(event(1, 0, 0)); // duplicate id AND non-monotonic
+        package.beliefs.push(belief(3, &["a", "b", ""], &[]));
+        let faults = validate(&package).unwrap_err();
+        let rules: BTreeSet<_> = faults.iter().map(PackageFault::rule).collect();
+        assert!(rules.len() >= 5, "expected many distinct rules: {rules:?}");
+    }
+
+    #[test]
+    fn a_package_round_trips_through_serde() {
+        let package = ghost_lobby();
+        let json = serde_json::to_string(&package).unwrap();
+        let back: EpistemicPackage = serde_json::from_str(&json).unwrap();
+        assert_eq!(package, back);
+    }
+}
