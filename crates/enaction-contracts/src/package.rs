@@ -579,33 +579,62 @@ mod tests {
         // A crafted linear chain 1 -> 2 -> ... -> n is the hostile input a
         // package loader must survive cheaply. Walking each start with a
         // fresh `seen` set costs O(n^2); a global visited map costs O(n).
-        // n = 4000 comfortably separates the two: quadratic work here is
-        // ~8,000,000 BTreeSet operations (multiple seconds), linear work is
-        // a few thousand (well under the bound below).
-        const N: u64 = 4_000;
-        let events = vec![event(1, 1, 1)];
-        let mut beliefs = Vec::with_capacity(N as usize);
-        for id in 1..=N {
-            let mut b = belief(id, &[], &[1]);
-            if id < N {
-                b.supersedes = Some(BeliefId(id + 1));
+        //
+        // Asserted by RATIO, not an absolute wall-clock bound: a fixed
+        // millisecond threshold is exactly the kind of assertion that flakes
+        // under a slow/shared/loaded CI runner without indicating any real
+        // regression (gitar review on #33). Timing a small chain and a
+        // scaled-up chain and bounding their ratio is robust to absolute
+        // runner speed, because it tests the shape of the scaling curve, not
+        // its position: doubling n roughly doubles work for O(n) but roughly
+        // quadruples it for O(n^2), and that ratio holds regardless of how
+        // fast or slow the machine underneath it is.
+        fn chain_package(n: u64) -> EpistemicPackage {
+            let events = vec![event(1, 1, 1)];
+            let mut beliefs = Vec::with_capacity(n as usize);
+            for id in 1..=n {
+                let mut b = belief(id, &[], &[1]);
+                if id < n {
+                    b.supersedes = Some(BeliefId(id + 1));
+                }
+                beliefs.push(b);
             }
-            beliefs.push(b);
+            EpistemicPackage {
+                manifest: manifest(),
+                events,
+                beliefs,
+            }
         }
-        let package = EpistemicPackage {
-            manifest: manifest(),
-            events,
-            beliefs,
-        };
 
-        let start = std::time::Instant::now();
-        let _ = validate(&package);
-        let elapsed = start.elapsed();
+        // Each size run several times and the minimum kept, to further
+        // damp scheduler noise without weakening what the ratio proves.
+        fn fastest_run(n: u64) -> std::time::Duration {
+            let package = chain_package(n);
+            (0..5)
+                .map(|_| {
+                    let start = std::time::Instant::now();
+                    let _ = validate(&package);
+                    start.elapsed()
+                })
+                .min()
+                .expect("at least one run")
+        }
 
+        const SMALL: u64 = 1_000;
+        const LARGE: u64 = 8_000; // 8x SMALL
+        let small = fastest_run(SMALL);
+        let large = fastest_run(LARGE);
+
+        // O(n) work scaling 8x n gives ~8x time; O(n^2) gives ~64x. 20x is a
+        // generous cutoff that comfortably separates the two without being
+        // sensitive to noise at these sub-millisecond magnitudes.
+        let ratio = large.as_secs_f64() / small.as_secs_f64().max(f64::EPSILON);
         assert!(
-            elapsed < std::time::Duration::from_millis(500),
-            "supersession walk over a {N}-node linear chain took {elapsed:?}; \
-             this is the signature of an O(n^2) walk, not the required O(n)"
+            ratio < 20.0,
+            "scaling the chain {}x (n={SMALL} -> n={LARGE}) took {ratio:.1}x as long \
+             ({small:?} -> {large:?}); this is the signature of an O(n^2) walk, \
+             not the required O(n)",
+            LARGE / SMALL,
         );
     }
 
