@@ -1,9 +1,13 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Clone the repository
 git clone https://github.com/metadatastician/enaction-engine.git
 cd enaction-engine
 
-# Using Nix (recommended for reproducibility)
-nix develop
+# Using Guix (recommended for reproducibility)
+guix shell -D -f guix.scm
 
 # Or using toolbox/distrobox
 toolbox create enaction-engine-dev
@@ -29,6 +33,10 @@ enaction-engine/
 ├── examples/            # Examples (Perimeter 3)
 ├── spec/                # Spec tests (Perimeter 3)
 ├── tests/               # Test suite (Perimeter 2-3)
+├── .machine_readable/   # ALL machine-readable content (Perimeter 1)
+│   ├── *.a2ml           # State files (STATE, META, ECOSYSTEM, etc.)
+│   ├── bot_directives/  # Bot configs
+│   └── contractiles/    # Policy contracts (k9, dust, lust, must, trust)
 ├── .well-known/         # Protocol files (Perimeter 1-3)
 ├── .github/             # GitHub config (Perimeter 1)
 │   ├── ISSUE_TEMPLATE/
@@ -41,7 +49,7 @@ enaction-engine/
 ├── MAINTAINERS.md
 ├── README.adoc
 ├── SECURITY.md
-├── flake.nix            # Nix flake (Perimeter 1)
+├── guix.scm             # Guix package — primary (Perimeter 1)
 └── Justfile             # Task runner (Perimeter 1)
 ```
 
@@ -69,7 +77,7 @@ Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md) and include:
 ### Suggesting Features
 
 **Before suggesting**:
-1. Check the [roadmap](ROADMAP.md) if available
+1. Check the [roadmap](docs/status/ROADMAP.adoc) if available
 2. Search existing issues and discussions
 3. Consider which perimeter the feature belongs to
 

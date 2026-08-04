@@ -1,4 +1,15 @@
+<!--
+SPDX-License-Identifier: CC-BY-SA-4.0
+Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+-->
 # Security Policy
+
+<!--
+The token vocabulary lives in .machine_readable/ai/PLACEHOLDERS.adoc, not here.
+This file used to restate it in a "delete before publishing" block, but `just
+init` substitutes tokens inside comments too — so the block's own instructions
+were rewritten into nonsense and then shipped, because nothing deleted it.
+-->
 
 We take security seriously. We appreciate your efforts to responsibly disclose vulnerabilities and will make every effort to acknowledge your contributions.
 
@@ -34,26 +45,17 @@ This method ensures:
 - Coordinated disclosure tooling
 - Automatic credit when the advisory is published
 
-### Alternative: Encrypted Email
+### Alternative: Email
 
 If you cannot use GitHub Security Advisories, you may email us directly:
 
 | | |
 |---|---|
-| **Email** | j.d.a.jewell@open.ac.uk |
-| **PGP Key** | [Download Public Key](https://github.com/hyperpolymath.gpg) |
-| **Fingerprint** | `TBD` |
+| **Email** | jonathan.jewell@gmail.com |
 
-```bash
-# Import our PGP key
-curl -sSL https://github.com/hyperpolymath.gpg | gpg --import
-
-# Verify fingerprint
-gpg --fingerprint j.d.a.jewell@open.ac.uk
-
-# Encrypt your report
-gpg --armor --encrypt --recipient j.d.a.jewell@open.ac.uk report.txt
-```
+This mailbox is not encrypted. For anything sensitive enough to need
+encryption, prefer GitHub Security Advisories above — the report stays private
+to the maintainers until an advisory is published.
 
 > **⚠️ Important:** Do not report security vulnerabilities through public GitHub issues, pull requests, discussions, or social media.
 
@@ -352,7 +354,6 @@ When using Enaction Engine, we recommend:
 
 ## Additional Resources
 
-- [Our PGP Public Key](https://github.com/hyperpolymath.gpg)
 - [Security Advisories](https://github.com/metadatastician/enaction-engine/security/advisories)
 - [Changelog](CHANGELOG.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
@@ -365,9 +366,9 @@ When using Enaction Engine, we recommend:
 
 | Purpose | Contact |
 |---------|---------|
-| **Security issues** | [Report via GitHub](https://github.com/metadatastician/enaction-engine/security/advisories/new) or j.d.a.jewell@open.ac.uk |
+| **Security issues** | [Report via GitHub](https://github.com/metadatastician/enaction-engine/security/advisories/new) or jonathan.jewell@gmail.com |
 | **General questions** | [GitHub Discussions](https://github.com/metadatastician/enaction-engine/discussions) |
-| **Other enquiries** | See [README](README.md) for contact information |
+| **Other enquiries** | See [README](README.adoc) for contact information |
 
 ---
 
