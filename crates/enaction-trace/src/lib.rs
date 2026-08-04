@@ -61,8 +61,10 @@
 
 pub mod belief;
 pub mod mass;
+pub mod store;
 
 pub use mass::Mass;
+pub use store::{BeliefStore, BeliefView, Perspective, StoreError, Subject};
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -188,6 +190,29 @@ impl Trope {
     }
 }
 
+/// Whether an event asserts its trope's state or withdraws a belief.
+///
+/// Retraction is first-class rather than "value zero" because believing
+/// nothing and withdrawing a belief are different events, and *the trace must
+/// be able to tell them apart*: contradiction is not an error state — it is
+/// the moment an agent discovers it was deceived, and it must leave a trace
+/// like everything else.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Revision {
+    #[default]
+    Assert,
+    Retract,
+}
+
+impl Revision {
+    /// serde helper: the default (`Assert`) is omitted from serialization so
+    /// pre-revision traces and their byte encodings are unchanged.
+    fn is_assert(&self) -> bool {
+        matches!(self, Revision::Assert)
+    }
+}
+
 /// One change to, or observation of, a trope.
 ///
 /// Carries no domain of its own: the domain is the trope's, so an event cannot
@@ -200,6 +225,19 @@ pub struct TraceEvent {
     pub trope: TropeId,
     /// Magnitude in integer milliunits. Never a float — see the crate docs.
     pub value_milli: i32,
+    /// Bounded confidence (ADR-0016). Only meaningful on events about
+    /// [`Domain::Epistemic`] tropes, and the validator enforces exactly that:
+    /// affect intensities quantise to [`Mass`] only *at* the crossing — on the
+    /// epistemic event they cause — and conative utilities never cross at all.
+    ///
+    /// Deliberately separate from `value_milli`: content magnitude and
+    /// justification budget are different axes, and per-mille trace values
+    /// are telemetry that must never become decision inputs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<Mass>,
+    /// Assert (the default) or Retract. See [`Revision`].
+    #[serde(default, skip_serializing_if = "Revision::is_assert")]
+    pub revision: Revision,
     /// Ids of the events that brought this one about.
     pub caused_by: Vec<u64>,
 }
@@ -284,11 +322,58 @@ impl Trace {
 
         // Pass 3 — the real checks.
         for event in &self.events {
-            if !tropes.contains_key(&event.trope) {
-                errors.push(format!(
+            match tropes.get(&event.trope) {
+                None => errors.push(format!(
                     "event {} is about trope {}, which is not declared",
                     event.id, event.trope.0
-                ));
+                )),
+                Some(trope) => {
+                    // Confidence is the epistemic crossing (ADR-0016): affect
+                    // intensities quantise to Mass only at the crossing, and
+                    // conative utilities never cross, so a confidence on any
+                    // non-Epistemic trope's event is a scope breach.
+                    if event.confidence.is_some() && trope.domain != Domain::Epistemic {
+                        errors.push(format!(
+                            "event {} carries a confidence but trope {} is {:?}, \
+                             not Epistemic — confidence crosses only at the \
+                             epistemic seam",
+                            event.id, event.trope.0, trope.domain
+                        ));
+                    }
+                    if event.revision == Revision::Retract {
+                        // Revision is an epistemic act.
+                        if trope.domain != Domain::Epistemic {
+                            errors.push(format!(
+                                "event {} retracts trope {}, which is {:?} — \
+                                 only Epistemic tropes can be retracted",
+                                event.id, event.trope.0, trope.domain
+                            ));
+                        }
+                        // Retraction without a cause is exactly the untraced
+                        // belief change this field exists to forbid.
+                        if event.caused_by.is_empty() {
+                            errors.push(format!(
+                                "event {} is a retraction with no cause — the \
+                                 contradicting evidence must be in the trace",
+                                event.id
+                            ));
+                        }
+                        // You cannot discover you were deceived about
+                        // something you never believed.
+                        let has_prior_assert = self.events.iter().any(|e| {
+                            e.trope == event.trope
+                                && e.revision == Revision::Assert
+                                && e.stamp() < event.stamp()
+                        });
+                        if !has_prior_assert {
+                            errors.push(format!(
+                                "event {} retracts trope {} but no earlier \
+                                 assertion on it exists",
+                                event.id, event.trope.0
+                            ));
+                        }
+                    }
+                }
             }
             for cause in &event.caused_by {
                 match stamps.get(cause) {
@@ -338,6 +423,10 @@ impl Trace {
     ///
     /// "Most recent" by the engine's canonical `(tick, id)` order, so the
     /// answer does not depend on how the caller happened to order the slice.
+    ///
+    /// Deliberately **retraction-blind**: this is raw telemetry — the last
+    /// content that was on the wire — and [`Trace::divergence`] is built on
+    /// it. For the belief-aware reading, use [`held_value`](Self::held_value).
     #[must_use]
     pub fn latest_value(&self, trope: TropeId) -> Option<i32> {
         self.events
@@ -345,6 +434,77 @@ impl Trace {
             .filter(|e| e.trope == trope)
             .max_by_key(|e| e.stamp())
             .map(|e| e.value_milli)
+    }
+
+    /// The value currently *held* for `trope`: the latest value, unless the
+    /// latest event is a retraction — then `None`.
+    ///
+    /// A withdrawn belief reads as absence of belief, reported as such.
+    /// Falling back to any earlier value would be a belief change that leaves
+    /// no trace, which is the store's own thesis violated; re-learning is a
+    /// fresh assertion with fresh provenance.
+    #[must_use]
+    pub fn held_value(&self, trope: TropeId) -> Option<i32> {
+        self.events
+            .iter()
+            .filter(|e| e.trope == trope)
+            .max_by_key(|e| e.stamp())
+            .and_then(|e| (e.revision == Revision::Assert).then_some(e.value_milli))
+    }
+
+    /// Every retraction in the trace, in whatever order the events are held.
+    ///
+    /// The watcher surface for discovered deception: each item is a moment an
+    /// agent found out it was wrong, `caused_by`-linked to the evidence.
+    pub fn retractions(&self) -> impl Iterator<Item = &TraceEvent> {
+        self.events
+            .iter()
+            .filter(|e| e.revision == Revision::Retract)
+    }
+
+    /// The opt-in belief-contract profile, over and above [`validate`]
+    /// (Self::validate): every assertion on an Epistemic trope must carry at
+    /// least one provenance event *and* a confidence.
+    ///
+    /// A profile rather than part of the base contract because existing valid
+    /// traces contain epistemic events with neither — the base validator must
+    /// keep accepting them. Under this profile, "every non-derived belief has
+    /// at least one provenance event" (CAC-KERNEL §3) is a rejected trace,
+    /// not a hope.
+    ///
+    /// # Errors
+    ///
+    /// Returns every violation found, not only the first.
+    pub fn validate_belief_contract(&self) -> Result<(), Vec<String>> {
+        let tropes: BTreeMap<TropeId, &Trope> = self.tropes.iter().map(|t| (t.id, t)).collect();
+        let mut errors = Vec::new();
+        for event in &self.events {
+            let Some(trope) = tropes.get(&event.trope) else {
+                continue; // the base validator reports undeclared tropes
+            };
+            if trope.domain != Domain::Epistemic || event.revision != Revision::Assert {
+                continue;
+            }
+            if event.caused_by.is_empty() {
+                errors.push(format!(
+                    "belief contract: epistemic assertion {} has no provenance \
+                     event",
+                    event.id
+                ));
+            }
+            if event.confidence.is_none() {
+                errors.push(format!(
+                    "belief contract: epistemic assertion {} carries no \
+                     confidence",
+                    event.id
+                ));
+            }
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     /// The actual state an ascription is about, if the trace records one.
@@ -433,6 +593,8 @@ mod tests {
             tick,
             trope: TropeId(trope),
             value_milli,
+            confidence: None,
+            revision: Revision::Assert,
             caused_by: vec![],
         }
     }
@@ -443,6 +605,8 @@ mod tests {
             tick,
             trope: TropeId(trope),
             value_milli: 500,
+            confidence: None,
+            revision: Revision::Assert,
             caused_by,
         }
     }
@@ -894,6 +1058,151 @@ mod tests {
         let billys: Vec<_> = trace.held_by("billy").map(|t| t.id.0).collect();
         assert_eq!(billys, vec![2, 3, 4], "his models and his own states");
         assert_eq!(trace.held_by("anya").count(), 1, "her actual state only");
+    }
+
+    // ── Revision and confidence (C2) ────────────────────────────────────────
+
+    fn retract(id: u64, tick: u64, trope: u64, caused_by: Vec<u64>) -> TraceEvent {
+        TraceEvent {
+            revision: Revision::Retract,
+            ..event(id, tick, trope, caused_by)
+        }
+    }
+
+    #[test]
+    fn a_retraction_must_cite_its_contradicting_evidence() {
+        let trace = Trace {
+            tropes: vec![trope(1, "guard", "belief", Domain::Epistemic)],
+            events: vec![event(1, 1, 1, vec![]), retract(2, 2, 1, vec![])],
+        };
+        let errors = trace.validate().unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("retraction with no cause")),
+            "{errors:?}"
+        );
+    }
+
+    #[test]
+    fn only_epistemic_tropes_can_be_retracted() {
+        let trace = Trace {
+            tropes: vec![trope(1, "guard", "arousal", Domain::Affective)],
+            events: vec![event(1, 1, 1, vec![]), retract(2, 2, 1, vec![1])],
+        };
+        let errors = trace.validate().unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("only Epistemic tropes can be retracted")),
+            "revision is an epistemic act: {errors:?}"
+        );
+    }
+
+    #[test]
+    fn a_retraction_needs_a_prior_assertion() {
+        // You cannot discover you were deceived about something you never
+        // believed.
+        let trace = Trace {
+            tropes: vec![
+                trope(1, "guard", "belief", Domain::Epistemic),
+                trope(2, "world", "fact", Domain::Mechanical),
+            ],
+            events: vec![event(1, 1, 2, vec![]), retract(2, 2, 1, vec![1])],
+        };
+        let errors = trace.validate().unwrap_err();
+        assert!(
+            errors.iter().any(|e| e.contains("no earlier assertion")),
+            "{errors:?}"
+        );
+    }
+
+    #[test]
+    fn confidence_crosses_only_at_the_epistemic_seam() {
+        // ADR-0016's scope rule as a validator: affect intensities quantise
+        // to Mass at the crossing (the epistemic event), never on the
+        // affective trope itself.
+        let confident = |t: u64| TraceEvent {
+            confidence: Some(Mass::new(8_000).unwrap()),
+            ..event(1, 1, t, vec![])
+        };
+        let affective = Trace {
+            tropes: vec![trope(1, "guard", "arousal", Domain::Affective)],
+            events: vec![confident(1)],
+        };
+        let errors = affective.validate().unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.contains("confidence crosses only at the epistemic seam")),
+            "{errors:?}"
+        );
+
+        let epistemic = Trace {
+            tropes: vec![trope(1, "guard", "belief", Domain::Epistemic)],
+            events: vec![confident(1)],
+        };
+        assert_eq!(epistemic.validate(), Ok(()));
+    }
+
+    #[test]
+    fn the_belief_contract_profile_demands_provenance_and_confidence() {
+        // Base-valid but contract-bare: an epistemic assertion with neither.
+        let trace = Trace {
+            tropes: vec![trope(1, "guard", "belief", Domain::Epistemic)],
+            events: vec![event(1, 1, 1, vec![])],
+        };
+        assert_eq!(trace.validate(), Ok(()), "the base contract still accepts");
+        let errors = trace.validate_belief_contract().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("no provenance")));
+        assert!(errors.iter().any(|e| e.contains("no confidence")));
+    }
+
+    #[test]
+    fn held_value_reads_absence_after_retraction_while_latest_value_stays_telemetry() {
+        let trace = Trace {
+            tropes: vec![trope(1, "guard", "belief", Domain::Epistemic)],
+            events: vec![
+                valued(1, 1, 1, 42_000),
+                TraceEvent {
+                    value_milli: 42_000,
+                    ..retract(2, 3, 1, vec![1])
+                },
+            ],
+        };
+        assert_eq!(trace.validate(), Ok(()));
+        assert_eq!(trace.held_value(TropeId(1)), None, "withdrawn = absence");
+        assert_eq!(
+            trace.latest_value(TropeId(1)),
+            Some(42_000),
+            "telemetry still shows the withdrawn content"
+        );
+        assert_eq!(trace.retractions().count(), 1);
+    }
+
+    #[test]
+    fn pre_revision_traces_parse_and_default_events_serialize_unchanged() {
+        // Serde back-compat both ways: the new fields default on the way in
+        // and are omitted on the way out, so pre-C2 traces and their byte
+        // encodings are untouched.
+        let old_shape = r#"{"id":1,"tick":5,"trope":7,"value_milli":250,"caused_by":[]}"#;
+        let parsed: TraceEvent = serde_json::from_str(old_shape).unwrap();
+        assert_eq!(parsed.confidence, None);
+        assert_eq!(parsed.revision, Revision::Assert);
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), old_shape);
+
+        let retraction = TraceEvent {
+            confidence: Some(Mass::new(1_000).unwrap()),
+            revision: Revision::Retract,
+            ..parsed
+        };
+        let json = serde_json::to_string(&retraction).unwrap();
+        assert!(json.contains(r#""revision":"retract""#));
+        assert!(json.contains(r#""confidence":1000"#));
+        assert_eq!(
+            serde_json::from_str::<TraceEvent>(&json).unwrap(),
+            retraction
+        );
     }
 
     #[test]

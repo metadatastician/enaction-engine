@@ -397,6 +397,8 @@ mod tests {
                     tick: 200,
                     trope: TropeId(1),
                     value_milli: to_milli(meter),
+                    confidence: None,
+                    revision: crate::Revision::Assert,
                     caused_by: vec![],
                 },
                 TraceEvent {
@@ -404,6 +406,8 @@ mod tests {
                     tick: 200,
                     trope: TropeId(2),
                     value_milli: 1000, // the belief holds: 1.000
+                    confidence: None,
+                    revision: crate::Revision::Assert,
                     caused_by: vec![1],
                 },
             ],

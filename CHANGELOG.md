@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Mass` (ADR-0016): the kernel confidence type — a u16 justification budget
+  in 1/10,000ths, serde-guarded so out-of-range values cannot deserialize.
+- `crates/enaction-contracts` (ADR-0019): the ESM/CAC contract as types —
+  versioning, the epistemic data model, the reduction trait, and a package
+  validator that reports every fault.
+- The C2 belief store (`enaction-trace::store`): Global Baseline plus
+  per-perspective deltas keyed by full ascription path; retraction as a
+  first-class, caused, validator-enforced trace event; `held_value` and
+  `retractions` queries; deterministic `rebuild` from a round-tripped trace.
+- `TraceEvent` gains optional `confidence` and `revision` fields with full
+  serde back-compatibility (pre-existing traces and their encodings are
+  byte-identical).
+
 ### Changed
 
 - Adopt the canonical Enaction Engine project and repository identity.
