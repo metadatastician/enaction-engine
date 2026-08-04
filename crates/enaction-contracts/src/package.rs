@@ -239,17 +239,54 @@ pub fn validate_package(
             });
         }
     }
-    // Supersession cycles: walk each chain; revisiting the start is a cycle.
-    // Chains are short (a contradiction history), so the walk is cheap.
+    // Supersession cycles: `supersedes` is a functional graph (out-degree at
+    // most one per belief), so this is a walk over chains, not a general
+    // graph search. A three-colour marking — unvisited / in-progress (on the
+    // walk currently underway) / done — visits every belief at most once in
+    // total across *all* starts, so a hostile linear chain of n beliefs
+    // costs O(n) rather than the O(n^2) a fresh per-start `seen` set would
+    // give (a package loader is exactly where that assumption must not be
+    // made). It also lets a genuine cycle be reported exactly once, naming
+    // a belief that is actually on it — not whichever start happened to
+    // walk into it first.
+    #[derive(Clone, Copy, PartialEq, Eq)]
+    enum Mark {
+        InProgress,
+        Done,
+    }
+    let mut marks: BTreeMap<BeliefId, Mark> = BTreeMap::new();
     for &start in supersedes.keys() {
-        let mut seen = BTreeSet::from([start]);
+        if marks.contains_key(&start) {
+            continue;
+        }
+        let mut path = Vec::new();
         let mut current = start;
-        while let Some(&next) = supersedes.get(&current) {
-            if !seen.insert(next) {
-                faults.push(PackageFault::SupersessionCycle(start));
-                break;
+        loop {
+            match marks.get(&current) {
+                Some(Mark::Done) => break, // joins an already-resolved chain
+                Some(Mark::InProgress) => {
+                    // `current` closes a cycle back onto this walk's path.
+                    // Report the smallest id actually on the cycle, once.
+                    let cycle_start = path
+                        .iter()
+                        .position(|&id| id == current)
+                        .expect("an in-progress belief is always on this walk's path");
+                    let cycle_member = path[cycle_start..].iter().copied().min().unwrap_or(current);
+                    faults.push(PackageFault::SupersessionCycle(cycle_member));
+                    break;
+                }
+                None => {
+                    marks.insert(current, Mark::InProgress);
+                    path.push(current);
+                    match supersedes.get(&current) {
+                        Some(&next) => current = next,
+                        None => break, // chain ends cleanly, no cycle
+                    }
+                }
             }
-            current = next;
+        }
+        for id in path {
+            marks.insert(id, Mark::Done);
         }
     }
 
@@ -498,6 +535,78 @@ mod tests {
         let faults = validate(&package).unwrap_err();
         let rules: BTreeSet<_> = faults.iter().map(PackageFault::rule).collect();
         assert!(rules.len() >= 5, "expected many distinct rules: {rules:?}");
+    }
+
+    #[test]
+    fn a_supersession_cycle_names_a_belief_actually_on_the_cycle_exactly_once() {
+        // 1 -> 2 -> 3 -> 2: belief 1 is only the lead-in, not part of the
+        // cycle (which is 2 -> 3 -> 2). The diagnostic must name a belief
+        // that IS on the cycle, and must fire once, not once per node that
+        // walks into it.
+        let mut package = ghost_lobby();
+        package.beliefs = vec![
+            belief(1, &[], &[1]),
+            belief(2, &[], &[1]),
+            belief(3, &[], &[1]),
+        ];
+        package.beliefs[0].supersedes = Some(BeliefId(2));
+        package.beliefs[1].supersedes = Some(BeliefId(3));
+        package.beliefs[2].supersedes = Some(BeliefId(2));
+
+        let faults = validate(&package).unwrap_err();
+        let cycle_faults: Vec<_> = faults
+            .iter()
+            .filter(|f| f.rule() == "supersession-acyclic")
+            .collect();
+        assert_eq!(
+            cycle_faults.len(),
+            1,
+            "exactly one fault per cycle, not one per entering node: {cycle_faults:?}"
+        );
+        match cycle_faults[0] {
+            PackageFault::SupersessionCycle(id) => {
+                assert!(
+                    *id == BeliefId(2) || *id == BeliefId(3),
+                    "belief 1 is the lead-in, not on the cycle 2 -> 3 -> 2; got {id:?}"
+                );
+            }
+            other => panic!("expected SupersessionCycle, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_supersession_walk_is_linear_not_quadratic_in_chain_length() {
+        // A crafted linear chain 1 -> 2 -> ... -> n is the hostile input a
+        // package loader must survive cheaply. Walking each start with a
+        // fresh `seen` set costs O(n^2); a global visited map costs O(n).
+        // n = 4000 comfortably separates the two: quadratic work here is
+        // ~8,000,000 BTreeSet operations (multiple seconds), linear work is
+        // a few thousand (well under the bound below).
+        const N: u64 = 4_000;
+        let events = vec![event(1, 1, 1)];
+        let mut beliefs = Vec::with_capacity(N as usize);
+        for id in 1..=N {
+            let mut b = belief(id, &[], &[1]);
+            if id < N {
+                b.supersedes = Some(BeliefId(id + 1));
+            }
+            beliefs.push(b);
+        }
+        let package = EpistemicPackage {
+            manifest: manifest(),
+            events,
+            beliefs,
+        };
+
+        let start = std::time::Instant::now();
+        let _ = validate(&package);
+        let elapsed = start.elapsed();
+
+        assert!(
+            elapsed < std::time::Duration::from_millis(500),
+            "supersession walk over a {N}-node linear chain took {elapsed:?}; \
+             this is the signature of an O(n^2) walk, not the required O(n)"
+        );
     }
 
     #[test]
