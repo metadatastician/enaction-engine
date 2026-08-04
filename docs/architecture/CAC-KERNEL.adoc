@@ -17,9 +17,13 @@ Accepted by ADR-0013 (two-layer estate), ADR-0014 (two-rate architecture),
 ADR-0015 (determinism), ADR-0016 (confidence types), ADR-0017 (crate admission
 and extraction).
 
-WARNING: No implementation of this contract exists in this repository. The
-reduction below is a specification. The working evidence ledger is in IDApTIK,
-kept there by its ADR-0010 until the extraction trigger fires.
+WARNING: The contract's *types and validators* exist in this repository as
+`crates/enaction-contracts` (ADR-0019): versioning, the §3 data model, the §2
+reduction signature as a trait, and the §6 package validator. The *reduction
+itself* remains a specification with no implementation here — the working
+evidence ledger is in IDApTIK, kept there by its ADR-0010 until the extraction
+trigger fires. This prose stays normative; where crate and prose disagree, the
+prose wins and the crate has a bug.
 
 == 1. Scope and vocabulary
 
