@@ -60,6 +60,9 @@
 #![forbid(unsafe_code)]
 
 pub mod belief;
+pub mod mass;
+
+pub use mass::Mass;
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

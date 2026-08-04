@@ -6,7 +6,7 @@
 [metadata]
 project = "enaction-engine"
 version = "0.3.0"
-last-updated = "2026-07-28"
+last-updated = "2026-08-04"
 status = "active"
 
 [project-context]
@@ -52,7 +52,6 @@ components = [
   "bounded confidence type and belief revision/retraction events",
   "affective valence (only unsigned salience exists)",
   "conative goal, commitment and behavioural-selection machinery",
-  "enaction-contracts crate (the ESM contract is still prose, and lives in IDApTIK)",
   "any game actually consuming the cognition seam",
   "Universal Modding Studio adapter or game profile",
   "AffineScript implementation",
@@ -66,7 +65,6 @@ fixed-step = "new engine code; not yet run in a real game"
 
 [critical-next-actions]
 actions = [
-  "Promote the ESM contract from IDApTIK prose into an enaction-contracts crate; the game currently owns the spec the engine must implement, which is inverted",
   "Build the belief store (baseline plus per-bearer deltas) with provenance enforced by the validator",
   "Validate enaction-time through a real game-host integration",
   "Preserve and extend timing/interpolation behavioural evidence",

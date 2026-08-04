@@ -10,3 +10,8 @@ repository.workspace = true
 
 [dependencies]
 serde.workspace = true
+
+[dev-dependencies]
+# Test-only: proves the serde boundary rejects out-of-range Mass values.
+# The runtime dependency closure remains serde alone.
+serde_json = "1"

@@ -134,45 +134,27 @@ test-smoke:
     @echo "Smoke test..."
     # TODO: Add basic sanity checks
 
-# Run end-to-end tests (full pipeline: build → run → verify)
+# Run end-to-end tests — NOT IMPLEMENTED: no E2E suite exists yet.
+# A check that cannot fail is not a check (AGENTS.md), so this fails loudly
+# instead of echoing success. Wire a real command, then re-add to test-all.
 e2e:
-    @echo "Running E2E tests..."
-    # TODO: Replace with your E2E test command. Examples:
-    #   bash tests/e2e.sh                    # Shell-based E2E
-    #   npx playwright test                  # Browser E2E
-    #   mix test test/integration/e2e_test.exs  # Elixir E2E
-    #   cargo test --test end_to_end         # Rust E2E
-    @echo "E2E tests passed!"
+    @echo "e2e: NOT IMPLEMENTED — no E2E suite exists in this repo yet" >&2
+    @exit 1
 
-# Run aspect tests (cross-cutting concern validation)
+# Run aspect tests — NOT IMPLEMENTED: no aspect suite exists yet.
 aspect:
-    @echo "Running aspect tests..."
-    # TODO: Replace with your aspect test command. Examples:
-    #   bash tests/aspect_tests.sh           # Shell-based aspect tests
-    #   cargo test --test aspects             # Rust aspect tests
-    # Aspect tests validate architectural invariants:
-    #   - Thread safety (mutex in FFI modules)
-    #   - ABI/FFI contract (declarations match exports)
-    #   - SPDX compliance (all files have license headers)
-    #   - No dangerous patterns (believe_me, assert_total, etc.)
-    @echo "Aspect tests passed!"
+    @echo "aspect: NOT IMPLEMENTED — no aspect suite exists in this repo yet" >&2
+    @exit 1
 
-# Run benchmarks (performance regression detection)
+# Run benchmarks — NOT IMPLEMENTED: benches/ has no runnable benchmarks yet.
 bench:
-    @echo "Running benchmarks..."
-    # TODO: Replace with your benchmark command. Examples:
-    #   cargo bench                           # Rust criterion
-    #   zig build bench                       # Zig benchmarks
-    #   mix run bench/benchmarks.exs          # Elixir benchee
-    #   deno bench                            # Deno bench
-    @echo "Benchmarks complete!"
+    @echo "bench: NOT IMPLEMENTED — no runnable benchmarks exist yet" >&2
+    @exit 1
 
-# Run readiness tests (Component Readiness Grade: D/C/B)
+# Run readiness tests — NOT IMPLEMENTED: no readiness suite exists yet.
 readiness:
-    @echo "Running readiness tests..."
-    # TODO: Replace with your readiness test command. Examples:
-    #   cargo test --test readiness -- --nocapture
-    @echo "Readiness tests complete!"
+    @echo "readiness: NOT IMPLEMENTED — no readiness suite exists yet" >&2
+    @exit 1
 
 # Print the current CRG grade (reads from READINESS.md '**Current Grade:** X' line)
 crg-grade:
@@ -196,10 +178,11 @@ crg-badge:
     esac; \
     echo "[![CRG $$grade](https://img.shields.io/badge/CRG-$$grade-$$color?style=flat-square)](https://github.com/hyperpolymath/standards/tree/main/component-readiness-grades)"
 
-# Run the full merge-requirement test suite (ALL categories)
-# Per STANDING rule: P2P + E2E + aspect + execution + lifecycle + bench
-test-all: test e2e aspect bench readiness
-    @echo "All test categories passed — safe to merge!"
+# Run every test category that actually exists. e2e/aspect/bench/readiness
+# are deliberately excluded until they are real — they previously echoed
+# success without running anything, so this aggregate was a fake green.
+test-all: test fmt-check lint
+    @echo "All implemented test categories passed."
 
 # Run all quality checks
 quality: fmt-check lint test

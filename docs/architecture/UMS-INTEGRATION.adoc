@@ -52,7 +52,12 @@ consumable without UMS installed.
 
 == Current status
 
-This document defines a boundary only. No UMS adapter, game profile, package
-schema, preview protocol, or integration test exists in this repository today.
-Those artifacts must arrive together with a real game use and verification;
-placeholder crates or empty interfaces are not an implementation.
+This document defines a boundary. The contract *types* now exist:
+`crates/enaction-contracts` carries the package manifest fields, the
+MUST-reject validator (`validate_package`) and the confidence/nesting bounds
+that a UMS-emitted package must satisfy — consumable as field names and data,
+never as a UMS build dependency (ADR-0013, ADR-0019). No UMS adapter, game
+profile, package schema, preview protocol, or integration test exists in this
+repository today. Those artifacts must arrive together with a real game use
+and verification; placeholder crates or empty interfaces are not an
+implementation.
