@@ -146,10 +146,14 @@ crosses a threshold. Observation channels are caller-supplied data
 (`ChannelTable`), and the advance parameter is any monotone accumulator —
 seconds for IDApTIK, steps-walked for Chronicles' "memory erodes with motion".
 
-**Not yet implemented:** the belief store (baseline plus per-bearer deltas),
-the bounded confidence type, retraction/revision events, valence, goal and
-commitment machinery, and behavioural-selection chain enforcement. No game
-consumes any of this yet.
+**Implemented since:** the belief store (`enaction-trace::store` — Global
+Baseline plus per-*perspective* deltas, keyed by the full ascription path so
+false-belief modelling survives), the bounded confidence type (`Mass`,
+ADR-0016), and retraction as a first-class trace event (`Revision::Retract`,
+validator-enforced: caused, epistemic-only, and preceded by an assertion).
+
+**Not yet implemented:** valence, goal and commitment machinery, and
+behavioural-selection chain enforcement. No game consumes any of this yet.
 
 ## Proving-ground policy
 
