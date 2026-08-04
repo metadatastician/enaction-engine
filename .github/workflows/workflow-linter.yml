@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
+# This workflow is managed by gh actions-lock.
 # workflow-linter.yml - Validates GitHub workflows against RSR security standards
 # This workflow can be copied to other repos for consistent enforcement
 name: Workflow Security Linter
@@ -28,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
 
       - name: Check SPDX Headers
         run: |
@@ -65,10 +66,21 @@ jobs:
           echo "All workflows have permissions declared"
 
       - name: Check SHA-Pinned Actions
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "=== Checking Action Pinning ==="
-          # Find any uses: lines that don't have @SHA format
-          # Pattern: uses: owner/repo@<40-char-hex>
+          if [ -f .github/workflows/actions.lock ]; then
+            gh extension install github/gh-actions-lock
+            gh actions-lock --verify-local
+            unpinned=$(grep -rnE "^[[:space:]]+uses:[[:space:]]*[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\.github/workflows/[^@]+@" .github/workflows/ | \
+              grep -v "@[a-f0-9]\{40\}" || true)
+            if [ -n "$unpinned" ]; then
+              echo "ERROR: reusable workflow calls not SHA-pinned:"; echo "$unpinned"; exit 1
+            fi
+            echo "Lockfile coverage verified"; exit 0
+          fi
+          # No lockfile: every uses: must carry an inline SHA pin.
           unpinned=$(grep -rnE "^[[:space:]]+uses:" .github/workflows/ | \
             grep -v "@[a-f0-9]\{40\}" | \
             grep -v "uses: \./\|uses: docker://\|uses: actions/github-script" || true)
