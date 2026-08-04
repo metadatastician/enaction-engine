@@ -137,6 +137,8 @@ mod tests {
                     tick: event.tick,
                     trope: TropeId(1),
                     value_milli: i32::from(event.confidence.get()),
+                    confidence: Some(event.confidence),
+                    revision: Default::default(),
                     caused_by: vec![],
                 },
                 diagnostics: vec![],
