@@ -18,8 +18,11 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/estate-rules.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/governance.yml': []
     '.github/workflows/guix-policy.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/hypatia-scan.yml': []
+    '.github/workflows/mirror.yml': []
     '.github/workflows/oikosbot.yml':
         - 'actions/checkout@v7.0.1'
         - 'github/codeql-action@v4.37.3'
@@ -46,6 +49,9 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/runtime-policy.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/rust-ci.yml': []
+    '.github/workflows/scorecard.yml': []
+    '.github/workflows/secret-scanner.yml': []
     '.github/workflows/security-policy.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/static-analysis-gate.yml':
