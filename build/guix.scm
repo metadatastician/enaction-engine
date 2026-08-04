@@ -1,5 +1,5 @@
 ; SPDX-License-Identifier: MPL-2.0
-;; guix.scm — GNU Guix package definition for squisher-corpus
+;; guix.scm — GNU Guix package definition for enaction-engine
 ;; Usage: guix shell -f guix.scm
 
 (use-modules (guix packages)
@@ -7,12 +7,12 @@
              (guix licenses))
 
 (package
-  (name "squisher-corpus")
+  (name "enaction-engine")
   (version "0.1.0")
   (source #f)
   (build-system gnu-build-system)
-  (synopsis "squisher-corpus")
-  (description "squisher-corpus — part of the hyperpolymath ecosystem.")
-  (home-page "https://github.com/hyperpolymath/squisher-corpus")
-  (license ((@@ (guix licenses) license) "PMPL-1.0-or-later"
-             "https://github.com/hyperpolymath/palimpsest-license")))
+  (synopsis "Deterministic, type-safe runtime facilities for situated agents and worlds")
+  (description "enaction-engine — part of the metadatastician ecosystem.")
+  (home-page "https://github.com/metadatastician/enaction-engine")
+  (license ((@@ (guix licenses) license) "AGPL-3.0-or-later"
+             "https://www.gnu.org/licenses/agpl-3.0.html")))
