@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
+# This workflow is managed by gh actions-lock.
 # rhodibot.yml — RSR compliance CANARY (report-only)
 #
 # Rhodibot does NOT mutate this repository. It never deletes, renames,
