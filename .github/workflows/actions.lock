@@ -39,7 +39,6 @@ workflows:
     '.github/workflows/quality.yml':
         - 'actions/checkout@v7.0.1'
         - 'editorconfig-checker/action-editorconfig-checker@v2.2.0'
-        - 'trufflesecurity/trufflehog@v3.96.0'
     '.github/workflows/release.yml':
         - 'actions/attest-build-provenance@v4.1.1'
         - 'actions/checkout@v7.0.1'
@@ -153,8 +152,3 @@ dependencies:
         commit: 'sha1-3d0d9888cb7fd7b750713d6e236d1fcb99157228'
         owner_id: 2242
         repo_id: 204253808
-    'trufflesecurity/trufflehog@v3.96.0':
-        ref: 'v3.96.0'
-        commit: 'sha1-6f3c981e7b77f235fd2702dd74af25fc4b72bf11'
-        owner_id: 79229934
-        repo_id: 77726177
