@@ -1,3 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= ffi Logic
+= Pure-Zig FFI implementations
+
+`src/main.zig` retains the repository's generic lifecycle seam.
+`src/accelerator.zig` implements the versioned accelerator ABI rendered from
+Idris2. The latter contains checked scalar dot/matrix kernels, capability
+discovery, request validation, output-atomic failure and no backend fallback.
+
+C is only the exported calling convention and generated header format. There
+is no hand-written C/C++ implementation in this tree and the gate prevents one
+from arriving unnoticed.

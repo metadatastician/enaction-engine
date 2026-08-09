@@ -1,0 +1,4 @@
+f3855ba6f6bf4d93665e69f6d6f4f005f3a49058b1dd4fea1337ec5a56880aa1  cases/fixed-i32-dot.json
+efe2a3bbf184c2217bfc0db97584f710c96b50a95d138cd9989deb3827187f50  cases/fixed-i32-matmul.json
+0ddccdf5e3d64e51b3c9e125fcf3eb30b5fedca3888354cb87455cf2a6d4de49  expected/fixed-i32-dot.json
+14c1a8b06ba43e675933e9e3a8a917e1e86ef88d162c4147d969cebda426e09f  expected/fixed-i32-matmul.json

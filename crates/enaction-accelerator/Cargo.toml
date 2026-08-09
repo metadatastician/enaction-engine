@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+[package]
+name = "enaction-accelerator"
+description = "Operation-first accelerator capability, deterministic planning, and exact reference kernels for Enaction Engine."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+[dev-dependencies]
+serde_json = "1"

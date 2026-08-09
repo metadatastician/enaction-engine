@@ -192,18 +192,21 @@ pub const lib = @import("std");
 ### Build FFI Library
 
 ```bash
-cd ffi/zig
-zig build                         # Build debug
-zig build -Doptimize=ReleaseFast  # Build optimized
-zig build test                    # Run tests
+cd src/interface/ffi
+zig build test
+zig build -Doptimize=ReleaseSafe
 ```
 
 ### Generate C Header from Idris2 ABI
 
 ```bash
-cd src/abi
-idris2 --cg c-header Types.idr -o ../../generated/abi/enaction_engine.h
+scripts/generate-accelerator-abi.sh
+scripts/generate-accelerator-abi.sh --check
 ```
+
+Idris2 0.7 does not provide a `c-header` code generator. `Abi.Generate` is the
+typechecked deterministic renderer; the check command regenerates C-compatible,
+Zig and Rust declarations and compares them byte-for-byte.
 
 ### Cross-Compile
 
@@ -358,10 +361,11 @@ When modifying the ABI/FFI:
 
 2. **Generate C header**
    ```bash
-   idris2 --cg c-header src/interface/Abi/Types.idr -o generated/abi/enaction_engine.h
+   scripts/generate-accelerator-abi.sh
+   scripts/generate-accelerator-abi.sh --check
    ```
 
-3. **Update FFI implementation** (`ffi/zig/src/main.zig`)
+3. **Update FFI implementation** (`src/interface/ffi/src/*.zig`)
    - Implement new functions
    - Match ABI types exactly
 

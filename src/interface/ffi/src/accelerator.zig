@@ -1,0 +1,367 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//! Pure-Zig implementation of the Idris2-defined accelerator ABI.
+//!
+//! The C calling convention is the interoperability surface only. This module
+//! contains no C implementation, uses no libc allocator, retains no caller
+//! pointer, and never performs backend fallback.
+
+const std = @import("std");
+const abi = @import("abi");
+
+comptime {
+    if (@sizeOf(abi.Request) != 56 or @alignOf(abi.Request) != 8)
+        @compileError("Idris2 Request layout and Zig layout disagree");
+    if (@offsetOf(abi.Request, "dim0") != 32 or @offsetOf(abi.Request, "dim2") != 48)
+        @compileError("Idris2 Request field offsets and Zig offsets disagree");
+    if (@sizeOf(abi.BufferI32) != 16 or @sizeOf(abi.BufferI64) != 16)
+        @compileError("Idris2 buffer layout and Zig layout disagree");
+    if (@sizeOf(abi.Capability) != 32 or @alignOf(abi.Capability) != 4)
+        @compileError("Idris2 Capability layout and Zig layout disagree");
+    if (@sizeOf(abi.Evidence) != 24 or @alignOf(abi.Evidence) != 4)
+        @compileError("Idris2 Evidence layout and Zig layout disagree");
+}
+
+const capability_count: u32 = 2;
+const capability_flags_authoritative: u32 = 1;
+
+const AddressRange = struct {
+    start: usize,
+    end: usize,
+
+    fn overlaps(left: AddressRange, right: AddressRange) bool {
+        if (left.start == left.end or right.start == right.end) return false;
+        return left.start < right.end and right.start < left.end;
+    }
+};
+
+fn checkedMulU64(left: u64, right: u64) ?u64 {
+    const result = @mulWithOverflow(left, right);
+    return if (result[1] == 0) result[0] else null;
+}
+
+fn addressRange(pointer: anytype, len: usize, element_size: usize) ?AddressRange {
+    if (len == 0) return .{ .start = 0, .end = 0 };
+    const start = @intFromPtr(pointer orelse return null);
+    const byte_len = std.math.mul(usize, len, element_size) catch return null;
+    const end = std.math.add(usize, start, byte_len) catch return null;
+    return .{ .start = start, .end = end };
+}
+
+fn validLane(lane: u32) bool {
+    return lane == abi.lane_authoritative or lane == abi.lane_advisory;
+}
+
+fn validateRequest(request: *const abi.Request) u32 {
+    if (request.abi_major != abi.abi_major or request.abi_minor > abi.abi_minor)
+        return abi.status_unsupported_abi;
+    if (request.operation_major != abi.operation_major or request.operation_minor > abi.operation_minor)
+        return abi.status_unsupported_operation_version;
+    if (!validLane(request.lane)) return abi.status_invalid_lane;
+    if (request.minimum_support < abi.support_declared or request.minimum_support > abi.support_production_supported)
+        return abi.status_invalid_support;
+    if (request.minimum_support > abi.support_resilient)
+        return abi.status_unsupported_requirement;
+    if (request.minimum_determinism < abi.determinism_advisory_only or request.minimum_determinism > abi.determinism_canonical_exact)
+        return abi.status_invalid_determinism;
+    if (request.reserved != 0) return abi.status_invalid_reserved_field;
+    return switch (request.operation) {
+        abi.operation_fixed_i32_dot => if (request.layout == abi.layout_dot) abi.status_ok else abi.status_layout_mismatch,
+        abi.operation_fixed_i32_matmul => if (request.layout == abi.layout_matmul) abi.status_ok else abi.status_layout_mismatch,
+        else => abi.status_unknown_operation,
+    };
+}
+
+fn fillEvidence(request: *const abi.Request, evidence: *abi.Evidence) void {
+    evidence.* = .{
+        .abi_major = abi.abi_major,
+        .abi_minor = abi.abi_minor,
+        .operation_major = abi.operation_major,
+        .operation_minor = abi.operation_minor,
+        .operation = request.operation,
+        .backend_id = abi.backend_zig_scalar,
+        .support = abi.support_resilient,
+        .determinism = abi.determinism_canonical_exact,
+    };
+}
+
+fn capability(operation: u32) abi.Capability {
+    return .{
+        .abi_major = abi.abi_major,
+        .abi_minor = abi.abi_minor,
+        .operation_major = abi.operation_major,
+        .operation_minor = abi.operation_minor,
+        .operation = operation,
+        .support = abi.support_resilient,
+        .determinism = abi.determinism_canonical_exact,
+        .backend_id = abi.backend_zig_scalar,
+        .device_class = abi.device_cpu,
+        .flags = capability_flags_authoritative,
+    };
+}
+
+export fn enaction_accel_abi_version() u32 {
+    return (@as(u32, abi.abi_major) << 16) | @as(u32, abi.abi_minor);
+}
+
+export fn enaction_accel_capability_count() u32 {
+    return capability_count;
+}
+
+export fn enaction_accel_capability_at(index: u32, out: ?*abi.Capability) u32 {
+    const destination = out orelse return abi.status_null_pointer;
+    destination.* = switch (index) {
+        0 => capability(abi.operation_fixed_i32_dot),
+        1 => capability(abi.operation_fixed_i32_matmul),
+        else => return abi.status_index_out_of_range,
+    };
+    return abi.status_ok;
+}
+
+fn checkedDot(left: []const i32, right: []const i32) ?i64 {
+    var sum: i64 = 0;
+    for (left, right) |left_value, right_value| {
+        const product = @mulWithOverflow(@as(i64, left_value), @as(i64, right_value));
+        if (product[1] != 0) return null;
+        const next = @addWithOverflow(sum, product[0]);
+        if (next[1] != 0) return null;
+        sum = next[0];
+    }
+    return sum;
+}
+
+fn checkedMatmulCell(
+    row: usize,
+    column: usize,
+    k: usize,
+    n: usize,
+    left: []const i32,
+    right: []const i32,
+) ?i64 {
+    var sum: i64 = 0;
+    for (0..k) |inner| {
+        const product = @mulWithOverflow(
+            @as(i64, left[row * k + inner]),
+            @as(i64, right[inner * n + column]),
+        );
+        if (product[1] != 0) return null;
+        const next = @addWithOverflow(sum, product[0]);
+        if (next[1] != 0) return null;
+        sum = next[0];
+    }
+    return sum;
+}
+
+fn executeDot(
+    request: *const abi.Request,
+    left_buffer: *const abi.BufferI32,
+    right_buffer: *const abi.BufferI32,
+    output_buffer: *abi.BufferI64,
+) u32 {
+    if (request.dim1 != 0 or request.dim2 != 0) return abi.status_layout_mismatch;
+    const len = std.math.cast(usize, request.dim0) orelse return abi.status_dimension_overflow;
+    if (left_buffer.len != request.dim0 or right_buffer.len != request.dim0 or output_buffer.len != 1)
+        return abi.status_length_mismatch;
+    if (len != 0 and (left_buffer.data == null or right_buffer.data == null))
+        return abi.status_null_pointer;
+    const output_pointer = output_buffer.data orelse return abi.status_null_pointer;
+
+    const left_range = addressRange(left_buffer.data, len, @sizeOf(i32)) orelse return abi.status_dimension_overflow;
+    const right_range = addressRange(right_buffer.data, len, @sizeOf(i32)) orelse return abi.status_dimension_overflow;
+    const output_range = addressRange(output_buffer.data, 1, @sizeOf(i64)) orelse return abi.status_dimension_overflow;
+    if (output_range.overlaps(left_range) or output_range.overlaps(right_range))
+        return abi.status_aliasing_violation;
+
+    const left = if (len == 0) &[_]i32{} else left_buffer.data.?[0..len];
+    const right = if (len == 0) &[_]i32{} else right_buffer.data.?[0..len];
+    output_pointer[0] = checkedDot(left, right) orelse return abi.status_arithmetic_overflow;
+    return abi.status_ok;
+}
+
+fn executeMatmul(
+    request: *const abi.Request,
+    left_buffer: *const abi.BufferI32,
+    right_buffer: *const abi.BufferI32,
+    output_buffer: *abi.BufferI64,
+) u32 {
+    const left_len_u64 = checkedMulU64(request.dim0, request.dim1) orelse return abi.status_dimension_overflow;
+    const right_len_u64 = checkedMulU64(request.dim1, request.dim2) orelse return abi.status_dimension_overflow;
+    const output_len_u64 = checkedMulU64(request.dim0, request.dim2) orelse return abi.status_dimension_overflow;
+    if (left_buffer.len != left_len_u64 or right_buffer.len != right_len_u64 or output_buffer.len != output_len_u64)
+        return abi.status_length_mismatch;
+
+    const m = std.math.cast(usize, request.dim0) orelse return abi.status_dimension_overflow;
+    const k = std.math.cast(usize, request.dim1) orelse return abi.status_dimension_overflow;
+    const n = std.math.cast(usize, request.dim2) orelse return abi.status_dimension_overflow;
+    const left_len = std.math.cast(usize, left_len_u64) orelse return abi.status_dimension_overflow;
+    const right_len = std.math.cast(usize, right_len_u64) orelse return abi.status_dimension_overflow;
+    const output_len = std.math.cast(usize, output_len_u64) orelse return abi.status_dimension_overflow;
+    if (left_len != 0 and left_buffer.data == null) return abi.status_null_pointer;
+    if (right_len != 0 and right_buffer.data == null) return abi.status_null_pointer;
+    if (output_len != 0 and output_buffer.data == null) return abi.status_null_pointer;
+
+    const left_range = addressRange(left_buffer.data, left_len, @sizeOf(i32)) orelse return abi.status_dimension_overflow;
+    const right_range = addressRange(right_buffer.data, right_len, @sizeOf(i32)) orelse return abi.status_dimension_overflow;
+    const output_range = addressRange(output_buffer.data, output_len, @sizeOf(i64)) orelse return abi.status_dimension_overflow;
+    if (output_range.overlaps(left_range) or output_range.overlaps(right_range))
+        return abi.status_aliasing_violation;
+
+    const left = if (left_len == 0) &[_]i32{} else left_buffer.data.?[0..left_len];
+    const right = if (right_len == 0) &[_]i32{} else right_buffer.data.?[0..right_len];
+
+    // First pass proves the entire result is representable. No output byte is
+    // changed until every cell has succeeded.
+    for (0..m) |row| {
+        for (0..n) |column| {
+            _ = checkedMatmulCell(row, column, k, n, left, right) orelse return abi.status_arithmetic_overflow;
+        }
+    }
+    if (output_len != 0) {
+        const output = output_buffer.data.?[0..output_len];
+        for (0..m) |row| {
+            for (0..n) |column| {
+                output[row * n + column] = checkedMatmulCell(row, column, k, n, left, right).?;
+            }
+        }
+    }
+    return abi.status_ok;
+}
+
+export fn enaction_accel_execute(
+    request_pointer: ?*const abi.Request,
+    left_pointer: ?*const abi.BufferI32,
+    right_pointer: ?*const abi.BufferI32,
+    output_pointer: ?*abi.BufferI64,
+    evidence_pointer: ?*abi.Evidence,
+) u32 {
+    const request = request_pointer orelse return abi.status_null_pointer;
+    const left = left_pointer orelse return abi.status_null_pointer;
+    const right = right_pointer orelse return abi.status_null_pointer;
+    const output = output_pointer orelse return abi.status_null_pointer;
+    const evidence = evidence_pointer orelse return abi.status_null_pointer;
+    const request_status = validateRequest(request);
+    if (request_status != abi.status_ok) return request_status;
+
+    const execution_status = switch (request.operation) {
+        abi.operation_fixed_i32_dot => executeDot(request, left, right, output),
+        abi.operation_fixed_i32_matmul => executeMatmul(request, left, right, output),
+        else => unreachable,
+    };
+    if (execution_status != abi.status_ok) return execution_status;
+    fillEvidence(request, evidence);
+    return abi.status_ok;
+}
+
+fn requestFor(operation: u32, layout: u32, dim0: u64, dim1: u64, dim2: u64) abi.Request {
+    return .{
+        .abi_major = abi.abi_major,
+        .abi_minor = abi.abi_minor,
+        .operation_major = abi.operation_major,
+        .operation_minor = abi.operation_minor,
+        .operation = operation,
+        .lane = abi.lane_authoritative,
+        .minimum_support = abi.support_resilient,
+        .minimum_determinism = abi.determinism_canonical_exact,
+        .layout = layout,
+        .reserved = 0,
+        .dim0 = dim0,
+        .dim1 = dim1,
+        .dim2 = dim2,
+    };
+}
+
+test "exact dot and evidence" {
+    const left_data = [_]i32{ 2, -3, 4 };
+    const right_data = [_]i32{ 5, 7, -2 };
+    var output_data = [_]i64{777};
+    const left = abi.BufferI32{ .data = &left_data, .len = left_data.len };
+    const right = abi.BufferI32{ .data = &right_data, .len = right_data.len };
+    var output = abi.BufferI64{ .data = &output_data, .len = output_data.len };
+    var evidence: abi.Evidence = undefined;
+    const request = requestFor(abi.operation_fixed_i32_dot, abi.layout_dot, 3, 0, 0);
+    try std.testing.expectEqual(abi.status_ok, enaction_accel_execute(&request, &left, &right, &output, &evidence));
+    try std.testing.expectEqual(@as(i64, -19), output_data[0]);
+    try std.testing.expectEqual(abi.backend_zig_scalar, evidence.backend_id);
+    try std.testing.expectEqual(abi.determinism_canonical_exact, evidence.determinism);
+}
+
+test "matrix overflow is output atomic" {
+    const left_data = [_]i32{std.math.maxInt(i32)} ** 3;
+    const right_data = [_]i32{ 1, std.math.maxInt(i32), 1, std.math.maxInt(i32), 1, std.math.maxInt(i32) };
+    var output_data = [_]i64{ 71, 72 };
+    const left = abi.BufferI32{ .data = &left_data, .len = left_data.len };
+    const right = abi.BufferI32{ .data = &right_data, .len = right_data.len };
+    var output = abi.BufferI64{ .data = &output_data, .len = output_data.len };
+    var evidence = std.mem.zeroes(abi.Evidence);
+    const request = requestFor(abi.operation_fixed_i32_matmul, abi.layout_matmul, 1, 3, 2);
+    try std.testing.expectEqual(abi.status_arithmetic_overflow, enaction_accel_execute(&request, &left, &right, &output, &evidence));
+    try std.testing.expectEqualSlices(i64, &[_]i64{ 71, 72 }, &output_data);
+    try std.testing.expectEqual(@as(u32, 0), evidence.backend_id);
+}
+
+test "capabilities and malformed requests fail explicitly" {
+    try std.testing.expectEqual(@as(u32, 0x00010000), enaction_accel_abi_version());
+    try std.testing.expectEqual(@as(u32, 2), enaction_accel_capability_count());
+    var found = std.mem.zeroes(abi.Capability);
+    try std.testing.expectEqual(abi.status_ok, enaction_accel_capability_at(1, &found));
+    try std.testing.expectEqual(abi.operation_fixed_i32_matmul, found.operation);
+    try std.testing.expectEqual(abi.status_index_out_of_range, enaction_accel_capability_at(2, &found));
+
+    var request = requestFor(abi.operation_fixed_i32_dot, abi.layout_dot, 0, 0, 0);
+    request.abi_major = 9;
+    const empty = abi.BufferI32{ .data = null, .len = 0 };
+    var output_data = [_]i64{91};
+    var output = abi.BufferI64{ .data = &output_data, .len = 1 };
+    var evidence = std.mem.zeroes(abi.Evidence);
+    try std.testing.expectEqual(abi.status_unsupported_abi, enaction_accel_execute(&request, &empty, &empty, &output, &evidence));
+    try std.testing.expectEqual(@as(i64, 91), output_data[0]);
+}
+
+test "null dimensions and aliasing are refused without mutation" {
+    var request = requestFor(abi.operation_fixed_i32_dot, abi.layout_dot, 1, 0, 0);
+    const missing = abi.BufferI32{ .data = null, .len = 1 };
+    const right_data = [_]i32{3};
+    const right = abi.BufferI32{ .data = &right_data, .len = 1 };
+    var output_data = [_]i64{81};
+    var output = abi.BufferI64{ .data = &output_data, .len = 1 };
+    var evidence = std.mem.zeroes(abi.Evidence);
+    try std.testing.expectEqual(
+        abi.status_null_pointer,
+        enaction_accel_execute(&request, &missing, &right, &output, &evidence),
+    );
+    try std.testing.expectEqual(@as(i64, 81), output_data[0]);
+
+    var aliased_storage = [_]i64{ 11, 12 };
+    const aliased_left = abi.BufferI32{
+        .data = @ptrCast(&aliased_storage),
+        .len = 2,
+    };
+    const alias_right_data = [_]i32{ 2, 3 };
+    const alias_right = abi.BufferI32{ .data = &alias_right_data, .len = 2 };
+    var aliased_output = abi.BufferI64{ .data = &aliased_storage, .len = 1 };
+    request.dim0 = 2;
+    try std.testing.expectEqual(
+        abi.status_aliasing_violation,
+        enaction_accel_execute(
+            &request,
+            &aliased_left,
+            &alias_right,
+            &aliased_output,
+            &evidence,
+        ),
+    );
+    try std.testing.expectEqualSlices(i64, &[_]i64{ 11, 12 }, &aliased_storage);
+
+    const empty = abi.BufferI32{ .data = null, .len = 0 };
+    var empty_output = abi.BufferI64{ .data = null, .len = 0 };
+    request = requestFor(
+        abi.operation_fixed_i32_matmul,
+        abi.layout_matmul,
+        std.math.maxInt(u64),
+        2,
+        0,
+    );
+    try std.testing.expectEqual(
+        abi.status_dimension_overflow,
+        enaction_accel_execute(&request, &empty, &empty, &empty_output, &evidence),
+    );
+}

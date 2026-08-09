@@ -23,3 +23,5 @@ new numbered ADR rather than silently rewriting its outcome.
 * `0016` — `Mass` is the kernel confidence type; an intent read is not one
 * `0017` — crate admission and the three-part extraction trigger
 * `0018` — the enactive claim
+* `0019` — the CAC/ESM contract as types and validators
+* `0020` — operation-first coprocessor runtime and deterministic execution lanes

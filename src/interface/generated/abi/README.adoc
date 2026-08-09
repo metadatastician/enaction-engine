@@ -1,3 +1,16 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Abi Logic
+= Generated accelerator ABI declarations
+
+These files are deterministic artifacts rendered by the typechecked Idris2
+module `Abi.Generate`:
+
+* `enaction_accelerator.h` — C-compatible interoperability declaration;
+* `enaction_accelerator.zig` — declarations consumed by the pure-Zig provider;
+* `enaction_accelerator.rs` — declarations consumed inside the audited Rust
+  native adapter;
+* `SYMBOLS` — exact exported function inventory checked against the library;
+* `SOURCE.sha256` — exact Idris2 package, layout, authority and renderer inputs.
+
+Do not edit generated declarations. Change `src/interface/Abi/Accelerator.idr`
+or `Generate.idr`, regenerate, and run the `--check` gate.

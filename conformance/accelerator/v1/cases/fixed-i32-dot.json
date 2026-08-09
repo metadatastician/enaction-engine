@@ -1,0 +1,7 @@
+{
+  "operation": "enaction.fixed.i32.dot",
+  "version": "1.0",
+  "layout": { "len": 3 },
+  "left": [2, -3, 4],
+  "right": [5, 7, -2]
+}

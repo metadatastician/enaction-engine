@@ -1,0 +1,176 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Accelerator backend and kernel contract
+
+Status: *normative for implemented accelerator work* +
+Decision: ADR-0020
+
+== Boundary
+
+The accelerator subsystem centralises capability discovery, planning,
+execution policy and evidence. It does not centralise game ontology, UMS
+authoring rules or Axiom model semantics.
+
+[source,text]
+----
+domain adapter
+    -> versioned kernel request
+        -> capability registry
+            -> deterministic planner
+                -> one selected backend/kernel
+                    -> output or explicit failure
+----
+
+The planner selects by operation capability. Device kind is metadata. Selection
+must not depend on backend registration order, address, thread identity or an
+unordered-map iteration.
+
+== Execution lanes
+
+[cols="1,2,3"]
+|===
+|Lane |May affect authoritative state? |Required behaviour
+
+|Authoritative
+|Yes
+|Canonical deterministic evidence; fixed selection; no silent runtime retry
+
+|Advisory
+|No
+|Declared precision/tolerance and provenance; ordered event required before use
+
+|Remote job
+|No synchronous result
+|Explicit submit/status/result protocol; simulator selected separately
+|===
+
+== Request
+
+A request carries at least:
+
+* operation identifier and version;
+* input/output layout;
+* scalar or element representation;
+* execution lane;
+* minimum support evidence;
+* determinism requirement;
+* fallback policy;
+* bounded resource requirements.
+
+The current crate implements exact signed fixed-point dot product and matrix
+multiplication. Values are `i32`; accumulation is checked `i64`. Shape,
+cardinality and output capacity are validated before writing. Overflow is an
+error, never wrapping, saturation or backend-dependent behaviour.
+
+== Backend descriptor
+
+A descriptor contains a stable backend identifier, implementation version,
+device class, operation capability records, and whether the backend is local or
+remote. Future external providers additionally declare runtime/driver identity,
+memory/queue properties and isolation boundary.
+
+The device-class vocabulary covers CPU, GPU, TPU, NPU, DSP, PPU, maths, FPGA,
+VPU, QPU and cryptographic accelerators. Listing a class is not support.
+
+== Support evidence
+
+The ordered support ladder is:
+
+[cols="1,3"]
+|===
+|Level |Required evidence
+
+|Declared |Stable identifier and schema
+|Discoverable |A real device/provider can be enumerated
+|Loadable |Runtime/driver/plugin opens successfully
+|Runnable |A positive kernel probe executes
+|Conformant |Versioned semantic fixtures pass
+|Resilient |Planted failures and refusal paths pass
+|Deterministic |Canonical output matches across required processes/targets
+|Benchmarked |Representative, versioned measurement exists
+|Production-supported |Owned support matrix, hardware CI and release gate exist
+|===
+
+A capability advertises only its highest evidenced level. Consumers compare
+the requested minimum with that level; they do not infer missing evidence from
+a backend name.
+
+== Planning and fallback
+
+Planning filters candidates by operation, version, lane, determinism and support
+floor, then ranks by explicit priority and stable backend identifier. This makes
+the result independent of registration order.
+
+Fallback can occur during planning: for example, a request that permits a
+reference backend may select the scalar CPU implementation when no preferred
+accelerator conforms. Runtime execution is different. An authoritative failure
+is returned to the host. It is never caught and retried invisibly.
+
+== Kernel-family map
+
+[cols="1,5"]
+|===
+|Family |Likely implementations
+
+|Fixed-point |Scalar CPU reference, SIMD, conformant FPGA; GPU/NPU only after exact evidence
+|Tensor/ML |CPU/BLAS or Zig reference, CUDA, ROCm, Metal, TPU, NPU, VPU, FPGA
+|Physics |CPU reference, GPU compute, PPU, FPGA
+|DSP/audio |CPU reference, DSP, GPU compute, FPGA
+|Vision |CPU fallback, GPU, NPU, VPU, FPGA
+|Exact maths |CPU big-integer/CAS, selected FPGA, explicit remote solver
+|Crypto |Portable reference, CPU instructions, QAT/CryptoCell, FPGA
+|Rendering |CPU fallback, GPU; presentation lane only
+|Quantum |QPU remote jobs and explicit simulators
+|===
+
+These are admission routes, not present-tense support claims.
+
+== UMS boundary
+
+UMS consumes this contract as versioned data or through an optional adapter.
+UMS Core has no Cargo dependency on Enaction. A preview or package request may
+declare required operations, support floor, lane and fallback policy. Generated
+artifacts record whether results are backend-independent and identify their
+kernel/conformance versions.
+
+Released games consume the compiled artifact and Enaction runtime facilities;
+they do not load UMS.
+
+== Native interface pipeline
+
+[source,text]
+----
+Idris2 ABI truth
+    -> generated C-compatible declarations
+        -> pure Zig FFI and kernel adapter
+            -> Rust / Julia / other host binding
+----
+
+The generated declaration is the minimum stable interoperability surface. C
+does not own allocation, dispatch, kernel logic or backend policy. Those remain
+in Zig on the native side. The Rust registry consumes the adapter; it does not
+replace the Idris2 layout authority or fork the ABI types.
+
+A BEAM host uses `hyperpolymath/snifs` for computations within SNIF's supported
+numeric/byte-buffer surface. The Zig adapter is compiled to a ReleaseSafe
+WebAssembly guest and failures cross as explicit errors while the BEAM remains
+isolated. Operations requiring BEAM resources, monitors, messaging, dirty
+scheduler integration, zero-copy BEAM-term access or I/O are not disguised as
+SNIFs; they need an explicit alternative-boundary decision.
+
+== Current evidence
+
+The safe `enaction-accelerator` crate supplies a scalar CPU reference backend
+and a failure-injectable backend. `enaction-accelerator-native` is the single
+audited unsafe boundary to an Idris2-defined, pure-Zig scalar implementation.
+Idris2 proves the four admitted layouts; its deterministic renderer emits the
+C-compatible, Zig and Rust declarations. Zig and Rust assert those sizes again.
+The locked v1 fixtures pass through both implementations and their canonical
+little-endian result bytes match. Tests also demonstrate checked overflow,
+failure atomicity, buffer/shape refusal, registration-order-independent
+planning, capability evidence validation, support-floor enforcement and the
+absence of silent runtime retry.
+
+This is cross-language scalar CPU conformance. No GPU or non-CPU hardware
+backend, Axiom tensor adapter, multi-target determinism, benchmarked support or
+production support is implemented by this document.

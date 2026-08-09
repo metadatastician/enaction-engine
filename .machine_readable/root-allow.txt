@@ -66,6 +66,7 @@ examples/
 features/
 scripts/
 verification/
+conformance/               # Versioned cross-language accelerator fixtures and locked expected outputs (ADR-0020)
 container/                 # may host Containerfile if not at build/
 
 # ─── Tolerated pending follow-up (re-evaluate when item lands) ───────────────

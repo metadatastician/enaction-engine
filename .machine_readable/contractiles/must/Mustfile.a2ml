@@ -70,6 +70,63 @@ canonical identity, licence posture, and honest architecture claims.
 - notes: Unreachable while the workspace manifest was broken, since rustfmt
   could not load it. Drift could have accumulated invisibly.
 
+### accelerator-conformance-digests
+- description: Versioned accelerator inputs and expected outputs match their accepted digests
+- run: cd conformance/accelerator/v1 && sha256sum -c SHA256SUMS
+- severity: critical
+
+## Verified native interface seam
+
+### idris2-abi-typechecks
+- description: Idris2 remains the normative, typechecked ABI source
+- run: idris2 --typecheck abi.ipkg
+- severity: critical
+
+### idris2-abi-no-unsound-escapes
+- description: The accelerator ABI authority contains no Idris2 trust-me escape hatch
+- run: test -z "$(grep -En 'believe_me|assert_total|postulate' src/interface/Abi/Accelerator.idr src/interface/Abi/Generate.idr || true)"
+- severity: critical
+
+### accelerator-abi-generated-current
+- description: C-compatible, Zig and Rust declarations reproduce byte-for-byte from the Idris2 authority
+- run: scripts/generate-accelerator-abi.sh --check
+- severity: critical
+
+### accelerator-abi-source-digests
+- description: Generated ABI provenance names the exact accepted Idris2 sources
+- run: sha256sum -c src/interface/generated/abi/SOURCE.sha256
+- severity: critical
+
+### zig-ffi-formatted
+- description: The Zig FFI implementation and tests remain formatter-clean
+- run: zig fmt --check src/interface/ffi/src/main.zig src/interface/ffi/src/accelerator.zig src/interface/ffi/build.zig src/interface/ffi/test/integration_test.zig src/interface/generated/abi/enaction_accelerator.zig
+- severity: critical
+
+### zig-ffi-tests
+- description: The pure Zig FFI implementation passes its native tests
+- run: ZIG_GLOBAL_CACHE_DIR=target/zig-global-cache ZIG_LOCAL_CACHE_DIR=target/zig-local-cache zig test src/interface/ffi/src/main.zig
+- severity: critical
+
+### zig-accelerator-tests
+- description: The Idris2-defined pure-Zig kernels pass exact and planted-failure tests
+- run: ZIG_GLOBAL_CACHE_DIR=target/zig-global-cache ZIG_LOCAL_CACHE_DIR=target/zig-accelerator-cache zig test --dep abi -Mroot=src/interface/ffi/src/accelerator.zig -Mabi=src/interface/generated/abi/enaction_accelerator.zig
+- severity: critical
+
+### zig-ffi-build
+- description: The real Zig build graph runs every FFI test and produces a ReleaseSafe library
+- run: cd src/interface/ffi && ZIG_GLOBAL_CACHE_DIR=../../../target/zig-global-cache ZIG_LOCAL_CACHE_DIR=../../../target/zig-build-cache zig build test && ZIG_GLOBAL_CACHE_DIR=../../../target/zig-global-cache ZIG_LOCAL_CACHE_DIR=../../../target/zig-build-cache zig build -Doptimize=ReleaseSafe
+- severity: critical
+
+### accelerator-abi-symbols
+- description: The ReleaseSafe Zig library exports exactly the Idris2-declared accelerator symbol set
+- run: nm -g --defined-only src/interface/ffi/zig-out/lib/libenaction_accelerator.a | awk '$2 == "T" && $3 ~ /^enaction_accel_/ { print $3 }' | sort | diff - src/interface/generated/abi/SYMBOLS
+- severity: critical
+
+### no-handwritten-c-ffi
+- description: C is an ABI convention and generated declaration format, not an FFI implementation language
+- run: test -z "$(find src/interface/ffi -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' \) -print -quit)"
+- severity: critical
+
 ## Evidence and governance
 
 ### principal-documents

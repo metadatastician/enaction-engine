@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+= Accelerator contract v1 conformance fixtures
+
+`cases/` and `expected/` are the cross-language semantic currency for the
+initial exact fixed-point operations. Every adapter must execute the case and
+produce the expected signed integer vector exactly; tolerance comparison is not
+permitted.
+
+The safe Rust scalar oracle and the Idris2-defined, pure-Zig implementation
+both consume these files. Their integration test also compares the canonical
+little-endian bytes of every signed `i64` result.
+
+`SHA256SUMS` binds both inputs and expected outputs. Consumers vendor this
+directory with the digest they accepted and run `sha256sum -c SHA256SUMS` before
+their adapter tests.
+
+The fixture proves only scalar-operation semantics. It does not establish
+hardware availability, performance or production support.

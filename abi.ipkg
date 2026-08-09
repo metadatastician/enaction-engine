@@ -34,3 +34,8 @@ depends = base
 modules = Abi.Types
         , Abi.Layout
         , Abi.Foreign
+        , Abi.Accelerator
+        , Abi.Generate
+
+main = Abi.Generate
+executable = accelerator-abi-gen

@@ -1,0 +1,170 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0020-operation-first-coprocessor-runtime
+
+Date: 2026-08-09
+
+== Status
+
+Accepted
+
+Extends ADR-0013 (runtime kernel and authoring studio), ADR-0015 (kernel
+determinism) and ADR-0017 (crate admission). It does not weaken any of them.
+
+== Context
+
+`hyperpolymath/Axiom.jl` names a broad accelerator suite: CUDA, ROCm, Metal,
+TPU, NPU, DSP, PPU, maths, FPGA, VPU, QPU and cryptographic coprocessors, plus
+CPU Julia and Zig implementations. Its non-GPU surface usefully centralises
+detection, dispatch, diagnostics and fallback, but presents the same set of
+neural-network hooks to every family. The hardware names exist; production
+non-GPU kernels do not.
+
+Enaction will need acceleration for several semantically distinct workloads:
+fixed-point reductions, tensor inference, physics, perception, DSP/audio,
+cryptography and presentation. UMS may need the same implementations for
+generation, validation and bounded preview. Implementing one backend hierarchy
+inside each consumer would duplicate policy and evidence; forcing every device
+to implement one neural operation set would confuse device identity with
+capability.
+
+Acceleration also creates a determinism hazard. A mathematically close result
+is not sufficient when it crosses a threshold or affects ordering. Silently
+retrying an authoritative kernel on another backend after a runtime failure can
+split networked peers even when each result is locally plausible.
+
+== Decision
+
+=== Enaction owns runtime policy
+
+Enaction owns accelerator selection for released-game runtime work and owns the
+rule deciding whether a result may affect authoritative state. It never imports
+UMS. UMS may describe accelerator requirements as versioned data and may use an
+optional adapter for preview, but released games remain independent of UMS.
+
+This is not a third shared game-platform layer: accelerator dispatch is a
+facility within ADR-0013's Enaction runtime kernel. A later extraction of a
+language-neutral native ABI may create a foundation dependency and would need a
+new ADR before changing ADR-0013's current dependency graph.
+
+=== Operations, then devices
+
+Dispatch is operation-first. A request declares an operation and version,
+layout, precision, determinism requirement, resource bounds, execution lane and
+fallback policy. A backend reports which operation versions and contracts it
+implements. Hardware family is descriptive metadata and a policy constraint;
+it is not the operation interface.
+
+Kernel families include fixed-point, tensor/ML, physics, DSP/audio, vision,
+exact maths, cryptography, rendering and quantum jobs. A crypto provider is not
+asked to implement softmax, and a QPU is not treated as a synchronous matrix
+accelerator merely because both are coprocessors.
+
+=== Three execution lanes
+
+Authoritative:: Output may affect replayed state. The backend/kernel pair MUST
+be canonically deterministic for the requested operation version. Selection is
+completed before the reduction. Execution failure is returned to the host and
+MUST NOT cause an unrecorded retry on another backend.
+
+Advisory:: Output cannot directly affect authoritative state. Approximate or
+tolerance-bounded execution is permitted. If a host later uses the output, it
+must enter through an ordered, versioned event under the ordinary reduction
+contract.
+
+Remote job:: Execution is explicitly asynchronous. QPUs and remote TPU/service
+providers use submit/status/result semantics. A local simulator is a separately
+selected backend, never an implicit fallback for physical hardware.
+
+=== Support is an evidence ladder
+
+Support is recorded per operation/backend pair, not per backend name:
+
+. declared;
+. discoverable;
+. loadable;
+. runnable;
+. conformant;
+. resilient;
+. deterministic;
+. benchmarked;
+. production-supported.
+
+The declared level is the highest evidenced level. A device type, environment
+flag or successful library load cannot by itself establish runnable or
+production support.
+
+=== Initial admitted implementation
+
+`enaction-accelerator` begins as one crate, not one crate per hardware family.
+It contains a capability registry, deterministic planner, explicit policy,
+exact scalar CPU reference backend, checked fixed-point dot/matrix operations,
+and a failure-injectable test backend. These are implemented behaviours with
+positive and negative tests, not namespace reservations.
+
+The initial operation set is deliberately small. New kernel families and
+backend modules enter only with implementation, conformance evidence and a real
+consumer or unavoidable substrate requirement. Crate splits additionally need
+a real dependency or release boundary.
+
+=== Native ABI and FFI seam
+
+Native kernel adapters preserve the estate's verified interface structure:
+
+* Idris2 in `src/interface/Abi/` is the normative source for ABI types,
+  layouts, versions and safety properties.
+* Generated C-compatible declarations are wire artifacts, not an
+  implementation language or a second source of truth.
+* Zig in `src/interface/ffi/` implements allocation, validation, dispatch and
+  exported functions. Hand-written C logic is not introduced where Zig can
+  express the same boundary directly.
+* Rust, Julia and other consumers bind to that narrow exported ABI; they do not
+  independently redefine native layouts.
+
+The Rust scalar backend establishes operation semantics. The admitted native
+implementation uses Idris2-defined request, buffer, capability and evidence
+layouts, deterministic generated declarations, pure-Zig checked kernels and
+one isolated Rust adapter crate. It does not supersede the Idris2 ABI or fork
+the policy layer.
+
+If a BEAM-facing adapter is needed, pure numeric or byte-buffer computation
+MUST use the estate's `hyperpolymath/snifs` framework: a Zig WebAssembly guest
+compiled in ReleaseSafe mode and invoked through the crash-isolating SNIF host.
+A direct in-VM NIF requires a separate ADR showing that the operation needs an
+`erl_nif` facility outside SNIF's documented scope. SNIF failure remains
+fallible and explicit; it is never translated into silent backend fallback.
+
+=== Fallback policy
+
+Planning may choose a compatible reference backend before execution when the
+request permits it. Once an authoritative kernel begins, runtime failure is
+terminal for that request. Any later backend transition is a host-visible event
+at a reduction boundary.
+
+UMS authoring work may permit fallback with a diagnostic, but generated output
+must record whether it is backend-independent, the selected kernel version and
+the conformance evidence digest. “Hardware validated” cannot silently degrade
+to an unqualified “validated”.
+
+== Consequences
+
+* Enaction and UMS do not grow independent copies of every backend.
+* The Axiom taxonomy can be represented without importing Axiom's ML-specific
+  hook set or overstating its non-GPU implementation state.
+* The scalar CPU path is the semantic reference, not necessarily the fastest
+  implementation.
+* A backend can support some operations and refuse others honestly.
+* Capability discovery, kernel conformance and production support are distinct
+  claims.
+* Approximate acceleration remains useful for authoring and presentation but
+  cannot leak into deterministic state by convenience.
+* No hardware accelerator is claimed by accepting this ADR.
+* The C ABI remains the interoperability convention, while native
+  implementation remains Zig-first and contains no hand-written C kernel
+  layer.
+* A future BEAM adapter inherits SNIF's numeric/buffer-only boundary, explicit
+  error result and sandbox trust model.
+
+Real-game status:: No game consumes Enaction today. The first implementation
+therefore demonstrates crate-level policy and kernel conformance only, not
+whole-game acceleration or hardware support.

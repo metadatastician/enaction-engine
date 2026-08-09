@@ -11,6 +11,8 @@ members = [
     "crates/enaction-time",
     "crates/enaction-trace",
     "crates/enaction-contracts",
+    "crates/enaction-accelerator",
+    "crates/enaction-accelerator-native",
 ]
 
 [workspace.package]
@@ -24,4 +26,6 @@ repository = "https://github.com/metadatastician/enaction-engine"
 enaction-time = { path = "crates/enaction-time" }
 enaction-trace = { path = "crates/enaction-trace" }
 enaction-contracts = { path = "crates/enaction-contracts" }
+enaction-accelerator = { path = "crates/enaction-accelerator" }
+enaction-accelerator-native = { path = "crates/enaction-accelerator-native" }
 serde = { version = "1", features = ["derive"] }

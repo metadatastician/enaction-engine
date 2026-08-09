@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+[package]
+name = "enaction-accelerator-native"
+description = "Audited Rust adapter for the Idris2-defined, pure-Zig Enaction accelerator ABI."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+enaction-accelerator.workspace = true
+
+[dev-dependencies]
+serde_json = "1"

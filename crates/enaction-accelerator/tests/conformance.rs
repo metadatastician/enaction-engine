@@ -1,0 +1,112 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use enaction_accelerator::{
+    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, FallbackPolicy,
+    KernelBuffers, KernelRequest, Layout, Operation, ScalarReferenceBackend, SupportLevel,
+};
+use serde_json::Value;
+
+fn fixture_root() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../conformance/accelerator/v1")
+}
+
+fn load(path: impl AsRef<Path>) -> Value {
+    let path = path.as_ref();
+    serde_json::from_str(&fs::read_to_string(path).expect("read fixture")).expect("parse fixture")
+}
+
+fn numbers(value: &Value, field: &str) -> Vec<i32> {
+    value[field]
+        .as_array()
+        .expect("integer array")
+        .iter()
+        .map(|number| i32::try_from(number.as_i64().expect("integer")).expect("i32"))
+        .collect()
+}
+
+fn expected(value: &Value) -> Vec<i64> {
+    value["output"]
+        .as_array()
+        .expect("output array")
+        .iter()
+        .map(|number| number.as_i64().expect("i64"))
+        .collect()
+}
+
+fn request(operation: Operation, layout: Layout) -> KernelRequest<'static> {
+    KernelRequest {
+        operation,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        layout,
+        lane: ExecutionLane::Authoritative,
+        minimum_support: SupportLevel::Deterministic,
+        minimum_determinism: Determinism::CanonicalExact,
+        fallback: FallbackPolicy::AllowReference,
+        named_backend: None,
+    }
+}
+
+#[test]
+fn scalar_reference_matches_v1_cross_language_fixtures() {
+    let root = fixture_root();
+    let backend = ScalarReferenceBackend;
+
+    let dot = load(root.join("cases/fixed-i32-dot.json"));
+    assert_eq!(dot["operation"], Operation::FixedI32Dot.id());
+    let dot_left = numbers(&dot, "left");
+    let dot_right = numbers(&dot, "right");
+    let mut dot_output = vec![0_i64; 1];
+    backend
+        .execute(
+            &request(
+                Operation::FixedI32Dot,
+                Layout::Dot {
+                    len: usize::try_from(dot["layout"]["len"].as_u64().expect("len"))
+                        .expect("usize"),
+                },
+            ),
+            KernelBuffers {
+                left: &dot_left,
+                right: &dot_right,
+                output: &mut dot_output,
+            },
+        )
+        .expect("dot fixture executes");
+    assert_eq!(
+        dot_output,
+        expected(&load(root.join("expected/fixed-i32-dot.json")))
+    );
+
+    let matrix = load(root.join("cases/fixed-i32-matmul.json"));
+    assert_eq!(matrix["operation"], Operation::FixedI32MatMul.id());
+    let matrix_left = numbers(&matrix, "left");
+    let matrix_right = numbers(&matrix, "right");
+    let mut matrix_output = vec![0_i64; 4];
+    let dimension = |name: &str| {
+        usize::try_from(matrix["layout"][name].as_u64().expect("dimension")).expect("usize")
+    };
+    backend
+        .execute(
+            &request(
+                Operation::FixedI32MatMul,
+                Layout::MatMul {
+                    m: dimension("m"),
+                    k: dimension("k"),
+                    n: dimension("n"),
+                },
+            ),
+            KernelBuffers {
+                left: &matrix_left,
+                right: &matrix_right,
+                output: &mut matrix_output,
+            },
+        )
+        .expect("matrix fixture executes");
+    assert_eq!(
+        matrix_output,
+        expected(&load(root.join("expected/fixed-i32-matmul.json")))
+    );
+}

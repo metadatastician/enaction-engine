@@ -100,6 +100,7 @@ sync_report*.txt
 # Hypatia scan cache (local-only)
 .hypatia/
 .zig-cache/
+zig-out/
 target/
 node_modules/
 _build/
@@ -120,6 +121,7 @@ dist/
 # ...but never track Idris2 typecheck output. `idris2 --typecheck abi.ipkg`
 # writes compiled .ttc/.ttm under build/ttc/; these are generated artifacts.
 /build/ttc/
+/build/exec/
 
 # Arrival-pack build artifact (regenerated from a2ml)
 .machine_readable/arrival-pack/claude-md-data.json

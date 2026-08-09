@@ -1,3 +1,19 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= abi Logic
+= Idris2 ABI authority
+
+`Accelerator.idr` is the source of truth for the accelerator contract's fixed
+numeric discriminants and native layouts. It proves the admitted request,
+buffer, capability and evidence structures against `Layout.idr`'s
+`CABICompliant` model.
+
+`Generate.idr` deterministically renders the C-compatible, Zig and Rust
+declarations. Installed Idris2 0.7.0 has no `c-header` backend; do not restore
+the inherited but nonexistent `idris2 --cg c-header` workflow.
+
+[source,sh]
+----
+idris2 --typecheck abi.ipkg
+scripts/generate-accelerator-abi.sh
+scripts/generate-accelerator-abi.sh --check
+----
