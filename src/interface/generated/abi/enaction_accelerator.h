@@ -15,8 +15,11 @@ extern "C" {
 #define ENACTION_ACCEL_OPERATION_MINOR 0u
 #define ENACTION_ACCEL_OPERATION_FIXED_I32_DOT 1u
 #define ENACTION_ACCEL_OPERATION_FIXED_I32_MATMUL 2u
+#define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU 3u
+#define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU6 4u
 #define ENACTION_ACCEL_LAYOUT_DOT 1u
 #define ENACTION_ACCEL_LAYOUT_MATMUL 2u
+#define ENACTION_ACCEL_LAYOUT_VECTOR 3u
 #define ENACTION_ACCEL_LANE_AUTHORITATIVE 1u
 #define ENACTION_ACCEL_LANE_ADVISORY 2u
 #define ENACTION_ACCEL_LANE_REMOTE_JOB 3u
@@ -50,6 +53,7 @@ extern "C" {
 #define ENACTION_ACCEL_STATUS_UNSUPPORTED_REQUIREMENT 13u
 #define ENACTION_ACCEL_STATUS_INDEX_OUT_OF_RANGE 14u
 #define ENACTION_ACCEL_STATUS_ALIASING_VIOLATION 15u
+#define ENACTION_ACCEL_STATUS_NON_FINITE_INPUT 16u
 
 typedef struct enaction_accel_request {
   uint16_t abi_major; uint16_t abi_minor;
@@ -62,6 +66,9 @@ typedef struct enaction_accel_request {
 
 typedef struct enaction_accel_buffer_i32 { const int32_t *data; uint64_t len; } enaction_accel_buffer_i32;
 typedef struct enaction_accel_buffer_i64 { int64_t *data; uint64_t len; } enaction_accel_buffer_i64;
+
+typedef struct enaction_accel_buffer_f32_in { const float *data; uint64_t len; } enaction_accel_buffer_f32_in;
+typedef struct enaction_accel_buffer_f32_out { float *data; uint64_t len; } enaction_accel_buffer_f32_out;
 
 typedef struct enaction_accel_capability {
   uint16_t abi_major; uint16_t abi_minor;
@@ -81,6 +88,8 @@ uint32_t enaction_accel_abi_version(void);
 uint32_t enaction_accel_capability_count(void);
 uint32_t enaction_accel_capability_at(uint32_t index, enaction_accel_capability *out);
 uint32_t enaction_accel_execute(const enaction_accel_request *request, const enaction_accel_buffer_i32 *left, const enaction_accel_buffer_i32 *right, enaction_accel_buffer_i64 *output, enaction_accel_evidence *evidence);
+
+uint32_t enaction_accel_execute_f32(const enaction_accel_request *request, const enaction_accel_buffer_f32_in *input, enaction_accel_buffer_f32_out *output, enaction_accel_evidence *evidence);
 
 #ifdef __cplusplus
 }

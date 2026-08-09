@@ -1,0 +1,6 @@
+{
+  "operation": "enaction.tensor.f32.relu6",
+  "version": "1.0",
+  "layout": { "len": 5, "order": "contiguous" },
+  "input_bits": ["c0600000", "80000000", "00000000", "40100000", "41100000"]
+}

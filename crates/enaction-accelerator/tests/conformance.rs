@@ -4,8 +4,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use enaction_accelerator::{
-    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, FallbackPolicy,
-    KernelBuffers, KernelRequest, Layout, Operation, ScalarReferenceBackend, SupportLevel,
+    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, F32KernelBuffers,
+    FallbackPolicy, KernelBuffers, KernelRequest, Layout, Operation, ScalarReferenceBackend,
+    SupportLevel,
 };
 use serde_json::Value;
 
@@ -33,6 +34,15 @@ fn expected(value: &Value) -> Vec<i64> {
         .expect("output array")
         .iter()
         .map(|number| number.as_i64().expect("i64"))
+        .collect()
+}
+
+fn f32_bits(value: &Value, field: &str) -> Vec<u32> {
+    value[field]
+        .as_array()
+        .expect("bit array")
+        .iter()
+        .map(|bits| u32::from_str_radix(bits.as_str().expect("hex bits"), 16).expect("u32 bits"))
         .collect()
 }
 
@@ -109,4 +119,44 @@ fn scalar_reference_matches_v1_cross_language_fixtures() {
         matrix_output,
         expected(&load(root.join("expected/fixed-i32-matmul.json")))
     );
+
+    for (operation, name) in [
+        (Operation::TensorF32Relu, "tensor-f32-relu"),
+        (Operation::TensorF32Relu6, "tensor-f32-relu6"),
+    ] {
+        let case = load(root.join(format!("cases/{name}.json")));
+        assert_eq!(case["operation"], operation.id());
+        let input_bits = f32_bits(&case, "input_bits");
+        let input = input_bits
+            .iter()
+            .copied()
+            .map(f32::from_bits)
+            .collect::<Vec<_>>();
+        let mut output = vec![91.0; input.len()];
+        backend
+            .execute_f32(
+                &KernelRequest {
+                    operation,
+                    version: ACCELERATOR_CONTRACT_VERSION,
+                    layout: Layout::Vector { len: input.len() },
+                    lane: ExecutionLane::Advisory,
+                    minimum_support: SupportLevel::Deterministic,
+                    minimum_determinism: Determinism::ToleranceBounded,
+                    fallback: FallbackPolicy::AllowReference,
+                    named_backend: None,
+                },
+                F32KernelBuffers {
+                    input: &input,
+                    output: &mut output,
+                },
+            )
+            .expect("pointwise fixture executes");
+        assert_eq!(
+            output.into_iter().map(f32::to_bits).collect::<Vec<_>>(),
+            f32_bits(
+                &load(root.join(format!("expected/{name}.json"))),
+                "output_bits"
+            )
+        );
+    }
 }

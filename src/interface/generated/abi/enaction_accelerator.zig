@@ -7,8 +7,11 @@ pub const operation_major: u16 = 1;
 pub const operation_minor: u16 = 0;
 pub const operation_fixed_i32_dot: u32 = 1;
 pub const operation_fixed_i32_matmul: u32 = 2;
+pub const operation_tensor_f32_relu: u32 = 3;
+pub const operation_tensor_f32_relu6: u32 = 4;
 pub const layout_dot: u32 = 1;
 pub const layout_matmul: u32 = 2;
+pub const layout_vector: u32 = 3;
 pub const lane_authoritative: u32 = 1;
 pub const lane_advisory: u32 = 2;
 pub const lane_remote_job: u32 = 3;
@@ -37,6 +40,7 @@ pub const status_invalid_reserved_field: u32 = 12;
 pub const status_unsupported_requirement: u32 = 13;
 pub const status_index_out_of_range: u32 = 14;
 pub const status_aliasing_violation: u32 = 15;
+pub const status_non_finite_input: u32 = 16;
 
 pub const Request = extern struct {
     abi_major: u16,
@@ -55,6 +59,8 @@ pub const Request = extern struct {
 };
 pub const BufferI32 = extern struct { data: ?[*]const i32, len: u64 };
 pub const BufferI64 = extern struct { data: ?[*]i64, len: u64 };
+pub const BufferF32In = extern struct { data: ?[*]const f32, len: u64 };
+pub const BufferF32Out = extern struct { data: ?[*]f32, len: u64 };
 pub const Capability = extern struct {
     abi_major: u16,
     abi_minor: u16,

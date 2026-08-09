@@ -7,8 +7,11 @@ pub const OPERATION_MAJOR: u16 = 1;
 pub const OPERATION_MINOR: u16 = 0;
 pub const OPERATION_FIXED_I32_DOT: u32 = 1;
 pub const OPERATION_FIXED_I32_MATMUL: u32 = 2;
+pub const OPERATION_TENSOR_F32_RELU: u32 = 3;
+pub const OPERATION_TENSOR_F32_RELU6: u32 = 4;
 pub const LAYOUT_DOT: u32 = 1;
 pub const LAYOUT_MATMUL: u32 = 2;
+pub const LAYOUT_VECTOR: u32 = 3;
 pub const LANE_AUTHORITATIVE: u32 = 1;
 pub const LANE_ADVISORY: u32 = 2;
 pub const LANE_REMOTE_JOB: u32 = 3;
@@ -37,6 +40,7 @@ pub const STATUS_INVALID_RESERVED_FIELD: u32 = 12;
 pub const STATUS_UNSUPPORTED_REQUIREMENT: u32 = 13;
 pub const STATUS_INDEX_OUT_OF_RANGE: u32 = 14;
 pub const STATUS_ALIASING_VIOLATION: u32 = 15;
+pub const STATUS_NON_FINITE_INPUT: u32 = 16;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -51,6 +55,12 @@ pub struct BufferI32 { pub data: *const i32, pub len: u64 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct BufferI64 { pub data: *mut i64, pub len: u64 }
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct BufferF32In { pub data: *const f32, pub len: u64 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct BufferF32Out { pub data: *mut f32, pub len: u64 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Capability {
@@ -68,4 +78,5 @@ unsafe extern "C" {
     pub fn enaction_accel_capability_count() -> u32;
     pub fn enaction_accel_capability_at(index: u32, out: *mut Capability) -> u32;
     pub fn enaction_accel_execute(request: *const Request, left: *const BufferI32, right: *const BufferI32, output: *mut BufferI64, evidence: *mut Evidence) -> u32;
+    pub fn enaction_accel_execute_f32(request: *const Request, input: *const BufferF32In, output: *mut BufferF32Out, evidence: *mut Evidence) -> u32;
 }

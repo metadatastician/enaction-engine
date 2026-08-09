@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Safe Rust adapter for the Idris2-defined, pure-Zig accelerator ABI.
 //!
-//! All `unsafe` is confined to the four generated calls in this crate. The
+//! All `unsafe` is confined to the generated calls in this crate. The
 //! operation contract, planner, and scalar oracle remain in the safe
 //! `enaction-accelerator` crate.
 
@@ -9,8 +9,8 @@
 
 use enaction_accelerator::{
     ACCELERATOR_CONTRACT_VERSION, AcceleratorError, Backend, BackendDescriptor, Capability,
-    ContractVersion, Determinism, DeviceClass, ExecutionEvidence, ExecutionLane, KernelBuffers,
-    KernelRequest, Layout, Operation, SupportLevel,
+    ContractVersion, Determinism, DeviceClass, ExecutionEvidence, ExecutionLane, F32KernelBuffers,
+    KernelBuffers, KernelRequest, Layout, Operation, SupportLevel,
 };
 
 #[allow(dead_code)]
@@ -21,7 +21,7 @@ mod ffi {
     ));
 }
 
-const ZIG_CAPABILITIES: [Capability; 2] = [
+const ZIG_CAPABILITIES: [Capability; 4] = [
     Capability {
         operation: Operation::FixedI32Dot,
         version: ACCELERATOR_CONTRACT_VERSION,
@@ -33,6 +33,18 @@ const ZIG_CAPABILITIES: [Capability; 2] = [
         version: ACCELERATOR_CONTRACT_VERSION,
         support: SupportLevel::Resilient,
         determinism: Determinism::CanonicalExact,
+    },
+    Capability {
+        operation: Operation::TensorF32Relu,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Resilient,
+        determinism: Determinism::ToleranceBounded,
+    },
+    Capability {
+        operation: Operation::TensorF32Relu6,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Resilient,
+        determinism: Determinism::ToleranceBounded,
     },
 ];
 
@@ -97,6 +109,41 @@ impl Backend for ZigScalarBackend {
             support: SupportLevel::Resilient,
         })
     }
+
+    fn execute_f32(
+        &self,
+        request: &KernelRequest<'_>,
+        buffers: F32KernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        let raw_request = request_to_ffi(request)?;
+        let input = ffi::BufferF32In {
+            data: buffers.input.as_ptr(),
+            len: u64::try_from(buffers.input.len())
+                .map_err(|_| AcceleratorError::DimensionOverflow)?,
+        };
+        let mut output = ffi::BufferF32Out {
+            data: buffers.output.as_mut_ptr(),
+            len: u64::try_from(buffers.output.len())
+                .map_err(|_| AcceleratorError::DimensionOverflow)?,
+        };
+        let mut evidence = ffi::Evidence::default();
+        // SAFETY: the descriptors borrow valid aligned Rust slices for this
+        // call only, output is exclusively borrowed, and Zig validates all
+        // lengths, finiteness and aliasing before writing.
+        let status = unsafe {
+            ffi::enaction_accel_execute_f32(&raw_request, &input, &mut output, &mut evidence)
+        };
+        map_status(status)?;
+        validate_evidence(request, evidence)?;
+        Ok(ExecutionEvidence {
+            backend_id: ZIG_DESCRIPTOR.id,
+            backend_version: ZIG_DESCRIPTOR.implementation_version,
+            operation: request.operation,
+            operation_version: request.version,
+            determinism: Determinism::ToleranceBounded,
+            support: SupportLevel::Resilient,
+        })
+    }
 }
 
 /// Query the ABI version exported by the linked Zig implementation.
@@ -123,17 +170,26 @@ pub fn native_capabilities() -> Result<Vec<Capability>, AcceleratorError> {
             || raw.backend_id != ffi::BACKEND_ZIG_SCALAR
             || raw.device_class != ffi::DEVICE_CPU
             || raw.support != ffi::SUPPORT_RESILIENT
-            || raw.determinism != ffi::DETERMINISM_CANONICAL_EXACT
         {
             return Err(AcceleratorError::InvalidExecutionEvidence {
                 backend: ZIG_DESCRIPTOR.id,
             });
         }
+        let operation = operation_from_ffi(raw.operation)?;
+        let determinism = match raw.determinism {
+            ffi::DETERMINISM_CANONICAL_EXACT => Determinism::CanonicalExact,
+            ffi::DETERMINISM_TOLERANCE_BOUNDED => Determinism::ToleranceBounded,
+            _ => {
+                return Err(AcceleratorError::InvalidExecutionEvidence {
+                    backend: ZIG_DESCRIPTOR.id,
+                });
+            }
+        };
         capabilities.push(Capability {
-            operation: operation_from_ffi(raw.operation)?,
+            operation,
             version: ContractVersion::new(raw.operation_major, raw.operation_minor),
             support: SupportLevel::Resilient,
-            determinism: Determinism::CanonicalExact,
+            determinism,
         });
     }
     Ok(capabilities)
@@ -152,6 +208,12 @@ fn request_to_ffi(request: &KernelRequest<'_>) -> Result<ffi::Request, Accelerat
             u64::try_from(m).map_err(|_| AcceleratorError::DimensionOverflow)?,
             u64::try_from(k).map_err(|_| AcceleratorError::DimensionOverflow)?,
             u64::try_from(n).map_err(|_| AcceleratorError::DimensionOverflow)?,
+        ),
+        (Operation::TensorF32Relu | Operation::TensorF32Relu6, Layout::Vector { len }) => (
+            ffi::LAYOUT_VECTOR,
+            u64::try_from(len).map_err(|_| AcceleratorError::DimensionOverflow)?,
+            0,
+            0,
         ),
         _ => return Err(AcceleratorError::LayoutMismatch),
     };
@@ -176,6 +238,8 @@ fn operation_to_ffi(operation: Operation) -> u32 {
     match operation {
         Operation::FixedI32Dot => ffi::OPERATION_FIXED_I32_DOT,
         Operation::FixedI32MatMul => ffi::OPERATION_FIXED_I32_MATMUL,
+        Operation::TensorF32Relu => ffi::OPERATION_TENSOR_F32_RELU,
+        Operation::TensorF32Relu6 => ffi::OPERATION_TENSOR_F32_RELU6,
     }
 }
 
@@ -183,6 +247,8 @@ fn operation_from_ffi(operation: u32) -> Result<Operation, AcceleratorError> {
     match operation {
         ffi::OPERATION_FIXED_I32_DOT => Ok(Operation::FixedI32Dot),
         ffi::OPERATION_FIXED_I32_MATMUL => Ok(Operation::FixedI32MatMul),
+        ffi::OPERATION_TENSOR_F32_RELU => Ok(Operation::TensorF32Relu),
+        ffi::OPERATION_TENSOR_F32_RELU6 => Ok(Operation::TensorF32Relu6),
         status => Err(AcceleratorError::NativeAbiFailure {
             backend: ZIG_DESCRIPTOR.id,
             status,
@@ -234,7 +300,15 @@ fn validate_evidence(
         && evidence.operation == operation_to_ffi(request.operation)
         && evidence.backend_id == ffi::BACKEND_ZIG_SCALAR
         && evidence.support == ffi::SUPPORT_RESILIENT
-        && evidence.determinism == ffi::DETERMINISM_CANONICAL_EXACT
+        && evidence.determinism
+            == match request.operation {
+                Operation::FixedI32Dot | Operation::FixedI32MatMul => {
+                    ffi::DETERMINISM_CANONICAL_EXACT
+                }
+                Operation::TensorF32Relu | Operation::TensorF32Relu6 => {
+                    ffi::DETERMINISM_TOLERANCE_BOUNDED
+                }
+            }
     {
         Ok(())
     } else {
@@ -268,6 +342,8 @@ mod tests {
         assert_eq!(core::mem::align_of::<ffi::Request>(), 8);
         assert_eq!(core::mem::size_of::<ffi::BufferI32>(), 16);
         assert_eq!(core::mem::size_of::<ffi::BufferI64>(), 16);
+        assert_eq!(core::mem::size_of::<ffi::BufferF32In>(), 16);
+        assert_eq!(core::mem::size_of::<ffi::BufferF32Out>(), 16);
         assert_eq!(core::mem::size_of::<ffi::Capability>(), 32);
         assert_eq!(core::mem::size_of::<ffi::Evidence>(), 24);
     }
@@ -298,6 +374,39 @@ mod tests {
     fn native_capability_evidence_is_self_consistent() {
         assert_eq!(native_abi_version(), ACCELERATOR_CONTRACT_VERSION);
         assert_eq!(native_capabilities().unwrap(), ZIG_CAPABILITIES);
+    }
+
+    #[test]
+    fn axiom_derived_f32_kernels_execute_through_safe_registry() {
+        let backend = ZigScalarBackend;
+        let request = KernelRequest {
+            operation: Operation::TensorF32Relu6,
+            version: ACCELERATOR_CONTRACT_VERSION,
+            layout: Layout::Vector { len: 5 },
+            lane: ExecutionLane::Advisory,
+            minimum_support: SupportLevel::Resilient,
+            minimum_determinism: Determinism::ToleranceBounded,
+            fallback: FallbackPolicy::PreferAccelerated,
+            named_backend: None,
+        };
+        let mut registry = Registry::new();
+        registry.register(&backend).unwrap();
+        let planned = registry.plan(&request).unwrap();
+        let mut output = [91.0; 5];
+        let evidence = planned
+            .execute_f32(
+                &request,
+                F32KernelBuffers {
+                    input: &[-3.5, -0.0, 0.0, 2.25, 9.0],
+                    output: &mut output,
+                },
+            )
+            .unwrap();
+        assert_eq!(
+            output.map(f32::to_bits),
+            [0, 0, 0, 0x4010_0000, 0x40c0_0000]
+        );
+        assert_eq!(evidence.determinism, Determinism::ToleranceBounded);
     }
 
     #[test]

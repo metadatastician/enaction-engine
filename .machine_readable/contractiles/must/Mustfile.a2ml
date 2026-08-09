@@ -88,7 +88,7 @@ canonical identity, licence posture, and honest architecture claims.
 - severity: critical
 
 ### accelerator-abi-generated-current
-- description: C-compatible, Zig and Rust declarations reproduce byte-for-byte from the Idris2 authority
+- description: C-compatible, Zig, Rust and Julia declarations reproduce byte-for-byte from the Idris2 authority
 - run: scripts/generate-accelerator-abi.sh --check
 - severity: critical
 
@@ -99,7 +99,12 @@ canonical identity, licence posture, and honest architecture claims.
 
 ### zig-ffi-formatted
 - description: The Zig FFI implementation and tests remain formatter-clean
-- run: zig fmt --check src/interface/ffi/src/main.zig src/interface/ffi/src/accelerator.zig src/interface/ffi/build.zig src/interface/ffi/test/integration_test.zig src/interface/generated/abi/enaction_accelerator.zig
+- run: zig fmt --check src/interface/ffi/src/main.zig src/interface/ffi/src/accelerator.zig src/interface/ffi/src/axiom_pointwise.zig src/interface/ffi/build.zig src/interface/ffi/test/integration_test.zig src/interface/generated/abi/enaction_accelerator.zig
+- severity: critical
+
+### julia-abi-layouts
+- description: The generated Julia consumer binding parses and agrees with Idris2-proved ABI sizes
+- run: julia --startup-file=no -e 'include("src/interface/generated/abi/enaction_accelerator.jl"); using .EnactionAcceleratorABI; @assert sizeof(EnactionAcceleratorABI.Request) == 56; @assert sizeof(EnactionAcceleratorABI.BufferF32In) == 16; @assert sizeof(EnactionAcceleratorABI.Evidence) == 24'
 - severity: critical
 
 ### zig-ffi-tests

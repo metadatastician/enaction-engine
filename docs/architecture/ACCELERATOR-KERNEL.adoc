@@ -58,9 +58,13 @@ A request carries at least:
 * bounded resource requirements.
 
 The current crate implements exact signed fixed-point dot product and matrix
-multiplication. Values are `i32`; accumulation is checked `i64`. Shape,
-cardinality and output capacity are validated before writing. Overflow is an
-error, never wrapping, saturation or backend-dependent behaviour.
+multiplication. Values are `i32`; accumulation is checked `i64`. It also
+implements advisory binary32 ReLU and ReLU6, initially adapted from Axiom's
+MPL-2.0 Zig pointwise kernels. The float operations accept only finite values,
+canonicalise non-positive results to positive zero, and reject authoritative
+planning because their declared determinism is tolerance-bounded. Shape,
+cardinality and output capacity are validated before writing. Overflow or
+non-finite input is an error, never partial output or silent fallback.
 
 == Backend descriptor
 
@@ -141,7 +145,7 @@ they do not load UMS.
 [source,text]
 ----
 Idris2 ABI truth
-    -> generated C-compatible declarations
+    -> generated C-compatible, Zig, Rust and Julia declarations
         -> pure Zig FFI and kernel adapter
             -> Rust / Julia / other host binding
 ----
@@ -150,6 +154,12 @@ The generated declaration is the minimum stable interoperability surface. C
 does not own allocation, dispatch, kernel logic or backend policy. Those remain
 in Zig on the native side. The Rust registry consumes the adapter; it does not
 replace the Idris2 layout authority or fork the ABI types.
+
+`AcceleratorGate.jl` is a Julia-side compatibility and admission gateway, not a
+kernel provider. Its backend types, platform hints and diagnostics may be used
+to translate legacy Julia requests and present central evidence. Its
+environment flags, heuristic selection and self-healing fallback do not
+supersede Enaction's operation capability, lane, support or determinism policy.
 
 A BEAM host uses `hyperpolymath/snifs` for computations within SNIF's supported
 numeric/byte-buffer surface. The Zig adapter is compiled to a ReleaseSafe
@@ -164,13 +174,16 @@ The safe `enaction-accelerator` crate supplies a scalar CPU reference backend
 and a failure-injectable backend. `enaction-accelerator-native` is the single
 audited unsafe boundary to an Idris2-defined, pure-Zig scalar implementation.
 Idris2 proves the four admitted layouts; its deterministic renderer emits the
-C-compatible, Zig and Rust declarations. Zig and Rust assert those sizes again.
-The locked v1 fixtures pass through both implementations and their canonical
-little-endian result bytes match. Tests also demonstrate checked overflow,
-failure atomicity, buffer/shape refusal, registration-order-independent
-planning, capability evidence validation, support-floor enforcement and the
-absence of silent runtime retry.
+C-compatible, Zig, Rust and Julia declarations. Zig, Rust and Julia assert the
+relevant sizes again. The locked v1 fixtures pass through both implementations:
+fixed-point canonical little-endian bytes match, and the pointwise binary32
+outputs match fixture bit patterns. Tests also demonstrate checked overflow,
+non-finite refusal, failure atomicity, buffer/shape refusal,
+registration-order-independent planning, authoritative rejection of
+tolerance-bounded operations, capability evidence validation, support-floor
+enforcement and the absence of silent runtime retry.
 
-This is cross-language scalar CPU conformance. No GPU or non-CPU hardware
-backend, Axiom tensor adapter, multi-target determinism, benchmarked support or
+This is local cross-language CPU conformance for two exact fixed-point and two
+advisory pointwise operations. It is not the full Axiom tensor suite. No GPU or
+non-CPU hardware backend, multi-target determinism, benchmarked support or
 production support is implemented by this document.

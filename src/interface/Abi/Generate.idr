@@ -26,8 +26,11 @@ codesC =
   "#define ENACTION_ACCEL_OPERATION_MINOR " ++ show operationMinor ++ "u\n" ++
   "#define ENACTION_ACCEL_OPERATION_FIXED_I32_DOT " ++ show (operationCode FixedI32Dot) ++ "u\n" ++
   "#define ENACTION_ACCEL_OPERATION_FIXED_I32_MATMUL " ++ show (operationCode FixedI32MatMul) ++ "u\n" ++
+  "#define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU " ++ show (operationCode TensorF32Relu) ++ "u\n" ++
+  "#define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU6 " ++ show (operationCode TensorF32Relu6) ++ "u\n" ++
   "#define ENACTION_ACCEL_LAYOUT_DOT " ++ show (layoutCode DotLayout) ++ "u\n" ++
   "#define ENACTION_ACCEL_LAYOUT_MATMUL " ++ show (layoutCode MatMulLayout) ++ "u\n" ++
+  "#define ENACTION_ACCEL_LAYOUT_VECTOR " ++ show (layoutCode VectorLayout) ++ "u\n" ++
   "#define ENACTION_ACCEL_LANE_AUTHORITATIVE " ++ show (laneCode Authoritative) ++ "u\n" ++
   "#define ENACTION_ACCEL_LANE_ADVISORY " ++ show (laneCode Advisory) ++ "u\n" ++
   "#define ENACTION_ACCEL_LANE_REMOTE_JOB " ++ show (laneCode RemoteJob) ++ "u\n" ++
@@ -60,7 +63,8 @@ codesC =
   "#define ENACTION_ACCEL_STATUS_INVALID_RESERVED_FIELD " ++ show (statusCode InvalidReservedField) ++ "u\n" ++
   "#define ENACTION_ACCEL_STATUS_UNSUPPORTED_REQUIREMENT " ++ show (statusCode UnsupportedRequirement) ++ "u\n" ++
   "#define ENACTION_ACCEL_STATUS_INDEX_OUT_OF_RANGE " ++ show (statusCode IndexOutOfRange) ++ "u\n" ++
-  "#define ENACTION_ACCEL_STATUS_ALIASING_VIOLATION " ++ show (statusCode AliasingViolation) ++ "u\n"
+  "#define ENACTION_ACCEL_STATUS_ALIASING_VIOLATION " ++ show (statusCode AliasingViolation) ++ "u\n" ++
+  "#define ENACTION_ACCEL_STATUS_NON_FINITE_INPUT " ++ show (statusCode NonFiniteInput) ++ "u\n"
 
 public export
 cHeader : String
@@ -80,6 +84,8 @@ cHeader =
   "} enaction_accel_request;\n\n" ++
   "typedef struct enaction_accel_buffer_i32 { const int32_t *data; uint64_t len; } enaction_accel_buffer_i32;\n" ++
   "typedef struct enaction_accel_buffer_i64 { int64_t *data; uint64_t len; } enaction_accel_buffer_i64;\n\n" ++
+  "typedef struct enaction_accel_buffer_f32_in { const float *data; uint64_t len; } enaction_accel_buffer_f32_in;\n" ++
+  "typedef struct enaction_accel_buffer_f32_out { float *data; uint64_t len; } enaction_accel_buffer_f32_out;\n\n" ++
   "typedef struct enaction_accel_capability {\n" ++
   "  uint16_t abi_major; uint16_t abi_minor;\n" ++
   "  uint16_t operation_major; uint16_t operation_minor;\n" ++
@@ -96,6 +102,7 @@ cHeader =
   "uint32_t enaction_accel_capability_count(void);\n" ++
   "uint32_t enaction_accel_capability_at(uint32_t index, enaction_accel_capability *out);\n" ++
   "uint32_t enaction_accel_execute(const enaction_accel_request *request, const enaction_accel_buffer_i32 *left, const enaction_accel_buffer_i32 *right, enaction_accel_buffer_i64 *output, enaction_accel_evidence *evidence);\n\n" ++
+  "uint32_t enaction_accel_execute_f32(const enaction_accel_request *request, const enaction_accel_buffer_f32_in *input, enaction_accel_buffer_f32_out *output, enaction_accel_evidence *evidence);\n\n" ++
   "#ifdef __cplusplus\n}\n#endif\n\n#endif\n"
 
 private
@@ -107,8 +114,11 @@ codesZig =
   "pub const operation_minor: u16 = " ++ show operationMinor ++ ";\n" ++
   "pub const operation_fixed_i32_dot: u32 = " ++ show (operationCode FixedI32Dot) ++ ";\n" ++
   "pub const operation_fixed_i32_matmul: u32 = " ++ show (operationCode FixedI32MatMul) ++ ";\n" ++
+  "pub const operation_tensor_f32_relu: u32 = " ++ show (operationCode TensorF32Relu) ++ ";\n" ++
+  "pub const operation_tensor_f32_relu6: u32 = " ++ show (operationCode TensorF32Relu6) ++ ";\n" ++
   "pub const layout_dot: u32 = " ++ show (layoutCode DotLayout) ++ ";\n" ++
   "pub const layout_matmul: u32 = " ++ show (layoutCode MatMulLayout) ++ ";\n" ++
+  "pub const layout_vector: u32 = " ++ show (layoutCode VectorLayout) ++ ";\n" ++
   "pub const lane_authoritative: u32 = " ++ show (laneCode Authoritative) ++ ";\n" ++
   "pub const lane_advisory: u32 = " ++ show (laneCode Advisory) ++ ";\n" ++
   "pub const lane_remote_job: u32 = " ++ show (laneCode RemoteJob) ++ ";\n" ++
@@ -136,7 +146,8 @@ codesZig =
   "pub const status_invalid_reserved_field: u32 = " ++ show (statusCode InvalidReservedField) ++ ";\n" ++
   "pub const status_unsupported_requirement: u32 = " ++ show (statusCode UnsupportedRequirement) ++ ";\n" ++
   "pub const status_index_out_of_range: u32 = " ++ show (statusCode IndexOutOfRange) ++ ";\n" ++
-  "pub const status_aliasing_violation: u32 = " ++ show (statusCode AliasingViolation) ++ ";\n"
+  "pub const status_aliasing_violation: u32 = " ++ show (statusCode AliasingViolation) ++ ";\n" ++
+  "pub const status_non_finite_input: u32 = " ++ show (statusCode NonFiniteInput) ++ ";\n"
 
 public export
 zigDeclarations : String
@@ -149,6 +160,8 @@ zigDeclarations =
   "    layout: u32, reserved: u32, dim0: u64, dim1: u64, dim2: u64,\n};\n" ++
   "pub const BufferI32 = extern struct { data: ?[*]const i32, len: u64 };\n" ++
   "pub const BufferI64 = extern struct { data: ?[*]i64, len: u64 };\n" ++
+  "pub const BufferF32In = extern struct { data: ?[*]const f32, len: u64 };\n" ++
+  "pub const BufferF32Out = extern struct { data: ?[*]f32, len: u64 };\n" ++
   "pub const Capability = extern struct {\n" ++
   "    abi_major: u16, abi_minor: u16, operation_major: u16, operation_minor: u16,\n" ++
   "    operation: u32, support: u32, determinism: u32, backend_id: u32, device_class: u32, flags: u32,\n};\n" ++
@@ -165,8 +178,11 @@ codesRust =
   "pub const OPERATION_MINOR: u16 = " ++ show operationMinor ++ ";\n" ++
   "pub const OPERATION_FIXED_I32_DOT: u32 = " ++ show (operationCode FixedI32Dot) ++ ";\n" ++
   "pub const OPERATION_FIXED_I32_MATMUL: u32 = " ++ show (operationCode FixedI32MatMul) ++ ";\n" ++
+  "pub const OPERATION_TENSOR_F32_RELU: u32 = " ++ show (operationCode TensorF32Relu) ++ ";\n" ++
+  "pub const OPERATION_TENSOR_F32_RELU6: u32 = " ++ show (operationCode TensorF32Relu6) ++ ";\n" ++
   "pub const LAYOUT_DOT: u32 = " ++ show (layoutCode DotLayout) ++ ";\n" ++
   "pub const LAYOUT_MATMUL: u32 = " ++ show (layoutCode MatMulLayout) ++ ";\n" ++
+  "pub const LAYOUT_VECTOR: u32 = " ++ show (layoutCode VectorLayout) ++ ";\n" ++
   "pub const LANE_AUTHORITATIVE: u32 = " ++ show (laneCode Authoritative) ++ ";\n" ++
   "pub const LANE_ADVISORY: u32 = " ++ show (laneCode Advisory) ++ ";\n" ++
   "pub const LANE_REMOTE_JOB: u32 = " ++ show (laneCode RemoteJob) ++ ";\n" ++
@@ -194,7 +210,8 @@ codesRust =
   "pub const STATUS_INVALID_RESERVED_FIELD: u32 = " ++ show (statusCode InvalidReservedField) ++ ";\n" ++
   "pub const STATUS_UNSUPPORTED_REQUIREMENT: u32 = " ++ show (statusCode UnsupportedRequirement) ++ ";\n" ++
   "pub const STATUS_INDEX_OUT_OF_RANGE: u32 = " ++ show (statusCode IndexOutOfRange) ++ ";\n" ++
-  "pub const STATUS_ALIASING_VIOLATION: u32 = " ++ show (statusCode AliasingViolation) ++ ";\n"
+  "pub const STATUS_ALIASING_VIOLATION: u32 = " ++ show (statusCode AliasingViolation) ++ ";\n" ++
+  "pub const STATUS_NON_FINITE_INPUT: u32 = " ++ show (statusCode NonFiniteInput) ++ ";\n"
 
 public export
 rustDeclarations : String
@@ -207,6 +224,8 @@ rustDeclarations =
   "    pub layout: u32, pub reserved: u32, pub dim0: u64, pub dim1: u64, pub dim2: u64,\n}\n" ++
   "#[repr(C)]\n#[derive(Clone, Copy, Debug)]\npub struct BufferI32 { pub data: *const i32, pub len: u64 }\n" ++
   "#[repr(C)]\n#[derive(Debug)]\npub struct BufferI64 { pub data: *mut i64, pub len: u64 }\n" ++
+  "#[repr(C)]\n#[derive(Clone, Copy, Debug)]\npub struct BufferF32In { pub data: *const f32, pub len: u64 }\n" ++
+  "#[repr(C)]\n#[derive(Debug)]\npub struct BufferF32Out { pub data: *mut f32, pub len: u64 }\n" ++
   "#[repr(C)]\n#[derive(Clone, Copy, Debug, Default)]\npub struct Capability {\n" ++
   "    pub abi_major: u16, pub abi_minor: u16, pub operation_major: u16, pub operation_minor: u16,\n" ++
   "    pub operation: u32, pub support: u32, pub determinism: u32, pub backend_id: u32, pub device_class: u32, pub flags: u32,\n}\n" ++
@@ -218,7 +237,41 @@ rustDeclarations =
   "    pub fn enaction_accel_capability_count() -> u32;\n" ++
   "    pub fn enaction_accel_capability_at(index: u32, out: *mut Capability) -> u32;\n" ++
   "    pub fn enaction_accel_execute(request: *const Request, left: *const BufferI32, right: *const BufferI32, output: *mut BufferI64, evidence: *mut Evidence) -> u32;\n" ++
+  "    pub fn enaction_accel_execute_f32(request: *const Request, input: *const BufferF32In, output: *mut BufferF32Out, evidence: *mut Evidence) -> u32;\n" ++
   "}\n"
+
+public export
+juliaDeclarations : String
+juliaDeclarations =
+  "# SPDX-License-Identifier: AGPL-3.0-or-later\n" ++
+  "# " ++ generatedNotice ++ "\n\n" ++
+  "module EnactionAcceleratorABI\n\n" ++
+  "const ABI_MAJOR = UInt16(" ++ show abiMajor ++ ")\n" ++
+  "const ABI_MINOR = UInt16(" ++ show abiMinor ++ ")\n" ++
+  "const OPERATION_MAJOR = UInt16(" ++ show operationMajor ++ ")\n" ++
+  "const OPERATION_MINOR = UInt16(" ++ show operationMinor ++ ")\n" ++
+  "const OPERATION_FIXED_I32_DOT = UInt32(" ++ show (operationCode FixedI32Dot) ++ ")\n" ++
+  "const OPERATION_FIXED_I32_MATMUL = UInt32(" ++ show (operationCode FixedI32MatMul) ++ ")\n" ++
+  "const OPERATION_TENSOR_F32_RELU = UInt32(" ++ show (operationCode TensorF32Relu) ++ ")\n" ++
+  "const OPERATION_TENSOR_F32_RELU6 = UInt32(" ++ show (operationCode TensorF32Relu6) ++ ")\n" ++
+  "const LAYOUT_VECTOR = UInt32(" ++ show (layoutCode VectorLayout) ++ ")\n" ++
+  "const LANE_ADVISORY = UInt32(" ++ show (laneCode Advisory) ++ ")\n" ++
+  "const DETERMINISM_TOLERANCE_BOUNDED = UInt32(" ++ show (determinismCode ToleranceBounded) ++ ")\n" ++
+  "const SUPPORT_RESILIENT = UInt32(" ++ show (supportCode Resilient) ++ ")\n\n" ++
+  "struct Request\n" ++
+  "    abi_major::UInt16; abi_minor::UInt16; operation_major::UInt16; operation_minor::UInt16\n" ++
+  "    operation::UInt32; lane::UInt32; minimum_support::UInt32; minimum_determinism::UInt32\n" ++
+  "    layout::UInt32; reserved::UInt32; dim0::UInt64; dim1::UInt64; dim2::UInt64\n" ++
+  "end\n\n" ++
+  "struct BufferF32In\n    data::Ptr{Float32}; len::UInt64\nend\n\n" ++
+  "struct BufferF32Out\n    data::Ptr{Float32}; len::UInt64\nend\n\n" ++
+  "struct Evidence\n" ++
+  "    abi_major::UInt16; abi_minor::UInt16; operation_major::UInt16; operation_minor::UInt16\n" ++
+  "    operation::UInt32; backend_id::UInt32; support::UInt32; determinism::UInt32\n" ++
+  "end\n\n" ++
+  "execute_f32(function_pointer::Ptr{Cvoid}, request::Ref{Request}, input::Ref{BufferF32In}, output::Ref{BufferF32Out}, evidence::Ref{Evidence}) =\n" ++
+  "    ccall(function_pointer, UInt32, (Ref{Request}, Ref{BufferF32In}, Ref{BufferF32Out}, Ref{Evidence}), request, input, output, evidence)\n\n" ++
+  "end # module EnactionAcceleratorABI\n"
 
 public export
 symbolList : String
@@ -227,10 +280,11 @@ symbolList =
   "enaction_accel_capability_at\n" ++
   "enaction_accel_capability_count\n" ++
   "enaction_accel_execute\n"
+  ++ "enaction_accel_execute_f32\n"
 
 private
 usage : IO ()
-usage = putStrLn "usage: accelerator-abi-gen <c|zig|rust|symbols>"
+usage = putStrLn "usage: accelerator-abi-gen <c|zig|rust|julia|symbols>"
 
 main : IO ()
 main = do
@@ -239,5 +293,6 @@ main = do
     [_, "c"] => putStr cHeader
     [_, "zig"] => putStr zigDeclarations
     [_, "rust"] => putStr rustDeclarations
+    [_, "julia"] => putStr juliaDeclarations
     [_, "symbols"] => putStr symbolList
     _ => usage

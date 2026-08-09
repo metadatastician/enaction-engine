@@ -34,8 +34,8 @@ components = [
   "position-independent causality validation over the (tick, id) total order",
   "Mass bounded confidence type (ADR-0016), serde-guarded",
   "enaction-contracts: the ESM/CAC contract as types + package validator (ADR-0019)",
-  "enaction-accelerator: operation-first planning + exact fixed-point CPU reference kernels (ADR-0020)",
-  "enaction-accelerator-native: Idris2-defined ABI + pure-Zig scalar kernels + one audited Rust adapter",
+  "enaction-accelerator: operation-first planning + exact fixed-point and advisory pointwise CPU reference kernels (ADR-0020)",
+  "enaction-accelerator-native: Idris2-defined ABI + pure-Zig scalar/Axiom-derived pointwise kernels + one audited Rust adapter",
   "belief store: Global Baseline + per-perspective deltas, keyed by full ascription path",
   "retraction as a first-class, caused, validator-enforced trace event",
 ]
@@ -45,7 +45,7 @@ sally-anne = "The false-belief task runs as a test in enaction-trace: a stale be
 deception-discovery = "The failo scenario runs as a test: a covert move leaves a belief stale, contradicting evidence causes a Retract event, and the discovery moment is caused_by-linked in the trace while an uninformed observer still models the withdrawn belief."
 guilty-conscience = "Chronicles' projection trap is a kernel query (Trace::projections), not a scripted beat."
 idaptik-parity = "600 mixed-channel observed ticks and 10,000 decay steps compared f64-bit-for-bit against a verbatim reimplementation of IDApTIK expressions, using its committed constants."
-test-count = 131
+test-count = 133
 
 [not-implemented]
 components = [

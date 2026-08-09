@@ -2,9 +2,10 @@
 = Accelerator contract v1 conformance fixtures
 
 `cases/` and `expected/` are the cross-language semantic currency for the
-initial exact fixed-point operations. Every adapter must execute the case and
-produce the expected signed integer vector exactly; tolerance comparison is not
-permitted.
+initial exact fixed-point operations and the first advisory binary32 pointwise
+family. Every adapter must execute the case and produce the recorded bits. The
+binary32 fixtures use hexadecimal IEEE-754 encodings so JSON parsing cannot
+erase negative zero or change a payload before the kernel sees it.
 
 The safe Rust scalar oracle and the Idris2-defined, pure-Zig implementation
 both consume these files. Their integration test also compares the canonical
@@ -14,5 +15,8 @@ little-endian bytes of every signed `i64` result.
 directory with the digest they accepted and run `sha256sum -c SHA256SUMS` before
 their adapter tests.
 
-The fixture proves only scalar-operation semantics. It does not establish
-hardware availability, performance or production support.
+The fixed-point fixtures are canonical-exact and authoritative-lane eligible.
+The ReLU fixtures are bit-locked local conformance evidence but remain
+tolerance-bounded, advisory-lane operations at the contract level. Fixtures do
+not establish hardware availability, cross-target reproducibility, performance
+or production support.

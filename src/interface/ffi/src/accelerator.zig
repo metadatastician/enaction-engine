@@ -7,13 +7,15 @@
 
 const std = @import("std");
 const abi = @import("abi");
+const axiom_pointwise = @import("axiom_pointwise.zig");
 
 comptime {
     if (@sizeOf(abi.Request) != 56 or @alignOf(abi.Request) != 8)
         @compileError("Idris2 Request layout and Zig layout disagree");
     if (@offsetOf(abi.Request, "dim0") != 32 or @offsetOf(abi.Request, "dim2") != 48)
         @compileError("Idris2 Request field offsets and Zig offsets disagree");
-    if (@sizeOf(abi.BufferI32) != 16 or @sizeOf(abi.BufferI64) != 16)
+    if (@sizeOf(abi.BufferI32) != 16 or @sizeOf(abi.BufferI64) != 16 or
+        @sizeOf(abi.BufferF32In) != 16 or @sizeOf(abi.BufferF32Out) != 16)
         @compileError("Idris2 buffer layout and Zig layout disagree");
     if (@sizeOf(abi.Capability) != 32 or @alignOf(abi.Capability) != 4)
         @compileError("Idris2 Capability layout and Zig layout disagree");
@@ -21,8 +23,9 @@ comptime {
         @compileError("Idris2 Evidence layout and Zig layout disagree");
 }
 
-const capability_count: u32 = 2;
+const capability_count: u32 = 4;
 const capability_flags_authoritative: u32 = 1;
+const capability_flags_advisory: u32 = 2;
 
 const AddressRange = struct {
     start: usize,
@@ -71,7 +74,28 @@ fn validateRequest(request: *const abi.Request) u32 {
     };
 }
 
-fn fillEvidence(request: *const abi.Request, evidence: *abi.Evidence) void {
+fn validateF32Request(request: *const abi.Request) u32 {
+    if (request.abi_major != abi.abi_major or request.abi_minor > abi.abi_minor)
+        return abi.status_unsupported_abi;
+    if (request.operation_major != abi.operation_major or request.operation_minor > abi.operation_minor)
+        return abi.status_unsupported_operation_version;
+    if (!validLane(request.lane)) return abi.status_invalid_lane;
+    if (request.lane != abi.lane_advisory) return abi.status_unsupported_requirement;
+    if (request.minimum_support < abi.support_declared or request.minimum_support > abi.support_production_supported)
+        return abi.status_invalid_support;
+    if (request.minimum_support > abi.support_resilient) return abi.status_unsupported_requirement;
+    if (request.minimum_determinism < abi.determinism_advisory_only or request.minimum_determinism > abi.determinism_canonical_exact)
+        return abi.status_invalid_determinism;
+    if (request.minimum_determinism > abi.determinism_tolerance_bounded)
+        return abi.status_unsupported_requirement;
+    if (request.reserved != 0) return abi.status_invalid_reserved_field;
+    return switch (request.operation) {
+        abi.operation_tensor_f32_relu, abi.operation_tensor_f32_relu6 => if (request.layout == abi.layout_vector) abi.status_ok else abi.status_layout_mismatch,
+        else => abi.status_unknown_operation,
+    };
+}
+
+fn fillEvidence(request: *const abi.Request, determinism: u32, evidence: *abi.Evidence) void {
     evidence.* = .{
         .abi_major = abi.abi_major,
         .abi_minor = abi.abi_minor,
@@ -80,11 +104,11 @@ fn fillEvidence(request: *const abi.Request, evidence: *abi.Evidence) void {
         .operation = request.operation,
         .backend_id = abi.backend_zig_scalar,
         .support = abi.support_resilient,
-        .determinism = abi.determinism_canonical_exact,
+        .determinism = determinism,
     };
 }
 
-fn capability(operation: u32) abi.Capability {
+fn capability(operation: u32, determinism: u32, flags: u32) abi.Capability {
     return .{
         .abi_major = abi.abi_major,
         .abi_minor = abi.abi_minor,
@@ -92,10 +116,10 @@ fn capability(operation: u32) abi.Capability {
         .operation_minor = abi.operation_minor,
         .operation = operation,
         .support = abi.support_resilient,
-        .determinism = abi.determinism_canonical_exact,
+        .determinism = determinism,
         .backend_id = abi.backend_zig_scalar,
         .device_class = abi.device_cpu,
-        .flags = capability_flags_authoritative,
+        .flags = flags,
     };
 }
 
@@ -110,8 +134,10 @@ export fn enaction_accel_capability_count() u32 {
 export fn enaction_accel_capability_at(index: u32, out: ?*abi.Capability) u32 {
     const destination = out orelse return abi.status_null_pointer;
     destination.* = switch (index) {
-        0 => capability(abi.operation_fixed_i32_dot),
-        1 => capability(abi.operation_fixed_i32_matmul),
+        0 => capability(abi.operation_fixed_i32_dot, abi.determinism_canonical_exact, capability_flags_authoritative | capability_flags_advisory),
+        1 => capability(abi.operation_fixed_i32_matmul, abi.determinism_canonical_exact, capability_flags_authoritative | capability_flags_advisory),
+        2 => capability(abi.operation_tensor_f32_relu, abi.determinism_tolerance_bounded, capability_flags_advisory),
+        3 => capability(abi.operation_tensor_f32_relu6, abi.determinism_tolerance_bounded, capability_flags_advisory),
         else => return abi.status_index_out_of_range,
     };
     return abi.status_ok;
@@ -247,7 +273,54 @@ export fn enaction_accel_execute(
         else => unreachable,
     };
     if (execution_status != abi.status_ok) return execution_status;
-    fillEvidence(request, evidence);
+    fillEvidence(request, abi.determinism_canonical_exact, evidence);
+    return abi.status_ok;
+}
+
+fn executeF32Unary(
+    request: *const abi.Request,
+    input_buffer: *const abi.BufferF32In,
+    output_buffer: *abi.BufferF32Out,
+) u32 {
+    if (request.dim1 != 0 or request.dim2 != 0) return abi.status_layout_mismatch;
+    const len = std.math.cast(usize, request.dim0) orelse return abi.status_dimension_overflow;
+    if (input_buffer.len != request.dim0 or output_buffer.len != request.dim0)
+        return abi.status_length_mismatch;
+    if (len != 0 and (input_buffer.data == null or output_buffer.data == null))
+        return abi.status_null_pointer;
+    const input_range = addressRange(input_buffer.data, len, @sizeOf(f32)) orelse return abi.status_dimension_overflow;
+    const output_range = addressRange(output_buffer.data, len, @sizeOf(f32)) orelse return abi.status_dimension_overflow;
+    if (input_range.overlaps(output_range)) return abi.status_aliasing_violation;
+    const input = if (len == 0) &[_]f32{} else input_buffer.data.?[0..len];
+
+    // Preflight every value so failure cannot expose partial output.
+    for (input) |value| if (!std.math.isFinite(value)) return abi.status_non_finite_input;
+    if (len != 0) {
+        const output = output_buffer.data.?[0..len];
+        switch (request.operation) {
+            abi.operation_tensor_f32_relu => axiom_pointwise.relu(input, output),
+            abi.operation_tensor_f32_relu6 => axiom_pointwise.relu6(input, output),
+            else => unreachable,
+        }
+    }
+    return abi.status_ok;
+}
+
+export fn enaction_accel_execute_f32(
+    request_pointer: ?*const abi.Request,
+    input_pointer: ?*const abi.BufferF32In,
+    output_pointer: ?*abi.BufferF32Out,
+    evidence_pointer: ?*abi.Evidence,
+) u32 {
+    const request = request_pointer orelse return abi.status_null_pointer;
+    const input = input_pointer orelse return abi.status_null_pointer;
+    const output = output_pointer orelse return abi.status_null_pointer;
+    const evidence = evidence_pointer orelse return abi.status_null_pointer;
+    const request_status = validateF32Request(request);
+    if (request_status != abi.status_ok) return request_status;
+    const execution_status = executeF32Unary(request, input, output);
+    if (execution_status != abi.status_ok) return execution_status;
+    fillEvidence(request, abi.determinism_tolerance_bounded, evidence);
     return abi.status_ok;
 }
 
@@ -300,11 +373,14 @@ test "matrix overflow is output atomic" {
 
 test "capabilities and malformed requests fail explicitly" {
     try std.testing.expectEqual(@as(u32, 0x00010000), enaction_accel_abi_version());
-    try std.testing.expectEqual(@as(u32, 2), enaction_accel_capability_count());
+    try std.testing.expectEqual(@as(u32, 4), enaction_accel_capability_count());
     var found = std.mem.zeroes(abi.Capability);
     try std.testing.expectEqual(abi.status_ok, enaction_accel_capability_at(1, &found));
     try std.testing.expectEqual(abi.operation_fixed_i32_matmul, found.operation);
-    try std.testing.expectEqual(abi.status_index_out_of_range, enaction_accel_capability_at(2, &found));
+    try std.testing.expectEqual(abi.status_ok, enaction_accel_capability_at(3, &found));
+    try std.testing.expectEqual(abi.operation_tensor_f32_relu6, found.operation);
+    try std.testing.expectEqual(abi.determinism_tolerance_bounded, found.determinism);
+    try std.testing.expectEqual(abi.status_index_out_of_range, enaction_accel_capability_at(4, &found));
 
     var request = requestFor(abi.operation_fixed_i32_dot, abi.layout_dot, 0, 0, 0);
     request.abi_major = 9;
@@ -314,6 +390,36 @@ test "capabilities and malformed requests fail explicitly" {
     var evidence = std.mem.zeroes(abi.Evidence);
     try std.testing.expectEqual(abi.status_unsupported_abi, enaction_accel_execute(&request, &empty, &empty, &output, &evidence));
     try std.testing.expectEqual(@as(i64, 91), output_data[0]);
+}
+
+test "Axiom-derived f32 relu family is advisory, bit-stable, and failure atomic" {
+    const input_data = [_]f32{ -3.5, -0.0, 0.0, 2.25, 9.0 };
+    const input = abi.BufferF32In{ .data = &input_data, .len = input_data.len };
+    var output_data = [_]f32{91.0} ** input_data.len;
+    var output = abi.BufferF32Out{ .data = &output_data, .len = output_data.len };
+    var evidence = std.mem.zeroes(abi.Evidence);
+    var request = requestFor(abi.operation_tensor_f32_relu, abi.layout_vector, input_data.len, 0, 0);
+    request.lane = abi.lane_advisory;
+    request.minimum_determinism = abi.determinism_tolerance_bounded;
+    try std.testing.expectEqual(abi.status_ok, enaction_accel_execute_f32(&request, &input, &output, &evidence));
+    try std.testing.expectEqualSlices(f32, &[_]f32{ 0.0, 0.0, 0.0, 2.25, 9.0 }, &output_data);
+    try std.testing.expectEqual(abi.determinism_tolerance_bounded, evidence.determinism);
+
+    request.operation = abi.operation_tensor_f32_relu6;
+    try std.testing.expectEqual(abi.status_ok, enaction_accel_execute_f32(&request, &input, &output, &evidence));
+    try std.testing.expectEqualSlices(f32, &[_]f32{ 0.0, 0.0, 0.0, 2.25, 6.0 }, &output_data);
+
+    request.lane = abi.lane_authoritative;
+    try std.testing.expectEqual(abi.status_unsupported_requirement, enaction_accel_execute_f32(&request, &input, &output, &evidence));
+
+    const invalid_data = [_]f32{ 1.0, std.math.nan(f32), 3.0 };
+    const invalid = abi.BufferF32In{ .data = &invalid_data, .len = invalid_data.len };
+    var untouched_data = [_]f32{ 71.0, 72.0, 73.0 };
+    var untouched = abi.BufferF32Out{ .data = &untouched_data, .len = untouched_data.len };
+    request.lane = abi.lane_advisory;
+    request.dim0 = invalid_data.len;
+    try std.testing.expectEqual(abi.status_non_finite_input, enaction_accel_execute_f32(&request, &invalid, &untouched, &evidence));
+    try std.testing.expectEqualSlices(f32, &[_]f32{ 71.0, 72.0, 73.0 }, &untouched_data);
 }
 
 test "null dimensions and aliasing are refused without mutation" {

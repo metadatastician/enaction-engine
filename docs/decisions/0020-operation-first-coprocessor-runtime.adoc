@@ -134,6 +134,21 @@ A direct in-VM NIF requires a separate ADR showing that the operation needs an
 `erl_nif` facility outside SNIF's documented scope. SNIF failure remains
 fallible and explicit; it is never translated into silent backend fallback.
 
+=== Julia admission gateways
+
+`AcceleratorGate.jl` is retained as a useful Julia compatibility surface. It
+contains backend names, legacy detection, cost hints, diagnostics and fallback
+hook generation, but no kernels or vendor runtime. When a Julia consumer uses
+the Enaction native ABI, AcceleratorGate may translate or display central
+capability evidence; it MUST NOT promote an environment flag or heuristic
+backend choice into an authoritative support claim. The operation-first
+Enaction registry remains the policy authority.
+
+The first Axiom-derived family is finite binary32 ReLU/ReLU6. It is admitted
+only to the advisory lane with tolerance-bounded determinism. Its Zig source
+retains MPL-2.0 provenance, while the surrounding ABI, validation and Rust
+adapter remain under Enaction's existing licences.
+
 === Fallback policy
 
 Planning may choose a compatible reference backend before execution when the

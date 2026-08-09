@@ -31,20 +31,23 @@ operationMinor : Bits16
 operationMinor = 0
 
 public export
-data Operation = FixedI32Dot | FixedI32MatMul
+data Operation = FixedI32Dot | FixedI32MatMul | TensorF32Relu | TensorF32Relu6
 
 public export
 operationCode : Operation -> Bits32
 operationCode FixedI32Dot = 1
 operationCode FixedI32MatMul = 2
+operationCode TensorF32Relu = 3
+operationCode TensorF32Relu6 = 4
 
 public export
-data LayoutTag = DotLayout | MatMulLayout
+data LayoutTag = DotLayout | MatMulLayout | VectorLayout
 
 public export
 layoutCode : LayoutTag -> Bits32
 layoutCode DotLayout = 1
 layoutCode MatMulLayout = 2
+layoutCode VectorLayout = 3
 
 public export
 data Lane = Authoritative | Advisory | RemoteJob
@@ -123,6 +126,7 @@ data Status
   | UnsupportedRequirement
   | IndexOutOfRange
   | AliasingViolation
+  | NonFiniteInput
 
 public export
 statusCode : Status -> Bits32
@@ -142,6 +146,7 @@ statusCode InvalidReservedField = 12
 statusCode UnsupportedRequirement = 13
 statusCode IndexOutOfRange = 14
 statusCode AliasingViolation = 15
+statusCode NonFiniteInput = 16
 
 ||| A host accepts its ABI major and no operation minor newer than it knows.
 public export
@@ -164,6 +169,14 @@ rejectsNewerMinor = Refl
 public export
 operationCodesDistinct : Not (operationCode FixedI32Dot = operationCode FixedI32MatMul)
 operationCodesDistinct Refl impossible
+
+public export
+reluCodesDistinct : Not (operationCode TensorF32Relu = operationCode TensorF32Relu6)
+reluCodesDistinct Refl impossible
+
+public export
+fixedAndTensorCodesDistinct : Not (operationCode FixedI32MatMul = operationCode TensorF32Relu)
+fixedAndTensorCodesDistinct Refl impossible
 
 private
 div8_56 : Divides 8 56

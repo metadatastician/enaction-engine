@@ -9,6 +9,8 @@ module `Abi.Generate`:
 * `enaction_accelerator.zig` — declarations consumed by the pure-Zig provider;
 * `enaction_accelerator.rs` — declarations consumed inside the audited Rust
   native adapter;
+* `enaction_accelerator.jl` — declarations and a function-pointer call helper
+  for Julia consumers such as Axiom;
 * `SYMBOLS` — exact exported function inventory checked against the library;
 * `SOURCE.sha256` — exact Idris2 package, layout, authority and renderer inputs.
 

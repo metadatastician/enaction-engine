@@ -5,8 +5,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use enaction_accelerator::{
-    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, FallbackPolicy,
-    KernelBuffers, KernelRequest, Layout, Operation, ScalarReferenceBackend, SupportLevel,
+    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, F32KernelBuffers,
+    FallbackPolicy, KernelBuffers, KernelRequest, Layout, Operation, ScalarReferenceBackend,
+    SupportLevel,
 };
 use enaction_accelerator_native::ZigScalarBackend;
 use serde_json::Value;
@@ -36,6 +37,39 @@ fn expected(value: &Value) -> Vec<i64> {
         .iter()
         .map(|number| number.as_i64().expect("i64"))
         .collect()
+}
+
+fn f32_bits(value: &Value, field: &str) -> Vec<u32> {
+    value[field]
+        .as_array()
+        .expect("bit array")
+        .iter()
+        .map(|bits| u32::from_str_radix(bits.as_str().expect("hex bits"), 16).expect("u32 bits"))
+        .collect()
+}
+
+fn execute_f32(backend: &dyn Backend, operation: Operation, input: &[f32]) -> Vec<u32> {
+    let request = KernelRequest {
+        operation,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        layout: Layout::Vector { len: input.len() },
+        lane: ExecutionLane::Advisory,
+        minimum_support: SupportLevel::Resilient,
+        minimum_determinism: Determinism::ToleranceBounded,
+        fallback: FallbackPolicy::PreferAccelerated,
+        named_backend: None,
+    };
+    let mut output = vec![91.0; input.len()];
+    backend
+        .execute_f32(
+            &request,
+            F32KernelBuffers {
+                input,
+                output: &mut output,
+            },
+        )
+        .expect("f32 fixture executes");
+    output.into_iter().map(f32::to_bits).collect()
 }
 
 fn request(operation: Operation, layout: Layout) -> KernelRequest<'static> {
@@ -132,6 +166,27 @@ fn rust_and_zig_match_v1_canonical_fixtures_byte_for_byte() {
             .collect::<Vec<_>>(),
         "canonical serialized matrix bytes differ"
     );
+
+    for (operation, name) in [
+        (Operation::TensorF32Relu, "tensor-f32-relu"),
+        (Operation::TensorF32Relu6, "tensor-f32-relu6"),
+    ] {
+        let case = load(root.join(format!("cases/{name}.json")));
+        let input = f32_bits(&case, "input_bits")
+            .into_iter()
+            .map(f32::from_bits)
+            .collect::<Vec<_>>();
+        let rust_bits = execute_f32(&rust, operation, &input);
+        let zig_bits = execute_f32(&zig, operation, &input);
+        assert_eq!(zig_bits, rust_bits);
+        assert_eq!(
+            zig_bits,
+            f32_bits(
+                &load(root.join(format!("expected/{name}.json"))),
+                "output_bits"
+            )
+        );
+    }
 }
 
 fn canonical_zig_bytes() -> String {
@@ -169,10 +224,26 @@ fn canonical_zig_bytes() -> String {
         &numbers(&matrix, "right"),
         4,
     );
-    dot_output
+    let relu = load(root.join("cases/tensor-f32-relu.json"));
+    let relu_input = f32_bits(&relu, "input_bits")
+        .into_iter()
+        .map(f32::from_bits)
+        .collect::<Vec<_>>();
+    let relu_output = execute_f32(&zig, Operation::TensorF32Relu, &relu_input);
+    let relu6_output = execute_f32(&zig, Operation::TensorF32Relu6, &relu_input);
+    let fixed_bytes = dot_output
         .iter()
         .chain(&matrix_output)
         .flat_map(|value| value.to_le_bytes())
+        .collect::<Vec<_>>();
+    fixed_bytes
+        .into_iter()
+        .chain(
+            relu_output
+                .into_iter()
+                .chain(relu6_output)
+                .flat_map(u32::to_le_bytes),
+        )
         .map(|byte| format!("{byte:02x}"))
         .collect()
 }

@@ -95,6 +95,10 @@ pub enum Operation {
     FixedI32Dot,
     /// Row-major `(m × k) * (k × n)`, checked into signed 64-bit outputs.
     FixedI32MatMul,
+    /// Element-wise `max(+0.0, x)` over finite IEEE-754 binary32 values.
+    TensorF32Relu,
+    /// Element-wise `min(6.0, max(+0.0, x))` over finite binary32 values.
+    TensorF32Relu6,
 }
 
 impl Operation {
@@ -102,6 +106,8 @@ impl Operation {
         match self {
             Self::FixedI32Dot => "enaction.fixed.i32.dot",
             Self::FixedI32MatMul => "enaction.fixed.i32.matmul",
+            Self::TensorF32Relu => "enaction.tensor.f32.relu",
+            Self::TensorF32Relu6 => "enaction.tensor.f32.relu6",
         }
     }
 }
@@ -109,8 +115,19 @@ impl Operation {
 /// Shape of an operation. Cardinalities are checked before execution.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Layout {
-    Dot { len: usize },
-    MatMul { m: usize, k: usize, n: usize },
+    Dot {
+        len: usize,
+    },
+    MatMul {
+        m: usize,
+        k: usize,
+        n: usize,
+    },
+    /// A contiguous logical vector. Higher-rank consumers flatten in their
+    /// declared canonical order before crossing this v1 operation boundary.
+    Vector {
+        len: usize,
+    },
 }
 
 /// A request supplied to capability planning.
@@ -155,6 +172,8 @@ impl BackendDescriptor {
                 && capability.version.accepts(request.version)
                 && capability.support >= request.minimum_support
                 && capability.determinism >= request.minimum_determinism
+                && (request.lane != ExecutionLane::Authoritative
+                    || capability.determinism == Determinism::CanonicalExact)
         })
     }
 }
@@ -164,6 +183,13 @@ pub struct KernelBuffers<'a> {
     pub left: &'a [i32],
     pub right: &'a [i32],
     pub output: &'a mut [i64],
+}
+
+/// Caller-owned binary32 buffers for unary tensor operations. Inputs must be
+/// finite. Backends validate the complete input before changing output.
+pub struct F32KernelBuffers<'a> {
+    pub input: &'a [f32],
+    pub output: &'a mut [f32],
 }
 
 /// Successful execution evidence. Timing is deliberately absent: it is
@@ -206,6 +232,12 @@ pub enum AcceleratorError {
     },
     InvalidExecutionEvidence {
         backend: &'static str,
+    },
+    UnsupportedBufferDomain {
+        backend: &'static str,
+    },
+    NonFiniteInput {
+        index: usize,
     },
 }
 
@@ -251,6 +283,15 @@ impl fmt::Display for AcceleratorError {
                     "backend `{backend}` returned invalid execution evidence"
                 )
             }
+            Self::UnsupportedBufferDomain { backend } => {
+                write!(
+                    formatter,
+                    "backend `{backend}` does not implement this buffer domain"
+                )
+            }
+            Self::NonFiniteInput { index } => {
+                write!(formatter, "non-finite binary32 input at index {index}")
+            }
         }
     }
 }
@@ -266,6 +307,16 @@ pub trait Backend: Send + Sync {
         request: &KernelRequest<'_>,
         buffers: KernelBuffers<'_>,
     ) -> Result<ExecutionEvidence, AcceleratorError>;
+
+    fn execute_f32(
+        &self,
+        _request: &KernelRequest<'_>,
+        _buffers: F32KernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        Err(AcceleratorError::UnsupportedBufferDomain {
+            backend: self.descriptor().id,
+        })
+    }
 }
 
 /// Registry construction may allocate; planning and kernel execution do not.
@@ -369,14 +420,34 @@ impl PlannedKernel<'_> {
     ) -> Result<ExecutionEvidence, AcceleratorError> {
         self.backend.execute(request, buffers)
     }
+
+    pub fn execute_f32(
+        &self,
+        request: &KernelRequest<'_>,
+        buffers: F32KernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        self.backend.execute_f32(request, buffers)
+    }
 }
 
-const REFERENCE_CAPABILITIES: [Capability; 2] = [
+const REFERENCE_CAPABILITIES: [Capability; 4] = [
     Capability {
         operation: Operation::FixedI32Dot,
         version: ACCELERATOR_CONTRACT_VERSION,
         support: SupportLevel::Deterministic,
         determinism: Determinism::CanonicalExact,
+    },
+    Capability {
+        operation: Operation::TensorF32Relu,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Deterministic,
+        determinism: Determinism::ToleranceBounded,
+    },
+    Capability {
+        operation: Operation::TensorF32Relu6,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Deterministic,
+        determinism: Determinism::ToleranceBounded,
     },
     Capability {
         operation: Operation::FixedI32MatMul,
@@ -436,6 +507,59 @@ impl Backend for ScalarReferenceBackend {
                 validate_length("right", buffers.right.len(), right_len)?;
                 validate_length("output", buffers.output.len(), output_len)?;
                 checked_matmul(m, k, n, buffers.left, buffers.right, buffers.output)?;
+            }
+            _ => return Err(AcceleratorError::LayoutMismatch),
+        }
+        Ok(ExecutionEvidence {
+            backend_id: self.descriptor().id,
+            backend_version: self.descriptor().implementation_version,
+            operation: request.operation,
+            operation_version: request.version,
+            determinism: capability.determinism,
+            support: capability.support,
+        })
+    }
+
+    fn execute_f32(
+        &self,
+        request: &KernelRequest<'_>,
+        buffers: F32KernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        let capability = self.descriptor().capability_for(request).ok_or(
+            AcceleratorError::NoCompatibleBackend {
+                operation: request.operation.id(),
+            },
+        )?;
+        let len = match (request.operation, request.layout) {
+            (Operation::TensorF32Relu | Operation::TensorF32Relu6, Layout::Vector { len }) => len,
+            _ => return Err(AcceleratorError::LayoutMismatch),
+        };
+        validate_length("input", buffers.input.len(), len)?;
+        validate_length("output", buffers.output.len(), len)?;
+        if let Some((index, _)) = buffers
+            .input
+            .iter()
+            .enumerate()
+            .find(|(_, value)| !value.is_finite())
+        {
+            return Err(AcceleratorError::NonFiniteInput { index });
+        }
+        match request.operation {
+            Operation::TensorF32Relu => {
+                for (&input, output) in buffers.input.iter().zip(buffers.output.iter_mut()) {
+                    *output = if input > 0.0 { input } else { 0.0 };
+                }
+            }
+            Operation::TensorF32Relu6 => {
+                for (&input, output) in buffers.input.iter().zip(buffers.output.iter_mut()) {
+                    *output = if input.is_sign_negative() || input == 0.0 {
+                        0.0
+                    } else if input > 6.0 {
+                        6.0
+                    } else {
+                        input
+                    };
+                }
             }
             _ => return Err(AcceleratorError::LayoutMismatch),
         }
@@ -627,6 +751,57 @@ mod tests {
             )
             .unwrap();
         assert_eq!(output, [58, 64, 139, 154]);
+    }
+
+    #[test]
+    fn f32_pointwise_is_advisory_and_nonfinite_failure_is_atomic() {
+        let backend = ScalarReferenceBackend;
+        let request = KernelRequest {
+            operation: Operation::TensorF32Relu6,
+            version: ACCELERATOR_CONTRACT_VERSION,
+            layout: Layout::Vector { len: 4 },
+            lane: ExecutionLane::Advisory,
+            minimum_support: SupportLevel::Deterministic,
+            minimum_determinism: Determinism::ToleranceBounded,
+            fallback: FallbackPolicy::AllowReference,
+            named_backend: None,
+        };
+        let mut output = [91.0; 4];
+        let evidence = backend
+            .execute_f32(
+                &request,
+                F32KernelBuffers {
+                    input: &[-1.0, -0.0, 2.5, 9.0],
+                    output: &mut output,
+                },
+            )
+            .unwrap();
+        assert_eq!(output.map(f32::to_bits), [0, 0, 0x4020_0000, 0x40c0_0000]);
+        assert_eq!(evidence.determinism, Determinism::ToleranceBounded);
+
+        let mut untouched = [71.0, 72.0, 73.0, 74.0];
+        assert_eq!(
+            backend.execute_f32(
+                &request,
+                F32KernelBuffers {
+                    input: &[1.0, f32::NAN, 3.0, 4.0],
+                    output: &mut untouched,
+                },
+            ),
+            Err(AcceleratorError::NonFiniteInput { index: 1 })
+        );
+        assert_eq!(untouched, [71.0, 72.0, 73.0, 74.0]);
+
+        let authoritative = KernelRequest {
+            lane: ExecutionLane::Authoritative,
+            ..request
+        };
+        let mut registry = Registry::new();
+        registry.register(&backend).unwrap();
+        assert!(matches!(
+            registry.plan(&authoritative),
+            Err(AcceleratorError::NoCompatibleBackend { .. })
+        ));
     }
 
     #[test]
