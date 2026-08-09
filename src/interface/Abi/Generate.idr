@@ -28,6 +28,9 @@ codesC =
   "#define ENACTION_ACCEL_OPERATION_FIXED_I32_MATMUL " ++ show (operationCode FixedI32MatMul) ++ "u\n" ++
   "#define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU " ++ show (operationCode TensorF32Relu) ++ "u\n" ++
   "#define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU6 " ++ show (operationCode TensorF32Relu6) ++ "u\n" ++
+  "#define ENACTION_ACCEL_OPERATION_TENSOR_F32_MATMUL " ++ show (operationCode TensorF32MatMul) ++ "u\n" ++
+  "#define ENACTION_ACCEL_OPERATION_TENSOR_F32_ADD " ++ show (operationCode TensorF32Add) ++ "u\n" ++
+  "#define ENACTION_ACCEL_OPERATION_TENSOR_F32_MUL " ++ show (operationCode TensorF32Mul) ++ "u\n" ++
   "#define ENACTION_ACCEL_LAYOUT_DOT " ++ show (layoutCode DotLayout) ++ "u\n" ++
   "#define ENACTION_ACCEL_LAYOUT_MATMUL " ++ show (layoutCode MatMulLayout) ++ "u\n" ++
   "#define ENACTION_ACCEL_LAYOUT_VECTOR " ++ show (layoutCode VectorLayout) ++ "u\n" ++
@@ -103,6 +106,7 @@ cHeader =
   "uint32_t enaction_accel_capability_at(uint32_t index, enaction_accel_capability *out);\n" ++
   "uint32_t enaction_accel_execute(const enaction_accel_request *request, const enaction_accel_buffer_i32 *left, const enaction_accel_buffer_i32 *right, enaction_accel_buffer_i64 *output, enaction_accel_evidence *evidence);\n\n" ++
   "uint32_t enaction_accel_execute_f32(const enaction_accel_request *request, const enaction_accel_buffer_f32_in *input, enaction_accel_buffer_f32_out *output, enaction_accel_evidence *evidence);\n\n" ++
+  "uint32_t enaction_accel_execute_f32_binary(const enaction_accel_request *request, const enaction_accel_buffer_f32_in *left, const enaction_accel_buffer_f32_in *right, enaction_accel_buffer_f32_out *output, enaction_accel_evidence *evidence);\n\n" ++
   "#ifdef __cplusplus\n}\n#endif\n\n#endif\n"
 
 private
@@ -116,6 +120,9 @@ codesZig =
   "pub const operation_fixed_i32_matmul: u32 = " ++ show (operationCode FixedI32MatMul) ++ ";\n" ++
   "pub const operation_tensor_f32_relu: u32 = " ++ show (operationCode TensorF32Relu) ++ ";\n" ++
   "pub const operation_tensor_f32_relu6: u32 = " ++ show (operationCode TensorF32Relu6) ++ ";\n" ++
+  "pub const operation_tensor_f32_matmul: u32 = " ++ show (operationCode TensorF32MatMul) ++ ";\n" ++
+  "pub const operation_tensor_f32_add: u32 = " ++ show (operationCode TensorF32Add) ++ ";\n" ++
+  "pub const operation_tensor_f32_mul: u32 = " ++ show (operationCode TensorF32Mul) ++ ";\n" ++
   "pub const layout_dot: u32 = " ++ show (layoutCode DotLayout) ++ ";\n" ++
   "pub const layout_matmul: u32 = " ++ show (layoutCode MatMulLayout) ++ ";\n" ++
   "pub const layout_vector: u32 = " ++ show (layoutCode VectorLayout) ++ ";\n" ++
@@ -180,6 +187,9 @@ codesRust =
   "pub const OPERATION_FIXED_I32_MATMUL: u32 = " ++ show (operationCode FixedI32MatMul) ++ ";\n" ++
   "pub const OPERATION_TENSOR_F32_RELU: u32 = " ++ show (operationCode TensorF32Relu) ++ ";\n" ++
   "pub const OPERATION_TENSOR_F32_RELU6: u32 = " ++ show (operationCode TensorF32Relu6) ++ ";\n" ++
+  "pub const OPERATION_TENSOR_F32_MATMUL: u32 = " ++ show (operationCode TensorF32MatMul) ++ ";\n" ++
+  "pub const OPERATION_TENSOR_F32_ADD: u32 = " ++ show (operationCode TensorF32Add) ++ ";\n" ++
+  "pub const OPERATION_TENSOR_F32_MUL: u32 = " ++ show (operationCode TensorF32Mul) ++ ";\n" ++
   "pub const LAYOUT_DOT: u32 = " ++ show (layoutCode DotLayout) ++ ";\n" ++
   "pub const LAYOUT_MATMUL: u32 = " ++ show (layoutCode MatMulLayout) ++ ";\n" ++
   "pub const LAYOUT_VECTOR: u32 = " ++ show (layoutCode VectorLayout) ++ ";\n" ++
@@ -238,6 +248,7 @@ rustDeclarations =
   "    pub fn enaction_accel_capability_at(index: u32, out: *mut Capability) -> u32;\n" ++
   "    pub fn enaction_accel_execute(request: *const Request, left: *const BufferI32, right: *const BufferI32, output: *mut BufferI64, evidence: *mut Evidence) -> u32;\n" ++
   "    pub fn enaction_accel_execute_f32(request: *const Request, input: *const BufferF32In, output: *mut BufferF32Out, evidence: *mut Evidence) -> u32;\n" ++
+  "    pub fn enaction_accel_execute_f32_binary(request: *const Request, left: *const BufferF32In, right: *const BufferF32In, output: *mut BufferF32Out, evidence: *mut Evidence) -> u32;\n" ++
   "}\n"
 
 public export
@@ -254,6 +265,9 @@ juliaDeclarations =
   "const OPERATION_FIXED_I32_MATMUL = UInt32(" ++ show (operationCode FixedI32MatMul) ++ ")\n" ++
   "const OPERATION_TENSOR_F32_RELU = UInt32(" ++ show (operationCode TensorF32Relu) ++ ")\n" ++
   "const OPERATION_TENSOR_F32_RELU6 = UInt32(" ++ show (operationCode TensorF32Relu6) ++ ")\n" ++
+  "const OPERATION_TENSOR_F32_MATMUL = UInt32(" ++ show (operationCode TensorF32MatMul) ++ ")\n" ++
+  "const OPERATION_TENSOR_F32_ADD = UInt32(" ++ show (operationCode TensorF32Add) ++ ")\n" ++
+  "const OPERATION_TENSOR_F32_MUL = UInt32(" ++ show (operationCode TensorF32Mul) ++ ")\n" ++
   "const LAYOUT_VECTOR = UInt32(" ++ show (layoutCode VectorLayout) ++ ")\n" ++
   "const LANE_ADVISORY = UInt32(" ++ show (laneCode Advisory) ++ ")\n" ++
   "const DETERMINISM_TOLERANCE_BOUNDED = UInt32(" ++ show (determinismCode ToleranceBounded) ++ ")\n" ++
@@ -271,6 +285,8 @@ juliaDeclarations =
   "end\n\n" ++
   "execute_f32(function_pointer::Ptr{Cvoid}, request::Ref{Request}, input::Ref{BufferF32In}, output::Ref{BufferF32Out}, evidence::Ref{Evidence}) =\n" ++
   "    ccall(function_pointer, UInt32, (Ref{Request}, Ref{BufferF32In}, Ref{BufferF32Out}, Ref{Evidence}), request, input, output, evidence)\n\n" ++
+  "execute_f32_binary(function_pointer::Ptr{Cvoid}, request::Ref{Request}, left::Ref{BufferF32In}, right::Ref{BufferF32In}, output::Ref{BufferF32Out}, evidence::Ref{Evidence}) =\n" ++
+  "    ccall(function_pointer, UInt32, (Ref{Request}, Ref{BufferF32In}, Ref{BufferF32In}, Ref{BufferF32Out}, Ref{Evidence}), request, left, right, output, evidence)\n\n" ++
   "end # module EnactionAcceleratorABI\n"
 
 public export
@@ -281,6 +297,7 @@ symbolList =
   "enaction_accel_capability_count\n" ++
   "enaction_accel_execute\n"
   ++ "enaction_accel_execute_f32\n"
+  ++ "enaction_accel_execute_f32_binary\n"
 
 private
 usage : IO ()

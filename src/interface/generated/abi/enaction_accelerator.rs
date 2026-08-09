@@ -9,6 +9,9 @@ pub const OPERATION_FIXED_I32_DOT: u32 = 1;
 pub const OPERATION_FIXED_I32_MATMUL: u32 = 2;
 pub const OPERATION_TENSOR_F32_RELU: u32 = 3;
 pub const OPERATION_TENSOR_F32_RELU6: u32 = 4;
+pub const OPERATION_TENSOR_F32_MATMUL: u32 = 5;
+pub const OPERATION_TENSOR_F32_ADD: u32 = 6;
+pub const OPERATION_TENSOR_F32_MUL: u32 = 7;
 pub const LAYOUT_DOT: u32 = 1;
 pub const LAYOUT_MATMUL: u32 = 2;
 pub const LAYOUT_VECTOR: u32 = 3;
@@ -79,4 +82,5 @@ unsafe extern "C" {
     pub fn enaction_accel_capability_at(index: u32, out: *mut Capability) -> u32;
     pub fn enaction_accel_execute(request: *const Request, left: *const BufferI32, right: *const BufferI32, output: *mut BufferI64, evidence: *mut Evidence) -> u32;
     pub fn enaction_accel_execute_f32(request: *const Request, input: *const BufferF32In, output: *mut BufferF32Out, evidence: *mut Evidence) -> u32;
+    pub fn enaction_accel_execute_f32_binary(request: *const Request, left: *const BufferF32In, right: *const BufferF32In, output: *mut BufferF32Out, evidence: *mut Evidence) -> u32;
 }

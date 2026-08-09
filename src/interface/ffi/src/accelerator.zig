@@ -8,6 +8,7 @@
 const std = @import("std");
 const abi = @import("abi");
 const axiom_pointwise = @import("axiom_pointwise.zig");
+const axiom_matmul = @import("axiom_matmul.zig");
 
 comptime {
     if (@sizeOf(abi.Request) != 56 or @alignOf(abi.Request) != 8)
@@ -23,7 +24,7 @@ comptime {
         @compileError("Idris2 Evidence layout and Zig layout disagree");
 }
 
-const capability_count: u32 = 4;
+const capability_count: u32 = 7;
 const capability_flags_authoritative: u32 = 1;
 const capability_flags_advisory: u32 = 2;
 
@@ -95,6 +96,28 @@ fn validateF32Request(request: *const abi.Request) u32 {
     };
 }
 
+fn validateF32BinaryRequest(request: *const abi.Request) u32 {
+    if (request.abi_major != abi.abi_major or request.abi_minor > abi.abi_minor)
+        return abi.status_unsupported_abi;
+    if (request.operation_major != abi.operation_major or request.operation_minor > abi.operation_minor)
+        return abi.status_unsupported_operation_version;
+    if (!validLane(request.lane)) return abi.status_invalid_lane;
+    if (request.lane != abi.lane_advisory) return abi.status_unsupported_requirement;
+    if (request.minimum_support < abi.support_declared or request.minimum_support > abi.support_production_supported)
+        return abi.status_invalid_support;
+    if (request.minimum_support > abi.support_resilient) return abi.status_unsupported_requirement;
+    if (request.minimum_determinism < abi.determinism_advisory_only or request.minimum_determinism > abi.determinism_canonical_exact)
+        return abi.status_invalid_determinism;
+    if (request.minimum_determinism > abi.determinism_tolerance_bounded)
+        return abi.status_unsupported_requirement;
+    if (request.reserved != 0) return abi.status_invalid_reserved_field;
+    return switch (request.operation) {
+        abi.operation_tensor_f32_matmul => if (request.layout == abi.layout_matmul) abi.status_ok else abi.status_layout_mismatch,
+        abi.operation_tensor_f32_add, abi.operation_tensor_f32_mul => if (request.layout == abi.layout_vector) abi.status_ok else abi.status_layout_mismatch,
+        else => abi.status_unknown_operation,
+    };
+}
+
 fn fillEvidence(request: *const abi.Request, determinism: u32, evidence: *abi.Evidence) void {
     evidence.* = .{
         .abi_major = abi.abi_major,
@@ -138,6 +161,9 @@ export fn enaction_accel_capability_at(index: u32, out: ?*abi.Capability) u32 {
         1 => capability(abi.operation_fixed_i32_matmul, abi.determinism_canonical_exact, capability_flags_authoritative | capability_flags_advisory),
         2 => capability(abi.operation_tensor_f32_relu, abi.determinism_tolerance_bounded, capability_flags_advisory),
         3 => capability(abi.operation_tensor_f32_relu6, abi.determinism_tolerance_bounded, capability_flags_advisory),
+        4 => capability(abi.operation_tensor_f32_matmul, abi.determinism_tolerance_bounded, capability_flags_advisory),
+        5 => capability(abi.operation_tensor_f32_add, abi.determinism_tolerance_bounded, capability_flags_advisory),
+        6 => capability(abi.operation_tensor_f32_mul, abi.determinism_tolerance_bounded, capability_flags_advisory),
         else => return abi.status_index_out_of_range,
     };
     return abi.status_ok;
@@ -324,6 +350,92 @@ export fn enaction_accel_execute_f32(
     return abi.status_ok;
 }
 
+fn f32MatmulCell(row: usize, column: usize, k: usize, n: usize, left: []const f32, right: []const f32) ?f32 {
+    var sum: f32 = 0.0;
+    for (0..k) |inner| {
+        sum += left[row * k + inner] * right[inner * n + column];
+        if (!std.math.isFinite(sum)) return null;
+    }
+    return sum;
+}
+
+fn executeF32Binary(
+    request: *const abi.Request,
+    left_buffer: *const abi.BufferF32In,
+    right_buffer: *const abi.BufferF32In,
+    output_buffer: *abi.BufferF32Out,
+) u32 {
+    var left_len_u64 = request.dim0;
+    var right_len_u64 = request.dim0;
+    var output_len_u64 = request.dim0;
+    if (request.operation == abi.operation_tensor_f32_matmul) {
+        left_len_u64 = checkedMulU64(request.dim0, request.dim1) orelse return abi.status_dimension_overflow;
+        right_len_u64 = checkedMulU64(request.dim1, request.dim2) orelse return abi.status_dimension_overflow;
+        output_len_u64 = checkedMulU64(request.dim0, request.dim2) orelse return abi.status_dimension_overflow;
+    } else if (request.dim1 != 0 or request.dim2 != 0) return abi.status_layout_mismatch;
+    if (left_buffer.len != left_len_u64 or right_buffer.len != right_len_u64 or output_buffer.len != output_len_u64)
+        return abi.status_length_mismatch;
+
+    const left_len = std.math.cast(usize, left_len_u64) orelse return abi.status_dimension_overflow;
+    const right_len = std.math.cast(usize, right_len_u64) orelse return abi.status_dimension_overflow;
+    const output_len = std.math.cast(usize, output_len_u64) orelse return abi.status_dimension_overflow;
+    if (left_len != 0 and left_buffer.data == null) return abi.status_null_pointer;
+    if (right_len != 0 and right_buffer.data == null) return abi.status_null_pointer;
+    if (output_len != 0 and output_buffer.data == null) return abi.status_null_pointer;
+    const left_range = addressRange(left_buffer.data, left_len, @sizeOf(f32)) orelse return abi.status_dimension_overflow;
+    const right_range = addressRange(right_buffer.data, right_len, @sizeOf(f32)) orelse return abi.status_dimension_overflow;
+    const output_range = addressRange(output_buffer.data, output_len, @sizeOf(f32)) orelse return abi.status_dimension_overflow;
+    if (output_range.overlaps(left_range) or output_range.overlaps(right_range)) return abi.status_aliasing_violation;
+
+    const left = if (left_len == 0) &[_]f32{} else left_buffer.data.?[0..left_len];
+    const right = if (right_len == 0) &[_]f32{} else right_buffer.data.?[0..right_len];
+    for (left) |value| if (!std.math.isFinite(value)) return abi.status_non_finite_input;
+    for (right) |value| if (!std.math.isFinite(value)) return abi.status_non_finite_input;
+
+    if (request.operation == abi.operation_tensor_f32_matmul) {
+        const m = std.math.cast(usize, request.dim0) orelse return abi.status_dimension_overflow;
+        const k = std.math.cast(usize, request.dim1) orelse return abi.status_dimension_overflow;
+        const n = std.math.cast(usize, request.dim2) orelse return abi.status_dimension_overflow;
+        for (0..m) |row| for (0..n) |column| {
+            _ = f32MatmulCell(row, column, k, n, left, right) orelse return abi.status_arithmetic_overflow;
+        };
+        if (output_len != 0) axiom_matmul.matmul(m, k, n, left, right, output_buffer.data.?[0..output_len]);
+    } else {
+        for (left, right) |left_value, right_value| {
+            const result = if (request.operation == abi.operation_tensor_f32_add) left_value + right_value else left_value * right_value;
+            if (!std.math.isFinite(result)) return abi.status_arithmetic_overflow;
+        }
+        if (output_len != 0) {
+            const output = output_buffer.data.?[0..output_len];
+            if (request.operation == abi.operation_tensor_f32_add)
+                axiom_pointwise.add(left, right, output)
+            else
+                axiom_pointwise.mul(left, right, output);
+        }
+    }
+    return abi.status_ok;
+}
+
+export fn enaction_accel_execute_f32_binary(
+    request_pointer: ?*const abi.Request,
+    left_pointer: ?*const abi.BufferF32In,
+    right_pointer: ?*const abi.BufferF32In,
+    output_pointer: ?*abi.BufferF32Out,
+    evidence_pointer: ?*abi.Evidence,
+) u32 {
+    const request = request_pointer orelse return abi.status_null_pointer;
+    const left = left_pointer orelse return abi.status_null_pointer;
+    const right = right_pointer orelse return abi.status_null_pointer;
+    const output = output_pointer orelse return abi.status_null_pointer;
+    const evidence = evidence_pointer orelse return abi.status_null_pointer;
+    const request_status = validateF32BinaryRequest(request);
+    if (request_status != abi.status_ok) return request_status;
+    const execution_status = executeF32Binary(request, left, right, output);
+    if (execution_status != abi.status_ok) return execution_status;
+    fillEvidence(request, abi.determinism_tolerance_bounded, evidence);
+    return abi.status_ok;
+}
+
 fn requestFor(operation: u32, layout: u32, dim0: u64, dim1: u64, dim2: u64) abi.Request {
     return .{
         .abi_major = abi.abi_major,
@@ -373,14 +485,16 @@ test "matrix overflow is output atomic" {
 
 test "capabilities and malformed requests fail explicitly" {
     try std.testing.expectEqual(@as(u32, 0x00010000), enaction_accel_abi_version());
-    try std.testing.expectEqual(@as(u32, 4), enaction_accel_capability_count());
+    try std.testing.expectEqual(@as(u32, 7), enaction_accel_capability_count());
     var found = std.mem.zeroes(abi.Capability);
     try std.testing.expectEqual(abi.status_ok, enaction_accel_capability_at(1, &found));
     try std.testing.expectEqual(abi.operation_fixed_i32_matmul, found.operation);
     try std.testing.expectEqual(abi.status_ok, enaction_accel_capability_at(3, &found));
     try std.testing.expectEqual(abi.operation_tensor_f32_relu6, found.operation);
     try std.testing.expectEqual(abi.determinism_tolerance_bounded, found.determinism);
-    try std.testing.expectEqual(abi.status_index_out_of_range, enaction_accel_capability_at(4, &found));
+    try std.testing.expectEqual(abi.status_ok, enaction_accel_capability_at(6, &found));
+    try std.testing.expectEqual(abi.operation_tensor_f32_mul, found.operation);
+    try std.testing.expectEqual(abi.status_index_out_of_range, enaction_accel_capability_at(7, &found));
 
     var request = requestFor(abi.operation_fixed_i32_dot, abi.layout_dot, 0, 0, 0);
     request.abi_major = 9;
@@ -420,6 +534,33 @@ test "Axiom-derived f32 relu family is advisory, bit-stable, and failure atomic"
     request.dim0 = invalid_data.len;
     try std.testing.expectEqual(abi.status_non_finite_input, enaction_accel_execute_f32(&request, &invalid, &untouched, &evidence));
     try std.testing.expectEqualSlices(f32, &[_]f32{ 71.0, 72.0, 73.0 }, &untouched_data);
+}
+
+test "Axiom-derived f32 binary family is correct and failure atomic" {
+    const left_data = [_]f32{ 1, 2, 3, 4, 5, 6 };
+    const right_data = [_]f32{ 7, 8, 9, 10, 11, 12 };
+    const left = abi.BufferF32In{ .data = &left_data, .len = left_data.len };
+    const right = abi.BufferF32In{ .data = &right_data, .len = right_data.len };
+    var output_data = [_]f32{91} ** 4;
+    var output = abi.BufferF32Out{ .data = &output_data, .len = output_data.len };
+    var evidence = std.mem.zeroes(abi.Evidence);
+    var request = requestFor(abi.operation_tensor_f32_matmul, abi.layout_matmul, 2, 3, 2);
+    request.lane = abi.lane_advisory;
+    request.minimum_determinism = abi.determinism_tolerance_bounded;
+    try std.testing.expectEqual(abi.status_ok, enaction_accel_execute_f32_binary(&request, &left, &right, &output, &evidence));
+    try std.testing.expectEqualSlices(f32, &[_]f32{ 58, 64, 139, 154 }, &output_data);
+
+    const huge_data = [_]f32{std.math.floatMax(f32)};
+    const two_data = [_]f32{2};
+    const huge = abi.BufferF32In{ .data = &huge_data, .len = 1 };
+    const two = abi.BufferF32In{ .data = &two_data, .len = 1 };
+    var untouched_data = [_]f32{71};
+    var untouched = abi.BufferF32Out{ .data = &untouched_data, .len = 1 };
+    request = requestFor(abi.operation_tensor_f32_mul, abi.layout_vector, 1, 0, 0);
+    request.lane = abi.lane_advisory;
+    request.minimum_determinism = abi.determinism_tolerance_bounded;
+    try std.testing.expectEqual(abi.status_arithmetic_overflow, enaction_accel_execute_f32_binary(&request, &huge, &two, &untouched, &evidence));
+    try std.testing.expectEqual(@as(f32, 71), untouched_data[0]);
 }
 
 test "null dimensions and aliasing are refused without mutation" {

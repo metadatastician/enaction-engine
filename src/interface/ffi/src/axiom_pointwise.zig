@@ -42,3 +42,25 @@ pub fn relu6(input: []const f32, output: []f32) void {
             input[index];
     }
 }
+
+/// Element-wise addition. The ABI wrapper proves every result finite first.
+pub fn add(left: []const f32, right: []const f32, output: []f32) void {
+    var index: usize = 0;
+    while (index + vector_size <= left.len) : (index += vector_size) {
+        const left_values: Vector = left[index..][0..vector_size].*;
+        const right_values: Vector = right[index..][0..vector_size].*;
+        output[index..][0..vector_size].* = left_values + right_values;
+    }
+    while (index < left.len) : (index += 1) output[index] = left[index] + right[index];
+}
+
+/// Element-wise multiplication. The ABI wrapper proves every result finite first.
+pub fn mul(left: []const f32, right: []const f32, output: []f32) void {
+    var index: usize = 0;
+    while (index + vector_size <= left.len) : (index += vector_size) {
+        const left_values: Vector = left[index..][0..vector_size].*;
+        const right_values: Vector = right[index..][0..vector_size].*;
+        output[index..][0..vector_size].* = left_values * right_values;
+    }
+    while (index < left.len) : (index += 1) output[index] = left[index] * right[index];
+}

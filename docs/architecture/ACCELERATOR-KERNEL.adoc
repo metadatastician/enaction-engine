@@ -173,17 +173,18 @@ SNIFs; they need an explicit alternative-boundary decision.
 The safe `enaction-accelerator` crate supplies a scalar CPU reference backend
 and a failure-injectable backend. `enaction-accelerator-native` is the single
 audited unsafe boundary to an Idris2-defined, pure-Zig scalar implementation.
-Idris2 proves the four admitted layouts; its deterministic renderer emits the
+Idris2 proves the admitted layouts and distinct operation codes; its deterministic renderer emits the
 C-compatible, Zig, Rust and Julia declarations. Zig, Rust and Julia assert the
 relevant sizes again. The locked v1 fixtures pass through both implementations:
-fixed-point canonical little-endian bytes match, and the pointwise binary32
+fixed-point canonical little-endian bytes match, and the unary/binary binary32
 outputs match fixture bit patterns. Tests also demonstrate checked overflow,
 non-finite refusal, failure atomicity, buffer/shape refusal,
 registration-order-independent planning, authoritative rejection of
 tolerance-bounded operations, capability evidence validation, support-floor
 enforcement and the absence of silent runtime retry.
 
-This is local cross-language CPU conformance for two exact fixed-point and two
-advisory pointwise operations. It is not the full Axiom tensor suite. No GPU or
+This is local cross-language CPU conformance for two exact fixed-point and five
+advisory tensor operations (ReLU, ReLU6, matmul, add and multiply). It is not
+the full Axiom tensor suite. No GPU or
 non-CPU hardware backend, multi-target determinism, benchmarked support or
 production support is implemented by this document.

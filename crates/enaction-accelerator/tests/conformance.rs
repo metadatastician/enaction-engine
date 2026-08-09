@@ -4,9 +4,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use enaction_accelerator::{
-    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, F32KernelBuffers,
-    FallbackPolicy, KernelBuffers, KernelRequest, Layout, Operation, ScalarReferenceBackend,
-    SupportLevel,
+    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, F32BinaryKernelBuffers,
+    F32KernelBuffers, FallbackPolicy, KernelBuffers, KernelRequest, Layout, Operation,
+    ScalarReferenceBackend, SupportLevel,
 };
 use serde_json::Value;
 
@@ -159,4 +159,91 @@ fn scalar_reference_matches_v1_cross_language_fixtures() {
             )
         );
     }
+
+    for (operation, name) in [
+        (Operation::TensorF32Add, "tensor-f32-add"),
+        (Operation::TensorF32Mul, "tensor-f32-mul"),
+    ] {
+        let case = load(root.join(format!("cases/{name}.json")));
+        assert_eq!(case["operation"], operation.id());
+        let left = f32_bits(&case, "left_bits")
+            .into_iter()
+            .map(f32::from_bits)
+            .collect::<Vec<_>>();
+        let right = f32_bits(&case, "right_bits")
+            .into_iter()
+            .map(f32::from_bits)
+            .collect::<Vec<_>>();
+        let mut output = vec![91.0; left.len()];
+        backend
+            .execute_f32_binary(
+                &KernelRequest {
+                    operation,
+                    version: ACCELERATOR_CONTRACT_VERSION,
+                    layout: Layout::Vector { len: left.len() },
+                    lane: ExecutionLane::Advisory,
+                    minimum_support: SupportLevel::Deterministic,
+                    minimum_determinism: Determinism::ToleranceBounded,
+                    fallback: FallbackPolicy::AllowReference,
+                    named_backend: None,
+                },
+                F32BinaryKernelBuffers {
+                    left: &left,
+                    right: &right,
+                    output: &mut output,
+                },
+            )
+            .expect("binary fixture executes");
+        assert_eq!(
+            output.into_iter().map(f32::to_bits).collect::<Vec<_>>(),
+            f32_bits(
+                &load(root.join(format!("expected/{name}.json"))),
+                "output_bits"
+            )
+        );
+    }
+
+    let case = load(root.join("cases/tensor-f32-matmul.json"));
+    let left = f32_bits(&case, "left_bits")
+        .into_iter()
+        .map(f32::from_bits)
+        .collect::<Vec<_>>();
+    let right = f32_bits(&case, "right_bits")
+        .into_iter()
+        .map(f32::from_bits)
+        .collect::<Vec<_>>();
+    let dimension = |name: &str| {
+        usize::try_from(case["layout"][name].as_u64().expect("dimension")).expect("usize")
+    };
+    let mut output = vec![91.0; dimension("m") * dimension("n")];
+    backend
+        .execute_f32_binary(
+            &KernelRequest {
+                operation: Operation::TensorF32MatMul,
+                version: ACCELERATOR_CONTRACT_VERSION,
+                layout: Layout::MatMul {
+                    m: dimension("m"),
+                    k: dimension("k"),
+                    n: dimension("n"),
+                },
+                lane: ExecutionLane::Advisory,
+                minimum_support: SupportLevel::Deterministic,
+                minimum_determinism: Determinism::ToleranceBounded,
+                fallback: FallbackPolicy::AllowReference,
+                named_backend: None,
+            },
+            F32BinaryKernelBuffers {
+                left: &left,
+                right: &right,
+                output: &mut output,
+            },
+        )
+        .expect("matmul fixture executes");
+    assert_eq!(
+        output.into_iter().map(f32::to_bits).collect::<Vec<_>>(),
+        f32_bits(
+            &load(root.join("expected/tensor-f32-matmul.json")),
+            "output_bits"
+        )
+    );
 }

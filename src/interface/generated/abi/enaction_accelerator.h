@@ -17,6 +17,9 @@ extern "C" {
 #define ENACTION_ACCEL_OPERATION_FIXED_I32_MATMUL 2u
 #define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU 3u
 #define ENACTION_ACCEL_OPERATION_TENSOR_F32_RELU6 4u
+#define ENACTION_ACCEL_OPERATION_TENSOR_F32_MATMUL 5u
+#define ENACTION_ACCEL_OPERATION_TENSOR_F32_ADD 6u
+#define ENACTION_ACCEL_OPERATION_TENSOR_F32_MUL 7u
 #define ENACTION_ACCEL_LAYOUT_DOT 1u
 #define ENACTION_ACCEL_LAYOUT_MATMUL 2u
 #define ENACTION_ACCEL_LAYOUT_VECTOR 3u
@@ -90,6 +93,8 @@ uint32_t enaction_accel_capability_at(uint32_t index, enaction_accel_capability 
 uint32_t enaction_accel_execute(const enaction_accel_request *request, const enaction_accel_buffer_i32 *left, const enaction_accel_buffer_i32 *right, enaction_accel_buffer_i64 *output, enaction_accel_evidence *evidence);
 
 uint32_t enaction_accel_execute_f32(const enaction_accel_request *request, const enaction_accel_buffer_f32_in *input, enaction_accel_buffer_f32_out *output, enaction_accel_evidence *evidence);
+
+uint32_t enaction_accel_execute_f32_binary(const enaction_accel_request *request, const enaction_accel_buffer_f32_in *left, const enaction_accel_buffer_f32_in *right, enaction_accel_buffer_f32_out *output, enaction_accel_evidence *evidence);
 
 #ifdef __cplusplus
 }

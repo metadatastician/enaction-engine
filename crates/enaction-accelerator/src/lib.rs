@@ -99,6 +99,12 @@ pub enum Operation {
     TensorF32Relu,
     /// Element-wise `min(6.0, max(+0.0, x))` over finite binary32 values.
     TensorF32Relu6,
+    /// Row-major binary32 matrix multiplication in declared loop order.
+    TensorF32MatMul,
+    /// Element-wise binary32 addition.
+    TensorF32Add,
+    /// Element-wise binary32 multiplication.
+    TensorF32Mul,
 }
 
 impl Operation {
@@ -108,6 +114,9 @@ impl Operation {
             Self::FixedI32MatMul => "enaction.fixed.i32.matmul",
             Self::TensorF32Relu => "enaction.tensor.f32.relu",
             Self::TensorF32Relu6 => "enaction.tensor.f32.relu6",
+            Self::TensorF32MatMul => "enaction.tensor.f32.matmul",
+            Self::TensorF32Add => "enaction.tensor.f32.add",
+            Self::TensorF32Mul => "enaction.tensor.f32.mul",
         }
     }
 }
@@ -189,6 +198,14 @@ pub struct KernelBuffers<'a> {
 /// finite. Backends validate the complete input before changing output.
 pub struct F32KernelBuffers<'a> {
     pub input: &'a [f32],
+    pub output: &'a mut [f32],
+}
+
+/// Caller-owned binary32 buffers for two-input tensor operations. Inputs and
+/// every intermediate/result must be finite; failure leaves output unchanged.
+pub struct F32BinaryKernelBuffers<'a> {
+    pub left: &'a [f32],
+    pub right: &'a [f32],
     pub output: &'a mut [f32],
 }
 
@@ -317,6 +334,16 @@ pub trait Backend: Send + Sync {
             backend: self.descriptor().id,
         })
     }
+
+    fn execute_f32_binary(
+        &self,
+        _request: &KernelRequest<'_>,
+        _buffers: F32BinaryKernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        Err(AcceleratorError::UnsupportedBufferDomain {
+            backend: self.descriptor().id,
+        })
+    }
 }
 
 /// Registry construction may allocate; planning and kernel execution do not.
@@ -428,9 +455,17 @@ impl PlannedKernel<'_> {
     ) -> Result<ExecutionEvidence, AcceleratorError> {
         self.backend.execute_f32(request, buffers)
     }
+
+    pub fn execute_f32_binary(
+        &self,
+        request: &KernelRequest<'_>,
+        buffers: F32BinaryKernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        self.backend.execute_f32_binary(request, buffers)
+    }
 }
 
-const REFERENCE_CAPABILITIES: [Capability; 4] = [
+const REFERENCE_CAPABILITIES: [Capability; 7] = [
     Capability {
         operation: Operation::FixedI32Dot,
         version: ACCELERATOR_CONTRACT_VERSION,
@@ -454,6 +489,24 @@ const REFERENCE_CAPABILITIES: [Capability; 4] = [
         version: ACCELERATOR_CONTRACT_VERSION,
         support: SupportLevel::Deterministic,
         determinism: Determinism::CanonicalExact,
+    },
+    Capability {
+        operation: Operation::TensorF32MatMul,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Deterministic,
+        determinism: Determinism::ToleranceBounded,
+    },
+    Capability {
+        operation: Operation::TensorF32Add,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Deterministic,
+        determinism: Determinism::ToleranceBounded,
+    },
+    Capability {
+        operation: Operation::TensorF32Mul,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Deterministic,
+        determinism: Determinism::ToleranceBounded,
     },
 ];
 
@@ -572,6 +625,126 @@ impl Backend for ScalarReferenceBackend {
             support: capability.support,
         })
     }
+
+    fn execute_f32_binary(
+        &self,
+        request: &KernelRequest<'_>,
+        buffers: F32BinaryKernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        let capability = self.descriptor().capability_for(request).ok_or(
+            AcceleratorError::NoCompatibleBackend {
+                operation: request.operation.id(),
+            },
+        )?;
+        match (request.operation, request.layout) {
+            (Operation::TensorF32MatMul, Layout::MatMul { m, k, n }) => {
+                let left_len = m
+                    .checked_mul(k)
+                    .ok_or(AcceleratorError::DimensionOverflow)?;
+                let right_len = k
+                    .checked_mul(n)
+                    .ok_or(AcceleratorError::DimensionOverflow)?;
+                let output_len = m
+                    .checked_mul(n)
+                    .ok_or(AcceleratorError::DimensionOverflow)?;
+                validate_length("left", buffers.left.len(), left_len)?;
+                validate_length("right", buffers.right.len(), right_len)?;
+                validate_length("output", buffers.output.len(), output_len)?;
+                validate_finite(buffers.left)?;
+                validate_finite(buffers.right)?;
+                f32_matmul(m, k, n, buffers.left, buffers.right, buffers.output)?;
+            }
+            (Operation::TensorF32Add | Operation::TensorF32Mul, Layout::Vector { len }) => {
+                validate_length("left", buffers.left.len(), len)?;
+                validate_length("right", buffers.right.len(), len)?;
+                validate_length("output", buffers.output.len(), len)?;
+                validate_finite(buffers.left)?;
+                validate_finite(buffers.right)?;
+                for (&left, &right) in buffers.left.iter().zip(buffers.right) {
+                    let result = if request.operation == Operation::TensorF32Add {
+                        left + right
+                    } else {
+                        left * right
+                    };
+                    if !result.is_finite() {
+                        return Err(AcceleratorError::ArithmeticOverflow);
+                    }
+                }
+                for ((&left, &right), output) in buffers
+                    .left
+                    .iter()
+                    .zip(buffers.right)
+                    .zip(buffers.output.iter_mut())
+                {
+                    *output = if request.operation == Operation::TensorF32Add {
+                        left + right
+                    } else {
+                        left * right
+                    };
+                }
+            }
+            _ => return Err(AcceleratorError::LayoutMismatch),
+        }
+        Ok(ExecutionEvidence {
+            backend_id: self.descriptor().id,
+            backend_version: self.descriptor().implementation_version,
+            operation: request.operation,
+            operation_version: request.version,
+            determinism: capability.determinism,
+            support: capability.support,
+        })
+    }
+}
+
+fn validate_finite(values: &[f32]) -> Result<(), AcceleratorError> {
+    if let Some((index, _)) = values
+        .iter()
+        .enumerate()
+        .find(|(_, value)| !value.is_finite())
+    {
+        Err(AcceleratorError::NonFiniteInput { index })
+    } else {
+        Ok(())
+    }
+}
+
+fn f32_matmul(
+    m: usize,
+    k: usize,
+    n: usize,
+    left: &[f32],
+    right: &[f32],
+    output: &mut [f32],
+) -> Result<(), AcceleratorError> {
+    for row in 0..m {
+        for column in 0..n {
+            f32_matmul_cell(row, column, k, n, left, right)?;
+        }
+    }
+    for row in 0..m {
+        for column in 0..n {
+            output[row * n + column] = f32_matmul_cell(row, column, k, n, left, right)?;
+        }
+    }
+    Ok(())
+}
+
+fn f32_matmul_cell(
+    row: usize,
+    column: usize,
+    k: usize,
+    n: usize,
+    left: &[f32],
+    right: &[f32],
+) -> Result<f32, AcceleratorError> {
+    let mut sum = 0.0_f32;
+    for inner in 0..k {
+        sum += left[row * k + inner] * right[inner * n + column];
+        if !sum.is_finite() {
+            return Err(AcceleratorError::ArithmeticOverflow);
+        }
+    }
+    Ok(sum)
 }
 
 fn validate_length(
@@ -975,5 +1148,83 @@ mod tests {
             registry.plan(&dot_request(FallbackPolicy::PreferAccelerated)),
             Err(AcceleratorError::NoCompatibleBackend { .. })
         ));
+    }
+
+    #[test]
+    fn f32_binary_family_is_correct_and_failure_atomic() {
+        let backend = ScalarReferenceBackend;
+        let base = KernelRequest {
+            operation: Operation::TensorF32MatMul,
+            version: ACCELERATOR_CONTRACT_VERSION,
+            layout: Layout::MatMul { m: 2, k: 3, n: 2 },
+            lane: ExecutionLane::Advisory,
+            minimum_support: SupportLevel::Conformant,
+            minimum_determinism: Determinism::ToleranceBounded,
+            fallback: FallbackPolicy::AllowReference,
+            named_backend: None,
+        };
+        let mut matrix = [91.0; 4];
+        backend
+            .execute_f32_binary(
+                &base,
+                F32BinaryKernelBuffers {
+                    left: &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                    right: &[7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
+                    output: &mut matrix,
+                },
+            )
+            .unwrap();
+        assert_eq!(matrix, [58.0, 64.0, 139.0, 154.0]);
+
+        let add = KernelRequest {
+            operation: Operation::TensorF32Add,
+            layout: Layout::Vector { len: 3 },
+            ..base
+        };
+        let mut output = [91.0; 3];
+        backend
+            .execute_f32_binary(
+                &add,
+                F32BinaryKernelBuffers {
+                    left: &[1.5, -2.0, 4.0],
+                    right: &[2.0, 3.0, -0.5],
+                    output: &mut output,
+                },
+            )
+            .unwrap();
+        assert_eq!(output, [3.5, 1.0, 3.5]);
+
+        let mul = KernelRequest {
+            operation: Operation::TensorF32Mul,
+            ..add
+        };
+        backend
+            .execute_f32_binary(
+                &mul,
+                F32BinaryKernelBuffers {
+                    left: &[1.5, -2.0, 4.0],
+                    right: &[2.0, 3.0, -0.5],
+                    output: &mut output,
+                },
+            )
+            .unwrap();
+        assert_eq!(output, [3.0, -6.0, -2.0]);
+        let mut untouched = [71.0];
+        let overflow = KernelRequest {
+            layout: Layout::Vector { len: 1 },
+            ..mul
+        };
+        assert_eq!(
+            backend.execute_f32_binary(
+                &overflow,
+                F32BinaryKernelBuffers {
+                    left: &[f32::MAX],
+                    right: &[2.0],
+                    output: &mut untouched,
+                }
+            ),
+            Err(AcceleratorError::ArithmeticOverflow)
+        );
+        assert_eq!(untouched, [71.0]);
     }
 }

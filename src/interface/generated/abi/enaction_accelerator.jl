@@ -11,6 +11,9 @@ const OPERATION_FIXED_I32_DOT = UInt32(1)
 const OPERATION_FIXED_I32_MATMUL = UInt32(2)
 const OPERATION_TENSOR_F32_RELU = UInt32(3)
 const OPERATION_TENSOR_F32_RELU6 = UInt32(4)
+const OPERATION_TENSOR_F32_MATMUL = UInt32(5)
+const OPERATION_TENSOR_F32_ADD = UInt32(6)
+const OPERATION_TENSOR_F32_MUL = UInt32(7)
 const LAYOUT_VECTOR = UInt32(3)
 const LANE_ADVISORY = UInt32(2)
 const DETERMINISM_TOLERANCE_BOUNDED = UInt32(2)
@@ -37,5 +40,8 @@ end
 
 execute_f32(function_pointer::Ptr{Cvoid}, request::Ref{Request}, input::Ref{BufferF32In}, output::Ref{BufferF32Out}, evidence::Ref{Evidence}) =
     ccall(function_pointer, UInt32, (Ref{Request}, Ref{BufferF32In}, Ref{BufferF32Out}, Ref{Evidence}), request, input, output, evidence)
+
+execute_f32_binary(function_pointer::Ptr{Cvoid}, request::Ref{Request}, left::Ref{BufferF32In}, right::Ref{BufferF32In}, output::Ref{BufferF32Out}, evidence::Ref{Evidence}) =
+    ccall(function_pointer, UInt32, (Ref{Request}, Ref{BufferF32In}, Ref{BufferF32In}, Ref{BufferF32Out}, Ref{Evidence}), request, left, right, output, evidence)
 
 end # module EnactionAcceleratorABI

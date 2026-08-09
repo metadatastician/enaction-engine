@@ -31,7 +31,14 @@ operationMinor : Bits16
 operationMinor = 0
 
 public export
-data Operation = FixedI32Dot | FixedI32MatMul | TensorF32Relu | TensorF32Relu6
+data Operation
+  = FixedI32Dot
+  | FixedI32MatMul
+  | TensorF32Relu
+  | TensorF32Relu6
+  | TensorF32MatMul
+  | TensorF32Add
+  | TensorF32Mul
 
 public export
 operationCode : Operation -> Bits32
@@ -39,6 +46,9 @@ operationCode FixedI32Dot = 1
 operationCode FixedI32MatMul = 2
 operationCode TensorF32Relu = 3
 operationCode TensorF32Relu6 = 4
+operationCode TensorF32MatMul = 5
+operationCode TensorF32Add = 6
+operationCode TensorF32Mul = 7
 
 public export
 data LayoutTag = DotLayout | MatMulLayout | VectorLayout
@@ -177,6 +187,14 @@ reluCodesDistinct Refl impossible
 public export
 fixedAndTensorCodesDistinct : Not (operationCode FixedI32MatMul = operationCode TensorF32Relu)
 fixedAndTensorCodesDistinct Refl impossible
+
+public export
+binaryTensorCodesDistinct : Not (operationCode TensorF32MatMul = operationCode TensorF32Add)
+binaryTensorCodesDistinct Refl impossible
+
+public export
+pointwiseBinaryCodesDistinct : Not (operationCode TensorF32Add = operationCode TensorF32Mul)
+pointwiseBinaryCodesDistinct Refl impossible
 
 private
 div8_56 : Divides 8 56

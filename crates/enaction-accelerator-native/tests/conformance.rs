@@ -5,9 +5,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use enaction_accelerator::{
-    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, F32KernelBuffers,
-    FallbackPolicy, KernelBuffers, KernelRequest, Layout, Operation, ScalarReferenceBackend,
-    SupportLevel,
+    ACCELERATOR_CONTRACT_VERSION, Backend, Determinism, ExecutionLane, F32BinaryKernelBuffers,
+    F32KernelBuffers, FallbackPolicy, KernelBuffers, KernelRequest, Layout, Operation,
+    ScalarReferenceBackend, SupportLevel,
 };
 use enaction_accelerator_native::ZigScalarBackend;
 use serde_json::Value;
@@ -69,6 +69,43 @@ fn execute_f32(backend: &dyn Backend, operation: Operation, input: &[f32]) -> Ve
             },
         )
         .expect("f32 fixture executes");
+    output.into_iter().map(f32::to_bits).collect()
+}
+
+fn execute_f32_binary(
+    backend: &dyn Backend,
+    operation: Operation,
+    layout: Layout,
+    left: &[f32],
+    right: &[f32],
+) -> Vec<u32> {
+    let mut output = vec![
+        91.0;
+        match layout {
+            Layout::MatMul { m, n, .. } => m * n,
+            Layout::Vector { len } => len,
+            _ => unreachable!(),
+        }
+    ];
+    backend
+        .execute_f32_binary(
+            &KernelRequest {
+                operation,
+                version: ACCELERATOR_CONTRACT_VERSION,
+                layout,
+                lane: ExecutionLane::Advisory,
+                minimum_support: SupportLevel::Conformant,
+                minimum_determinism: Determinism::ToleranceBounded,
+                fallback: FallbackPolicy::PreferAccelerated,
+                named_backend: None,
+            },
+            F32BinaryKernelBuffers {
+                left,
+                right,
+                output: &mut output,
+            },
+        )
+        .expect("f32 binary fixture executes");
     output.into_iter().map(f32::to_bits).collect()
 }
 
@@ -187,6 +224,70 @@ fn rust_and_zig_match_v1_canonical_fixtures_byte_for_byte() {
             )
         );
     }
+
+    for (operation, name) in [
+        (Operation::TensorF32Add, "tensor-f32-add"),
+        (Operation::TensorF32Mul, "tensor-f32-mul"),
+    ] {
+        let case = load(root.join(format!("cases/{name}.json")));
+        let left = f32_bits(&case, "left_bits")
+            .into_iter()
+            .map(f32::from_bits)
+            .collect::<Vec<_>>();
+        let right = f32_bits(&case, "right_bits")
+            .into_iter()
+            .map(f32::from_bits)
+            .collect::<Vec<_>>();
+        let rust_bits = execute_f32_binary(
+            &rust,
+            operation,
+            Layout::Vector { len: left.len() },
+            &left,
+            &right,
+        );
+        let zig_bits = execute_f32_binary(
+            &zig,
+            operation,
+            Layout::Vector { len: left.len() },
+            &left,
+            &right,
+        );
+        assert_eq!(zig_bits, rust_bits);
+        assert_eq!(
+            zig_bits,
+            f32_bits(
+                &load(root.join(format!("expected/{name}.json"))),
+                "output_bits"
+            )
+        );
+    }
+    let case = load(root.join("cases/tensor-f32-matmul.json"));
+    let dimension = |name: &str| {
+        usize::try_from(case["layout"][name].as_u64().expect("dimension")).expect("usize")
+    };
+    let left = f32_bits(&case, "left_bits")
+        .into_iter()
+        .map(f32::from_bits)
+        .collect::<Vec<_>>();
+    let right = f32_bits(&case, "right_bits")
+        .into_iter()
+        .map(f32::from_bits)
+        .collect::<Vec<_>>();
+    let layout = Layout::MatMul {
+        m: dimension("m"),
+        k: dimension("k"),
+        n: dimension("n"),
+    };
+    let rust_bits = execute_f32_binary(&rust, Operation::TensorF32MatMul, layout, &left, &right);
+    let zig_bits = execute_f32_binary(&zig, Operation::TensorF32MatMul, layout, &left, &right);
+    assert_eq!(zig_bits, rust_bits);
+    assert_eq!(
+        zig_bits,
+        f32_bits(
+            &load(root.join("expected/tensor-f32-matmul.json")),
+            "output_bits"
+        )
+    );
 }
 
 fn canonical_zig_bytes() -> String {

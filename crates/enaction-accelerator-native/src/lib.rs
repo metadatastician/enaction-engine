@@ -9,8 +9,9 @@
 
 use enaction_accelerator::{
     ACCELERATOR_CONTRACT_VERSION, AcceleratorError, Backend, BackendDescriptor, Capability,
-    ContractVersion, Determinism, DeviceClass, ExecutionEvidence, ExecutionLane, F32KernelBuffers,
-    KernelBuffers, KernelRequest, Layout, Operation, SupportLevel,
+    ContractVersion, Determinism, DeviceClass, ExecutionEvidence, ExecutionLane,
+    F32BinaryKernelBuffers, F32KernelBuffers, KernelBuffers, KernelRequest, Layout, Operation,
+    SupportLevel,
 };
 
 #[allow(dead_code)]
@@ -21,7 +22,7 @@ mod ffi {
     ));
 }
 
-const ZIG_CAPABILITIES: [Capability; 4] = [
+const ZIG_CAPABILITIES: [Capability; 7] = [
     Capability {
         operation: Operation::FixedI32Dot,
         version: ACCELERATOR_CONTRACT_VERSION,
@@ -42,6 +43,24 @@ const ZIG_CAPABILITIES: [Capability; 4] = [
     },
     Capability {
         operation: Operation::TensorF32Relu6,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Resilient,
+        determinism: Determinism::ToleranceBounded,
+    },
+    Capability {
+        operation: Operation::TensorF32MatMul,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Resilient,
+        determinism: Determinism::ToleranceBounded,
+    },
+    Capability {
+        operation: Operation::TensorF32Add,
+        version: ACCELERATOR_CONTRACT_VERSION,
+        support: SupportLevel::Resilient,
+        determinism: Determinism::ToleranceBounded,
+    },
+    Capability {
+        operation: Operation::TensorF32Mul,
         version: ACCELERATOR_CONTRACT_VERSION,
         support: SupportLevel::Resilient,
         determinism: Determinism::ToleranceBounded,
@@ -144,6 +163,52 @@ impl Backend for ZigScalarBackend {
             support: SupportLevel::Resilient,
         })
     }
+
+    fn execute_f32_binary(
+        &self,
+        request: &KernelRequest<'_>,
+        buffers: F32BinaryKernelBuffers<'_>,
+    ) -> Result<ExecutionEvidence, AcceleratorError> {
+        let raw_request = request_to_ffi(request)?;
+        let left = ffi::BufferF32In {
+            data: buffers.left.as_ptr(),
+            len: u64::try_from(buffers.left.len())
+                .map_err(|_| AcceleratorError::DimensionOverflow)?,
+        };
+        let right = ffi::BufferF32In {
+            data: buffers.right.as_ptr(),
+            len: u64::try_from(buffers.right.len())
+                .map_err(|_| AcceleratorError::DimensionOverflow)?,
+        };
+        let mut output = ffi::BufferF32Out {
+            data: buffers.output.as_mut_ptr(),
+            len: u64::try_from(buffers.output.len())
+                .map_err(|_| AcceleratorError::DimensionOverflow)?,
+        };
+        let mut evidence = ffi::Evidence::default();
+        // SAFETY: descriptors borrow valid aligned Rust slices only for this
+        // call; output is exclusive; Zig validates sizes, aliasing, finite
+        // values, and the complete result before changing output.
+        let status = unsafe {
+            ffi::enaction_accel_execute_f32_binary(
+                &raw_request,
+                &left,
+                &right,
+                &mut output,
+                &mut evidence,
+            )
+        };
+        map_status(status)?;
+        validate_evidence(request, evidence)?;
+        Ok(ExecutionEvidence {
+            backend_id: ZIG_DESCRIPTOR.id,
+            backend_version: ZIG_DESCRIPTOR.implementation_version,
+            operation: request.operation,
+            operation_version: request.version,
+            determinism: Determinism::ToleranceBounded,
+            support: SupportLevel::Resilient,
+        })
+    }
 }
 
 /// Query the ABI version exported by the linked Zig implementation.
@@ -215,6 +280,18 @@ fn request_to_ffi(request: &KernelRequest<'_>) -> Result<ffi::Request, Accelerat
             0,
             0,
         ),
+        (Operation::TensorF32MatMul, Layout::MatMul { m, k, n }) => (
+            ffi::LAYOUT_MATMUL,
+            u64::try_from(m).map_err(|_| AcceleratorError::DimensionOverflow)?,
+            u64::try_from(k).map_err(|_| AcceleratorError::DimensionOverflow)?,
+            u64::try_from(n).map_err(|_| AcceleratorError::DimensionOverflow)?,
+        ),
+        (Operation::TensorF32Add | Operation::TensorF32Mul, Layout::Vector { len }) => (
+            ffi::LAYOUT_VECTOR,
+            u64::try_from(len).map_err(|_| AcceleratorError::DimensionOverflow)?,
+            0,
+            0,
+        ),
         _ => return Err(AcceleratorError::LayoutMismatch),
     };
     Ok(ffi::Request {
@@ -240,6 +317,9 @@ fn operation_to_ffi(operation: Operation) -> u32 {
         Operation::FixedI32MatMul => ffi::OPERATION_FIXED_I32_MATMUL,
         Operation::TensorF32Relu => ffi::OPERATION_TENSOR_F32_RELU,
         Operation::TensorF32Relu6 => ffi::OPERATION_TENSOR_F32_RELU6,
+        Operation::TensorF32MatMul => ffi::OPERATION_TENSOR_F32_MATMUL,
+        Operation::TensorF32Add => ffi::OPERATION_TENSOR_F32_ADD,
+        Operation::TensorF32Mul => ffi::OPERATION_TENSOR_F32_MUL,
     }
 }
 
@@ -249,6 +329,9 @@ fn operation_from_ffi(operation: u32) -> Result<Operation, AcceleratorError> {
         ffi::OPERATION_FIXED_I32_MATMUL => Ok(Operation::FixedI32MatMul),
         ffi::OPERATION_TENSOR_F32_RELU => Ok(Operation::TensorF32Relu),
         ffi::OPERATION_TENSOR_F32_RELU6 => Ok(Operation::TensorF32Relu6),
+        ffi::OPERATION_TENSOR_F32_MATMUL => Ok(Operation::TensorF32MatMul),
+        ffi::OPERATION_TENSOR_F32_ADD => Ok(Operation::TensorF32Add),
+        ffi::OPERATION_TENSOR_F32_MUL => Ok(Operation::TensorF32Mul),
         status => Err(AcceleratorError::NativeAbiFailure {
             backend: ZIG_DESCRIPTOR.id,
             status,
@@ -305,9 +388,11 @@ fn validate_evidence(
                 Operation::FixedI32Dot | Operation::FixedI32MatMul => {
                     ffi::DETERMINISM_CANONICAL_EXACT
                 }
-                Operation::TensorF32Relu | Operation::TensorF32Relu6 => {
-                    ffi::DETERMINISM_TOLERANCE_BOUNDED
-                }
+                Operation::TensorF32Relu
+                | Operation::TensorF32Relu6
+                | Operation::TensorF32MatMul
+                | Operation::TensorF32Add
+                | Operation::TensorF32Mul => ffi::DETERMINISM_TOLERANCE_BOUNDED,
             }
     {
         Ok(())
@@ -429,5 +514,51 @@ mod tests {
             Err(AcceleratorError::ArithmeticOverflow)
         );
         assert_eq!(output, [71, 72]);
+    }
+
+    #[test]
+    fn axiom_derived_binary_kernels_cross_the_generated_abi() {
+        let backend = ZigScalarBackend;
+        let request = KernelRequest {
+            operation: Operation::TensorF32MatMul,
+            version: ACCELERATOR_CONTRACT_VERSION,
+            layout: Layout::MatMul { m: 2, k: 3, n: 2 },
+            lane: ExecutionLane::Advisory,
+            minimum_support: SupportLevel::Resilient,
+            minimum_determinism: Determinism::ToleranceBounded,
+            fallback: FallbackPolicy::PreferAccelerated,
+            named_backend: None,
+        };
+        let mut output = [91.0; 4];
+        backend
+            .execute_f32_binary(
+                &request,
+                F32BinaryKernelBuffers {
+                    left: &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                    right: &[7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
+                    output: &mut output,
+                },
+            )
+            .unwrap();
+        assert_eq!(output, [58.0, 64.0, 139.0, 154.0]);
+
+        let overflow = KernelRequest {
+            operation: Operation::TensorF32Mul,
+            layout: Layout::Vector { len: 1 },
+            ..request
+        };
+        let mut untouched = [71.0];
+        assert_eq!(
+            backend.execute_f32_binary(
+                &overflow,
+                F32BinaryKernelBuffers {
+                    left: &[f32::MAX],
+                    right: &[2.0],
+                    output: &mut untouched,
+                }
+            ),
+            Err(AcceleratorError::ArithmeticOverflow)
+        );
+        assert_eq!(untouched, [71.0]);
     }
 }

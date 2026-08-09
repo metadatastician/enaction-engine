@@ -3,3 +3,4 @@ enaction_accel_capability_at
 enaction_accel_capability_count
 enaction_accel_execute
 enaction_accel_execute_f32
+enaction_accel_execute_f32_binary
