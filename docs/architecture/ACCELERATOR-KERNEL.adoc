@@ -173,6 +173,9 @@ SNIFs; they need an explicit alternative-boundary decision.
 The safe `enaction-accelerator` crate supplies a scalar CPU reference backend
 and a failure-injectable backend. `enaction-accelerator-native` is the single
 audited unsafe boundary to an Idris2-defined, pure-Zig scalar implementation.
+The FFI build emits static and shared linkage forms of that same Zig module:
+Rust consumes the static archive and Julia's AcceleratorGate adapter loads the
+shared library. Neither form introduces a C implementation or a second kernel.
 Idris2 proves the admitted layouts and distinct operation codes; its deterministic renderer emits the
 C-compatible, Zig, Rust and Julia declarations. Zig, Rust and Julia assert the
 relevant sizes again. The locked v1 fixtures pass through both implementations:

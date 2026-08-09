@@ -27,6 +27,26 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(library);
 
+    // Julia and other dynamic hosts consume the same pure-Zig implementation.
+    // This is a second linkage form, not a C shim or a separate kernel.
+    const shared_abi_module = b.createModule(.{
+        .root_source_file = b.path("../generated/abi/enaction_accelerator.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const shared_accelerator_module = b.createModule(.{
+        .root_source_file = b.path("src/accelerator.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    shared_accelerator_module.addImport("abi", shared_abi_module);
+    const shared_library = b.addLibrary(.{
+        .name = "enaction_accelerator_shared",
+        .root_module = shared_accelerator_module,
+        .linkage = .dynamic,
+    });
+    b.installArtifact(shared_library);
+
     const generic_module = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
