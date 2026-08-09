@@ -8,6 +8,9 @@ project = "enaction-engine"
 version = "0.3.0"
 last-updated = "2026-08-04"
 status = "active"
+wiki = "docs/berrywiki/"
+wiki-pages = 16
+wiki-tool = "metadatastician/berrywiki"
 
 [project-context]
 name = "Enaction Engine"
@@ -78,6 +81,11 @@ actions = [
 [cross-repository-reconciliation]
 coordination-id = "ums-idaptik-slavia-enaction-2026-07-25"
 decision-status = "working direction recorded for the next agent; publication reconciliation remains"
+
+[coprocessor-documentation]
+human-index = "docs/berrywiki/Home.md"
+machine-index = "docs/berrywiki/Machine-Index.md"
+scope = "operation-first runtime, shared pure-Zig library, UMS boundary, and evidence"
 role = "Game-neutral deterministic runtime facilities; never the owner of UMS profiles or either game's narrative vocabulary."
 settled = [
   "Enaction must not depend on Universal Modding Studio",
