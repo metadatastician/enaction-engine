@@ -14,6 +14,19 @@ members = [
     "crates/enaction-accelerator",
     "crates/enaction-accelerator-native",
 ]
+# enaction-accelerator-native links a Zig-built static library (see
+# crates/enaction-accelerator-native/build.rs). It stays a workspace member
+# and stays in Cargo.lock, but leaves the DEFAULT build set because the
+# shared Rust CI reusable has no toolchain hook and cannot install Zig.
+# It is NOT skipped: the `accelerator` job in .github/workflows/rust-ci.yml
+# installs the pinned Zig and builds, lints, and tests it explicitly.
+# Revert this once the reusable grows a setup_zig input.
+default-members = [
+    "crates/enaction-time",
+    "crates/enaction-trace",
+    "crates/enaction-contracts",
+    "crates/enaction-accelerator",
+]
 
 [workspace.package]
 version = "0.1.0"

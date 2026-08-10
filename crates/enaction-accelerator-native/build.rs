@@ -24,7 +24,11 @@ fn main() {
             .display()
     );
 
-    let status = Command::new("zig")
+    // `ZIG` overrides the toolchain path; the default is a plain PATH lookup
+    // (the pin itself lives in mise.toml / .tool-versions: zig 0.16.0).
+    let zig = env::var("ZIG").unwrap_or_else(|_| "zig".to_string());
+    println!("cargo:rerun-if-env-changed=ZIG");
+    let status = Command::new(&zig)
         .current_dir(repository)
         .env("ZIG_GLOBAL_CACHE_DIR", output.join("zig-global-cache"))
         .env("ZIG_LOCAL_CACHE_DIR", output.join("zig-local-cache"))
@@ -41,7 +45,16 @@ fn main() {
             &format!("-femit-bin={}", library.display()),
         ])
         .status()
-        .expect("failed to launch the pinned Zig toolchain");
+        .unwrap_or_else(|e| {
+            panic!(
+                "failed to launch Zig (`{zig}`): {e}. Install the pinned \
+                 toolchain (zig 0.16.0 via mise.toml / .tool-versions) or set \
+                 ZIG=/path/to/zig. In CI this crate builds only in the \
+                 dedicated `accelerator` job of rust-ci.yml, which installs \
+                 Zig; it is excluded from the workspace default-members for \
+                 exactly this reason."
+            )
+        });
     assert!(
         status.success(),
         "pure-Zig accelerator library failed to build"
