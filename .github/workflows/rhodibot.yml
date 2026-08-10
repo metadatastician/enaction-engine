@@ -64,10 +64,16 @@ jobs:
           if [ -f "README.md" ] && [ -f "README.adoc" ] && [ "$(wc -l < README.md)" -lt 5 ]; then
             warn "stub README.md alongside README.adoc (would be removed)"
           fi
-          # SPDX drift — MANUAL owner-only fix, never auto-edited
+          # SPDX drift — MANUAL owner-only fix, never auto-edited.
+          # Match the bare/-only forms ONLY: a plain substring grep for
+          # "AGPL-3.0" also matches the COMPLIANT "AGPL-3.0-or-later" and
+          # fired two false positives per run. Flag only if a line mentions
+          # AGPL-3.0 in a non-'-or-later' form. The trailing `grep -q .`
+          # (not `-qv`) keeps the empty-input case implementation-independent:
+          # ugrep exits 0 for `-qv` on empty input where GNU grep exits 1.
           for dotfile in .gitignore .gitattributes .editorconfig; do
-            if [ -f "$dotfile" ] && grep -q "AGPL-3.0" "$dotfile" 2>/dev/null; then
-              warn "$dotfile carries an AGPL-3.0 SPDX header; estate policy is AGPL-3.0-or-later — fix MANUALLY (owner-only, never auto-edited)"
+            if [ -f "$dotfile" ] && grep -E 'AGPL-3\.0' "$dotfile" 2>/dev/null | grep -v 'AGPL-3\.0-or-later' | grep -q .; then
+              warn "$dotfile carries a non-'-or-later' AGPL-3.0 SPDX header; estate policy is AGPL-3.0-or-later — fix MANUALLY (owner-only, never auto-edited)"
             fi
           done
           # would-CREATE: missing required files
@@ -81,7 +87,11 @@ jobs:
 
           # --- advisory only: dangerous verification-bypass patterns ---
           for pattern in believe_me assert_total Admitted sorry unsafeCoerce Obj.magic; do
-            count=$(grep -rl "$pattern" --include='*.idr' --include='*.v' --include='*.lean' --include='*.hs' --include='*.ml' --include='*.res' . 2>/dev/null | grep -v node_modules | wc -l || echo 0)
+            # No `|| echo 0` here: under pipefail a zero-match grep fails the
+            # pipeline AFTER wc already printed 0, so the fallback emitted a
+            # second line ("0\n0") and broke the -gt integer test. wc -l
+            # always prints a number; the pipeline's exit status is unused.
+            count=$(grep -rl "$pattern" --include='*.idr' --include='*.v' --include='*.lean' --include='*.hs' --include='*.ml' --include='*.res' . 2>/dev/null | grep -v node_modules | wc -l)
             [ "$count" -gt 0 ] && note "verification-bypass pattern '$pattern' in $count file(s) (advisory)"
           done
 
