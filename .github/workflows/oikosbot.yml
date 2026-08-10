@@ -35,8 +35,11 @@ jobs:
           path: .
           output: results.sarif
 
+      # No `if: always()` here: when the analysis step fails (e.g. the oikos
+      # image can't be pulled), running the upload anyway just adds a second,
+      # misleading "Path does not exist: results.sarif" error on top of the
+      # real one. One honest failure beats two.
       - name: Upload SARIF to GitHub Security
-        if: always()
         uses: github/codeql-action/upload-sarif@v4.37.4
         with:
           sarif_file: results.sarif
