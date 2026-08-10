@@ -30,6 +30,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
+      - name: Install Rust toolchain
+        # Explicit install rather than the runner's preinstalled Rust, so this
+        # leg uses the SAME toolchain the reusable installs (dtolnay + explicit
+        # `toolchain: stable`) — otherwise clippy -D warnings could drift
+        # between runner-image stable and the reusable's stable. The repo's CI
+        # truth is stable (the reusable pins it); .tool-versions' nightly is
+        # the local mise toolchain only. gh actions-lock normalizes dtolnay to
+        # @master and pins the resolved commit in actions.lock.
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: clippy
       - name: Install pinned Zig
         uses: mlugg/setup-zig@v2.0.5
         with:
