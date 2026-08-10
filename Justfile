@@ -134,12 +134,12 @@ test-smoke:
     @echo "Smoke test..."
     # TODO: Add basic sanity checks
 
-# Run end-to-end tests — NOT IMPLEMENTED: no E2E suite exists yet.
-# A check that cannot fail is not a check (AGENTS.md), so this fails loudly
-# instead of echoing success. Wire a real command, then re-add to test-all.
+# Run end-to-end tests: conformance-corpus integrity (SHA256SUMS) + the
+# cross-implementation accelerator parity legs (scalar reference and the
+# Zig-native backend against the same locked cases). The native leg needs
+# the pinned Zig (mise.toml: 0.16.0).
 e2e:
-    @echo "e2e: NOT IMPLEMENTED — no E2E suite exists in this repo yet" >&2
-    @exit 1
+    @bash tests/e2e.sh
 
 # Run aspect tests — NOT IMPLEMENTED: no aspect suite exists yet.
 aspect:
@@ -181,7 +181,7 @@ crg-badge:
 # Run every test category that actually exists. e2e/aspect/bench/readiness
 # are deliberately excluded until they are real — they previously echoed
 # success without running anything, so this aggregate was a fake green.
-test-all: test fmt-check lint
+test-all: test fmt-check lint e2e
     @echo "All implemented test categories passed."
 
 # Run all quality checks
