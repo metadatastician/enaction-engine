@@ -25,6 +25,16 @@ DOCS_DIR="$REPO_ROOT/docs"
 # Justified exceptions, relative to repo root. Empty by default.
 ALLOWED=()
 
+# Directory-scoped exceptions (prefix match), relative to repo root.
+# docs/berrywiki/ is a BerryWiki notebook, not general documentation.
+# BerryWiki is Markdown-native by design: berrywiki-render is Markdown->HTML
+# via comrak and berrywiki-core GENERATES _Sidebar.md, so converting these
+# pages to AsciiDoc would break the tool that owns them. The notebook is
+# declared machine-readable state — see .machine_readable/descriptiles/
+# STATE.a2ml (`wiki`, `[coprocessor-documentation]`). Scoped to this one
+# directory: every other .md under docs/ still fails.
+ALLOWED_DIRS=("docs/berrywiki/")
+
 if [ ! -d "$DOCS_DIR" ]; then
     echo "PASS: no docs/ directory (nothing to check)"
     exit 0
@@ -39,11 +49,14 @@ for hit in "${HITS[@]}"; do
     for allowed in "${ALLOWED[@]}"; do
         if [ "$rel" = "$allowed" ]; then skip=1; break; fi
     done
+    for dir in "${ALLOWED_DIRS[@]}"; do
+        case "$rel" in "$dir"*) skip=1; break ;; esac
+    done
     if [ $skip -eq 0 ]; then EXTRAS+=("$rel"); fi
 done
 
 if [ ${#EXTRAS[@]} -eq 0 ]; then
-    echo "PASS: no .md files under docs/ (${#HITS[@]} total found, ${#ALLOWED[@]} allow-listed)"
+    echo "PASS: no disallowed .md files under docs/ (${#HITS[@]} total found; ${#ALLOWED[@]} file(s) + ${#ALLOWED_DIRS[@]} dir(s) allow-listed)"
     exit 0
 fi
 
