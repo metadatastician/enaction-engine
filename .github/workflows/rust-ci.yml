@@ -17,3 +17,40 @@ permissions:
 jobs:
   rust-ci:
     uses: hyperpolymath/standards/.github/workflows/rust-ci-reusable.yml@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4
+  # enaction-accelerator-native links a Zig-built static library. The shared
+  # reusable has no toolchain hook, so the crate sits outside the workspace
+  # default-members (Cargo.toml) and gets its own visible, failable leg here
+  # — the estate doctrine forbids silent skips. Zig pin matches mise.toml /
+  # .tool-versions (0.16.0: build.zig uses the 0.15+ addLibrary API and the
+  # committed artefacts were built with 0.16.0).
+  accelerator:
+    name: Accelerator (Zig-linked)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Install Rust toolchain
+        # Explicit install rather than the runner's preinstalled Rust, so this
+        # leg uses the SAME toolchain the reusable installs (dtolnay + explicit
+        # `toolchain: stable`) — otherwise clippy -D warnings could drift
+        # between runner-image stable and the reusable's stable. The repo's CI
+        # truth is stable (the reusable pins it); .tool-versions' nightly is
+        # the local mise toolchain only. gh actions-lock normalizes dtolnay to
+        # @master and pins the resolved commit in actions.lock.
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          components: clippy
+      - name: Install pinned Zig
+        uses: mlugg/setup-zig@v2.0.5
+        with:
+          version: 0.16.0
+      - name: Zig unit tests (FFI seam)
+        working-directory: src/interface/ffi
+        run: zig build test
+      - name: Native accelerator — check, clippy, test
+        run: |
+          cargo check --locked -p enaction-accelerator-native --all-targets
+          cargo clippy --locked -p enaction-accelerator-native --all-targets -- -D warnings
+          cargo test --locked -p enaction-accelerator-native --all-targets
