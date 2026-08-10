@@ -85,8 +85,8 @@ jobs:
           fi
           echo "CHANGELOG: OK"
       - name: Check no unfilled placeholder tokens
-        # Delegates to the same script tests/e2e/template_instantiation_test.sh
-        # runs, so the gate and the test can never disagree about the rule.
+        # Single implementation of the placeholder rule lives in
+        # scripts/check-no-placeholders.sh so no two callers can disagree.
         # This step used to check a hand-maintained list of required files that
         # omitted .github/settings.yml and ANCHOR.a2ml — the two places the
         # leaks actually were. The script scans everything and allow-lists the

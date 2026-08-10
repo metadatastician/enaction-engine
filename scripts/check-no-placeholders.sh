@@ -10,10 +10,11 @@
 # and a security policy that cites a key nobody holds is worse than one that
 # says "email us".
 #
-# This is the single implementation of that rule, called from two places:
+# This is the single implementation of that rule, called from
 #   * .github/workflows/openssf-compliance.yml — on the repo as committed
-#   * tests/e2e/template_instantiation_test.sh — on a freshly init'd repo,
-#     which is where a leak is still cheap to fix
+# (The template-instantiation e2e test was its second caller until that test
+# was retired: it re-ran the mint step on an already-minted repo and measured
+# the template, not the engine — see rsr-template-repo#28.)
 # It exists as a script rather than inline shell in each caller because the
 # previous split — a workflow that checked a hand-listed set of files, and an
 # e2e test that re-implemented substitution with its own token list — let the
@@ -104,7 +105,6 @@ ALLOWED=(
     ".machine_readable/ai/PLACEHOLDERS.adoc"   # the token vocabulary itself
     "EXPLAINME.adoc"                           # prose explaining that tokens exist
     "scripts/check-no-placeholders.sh"         # this file (the pattern above)
-    "tests/e2e/template_instantiation_test.sh" # names tokens in its answer list
 )
 
 is_allowed() {
