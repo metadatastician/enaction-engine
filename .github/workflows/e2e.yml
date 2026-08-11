@@ -36,24 +36,36 @@ concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  # ─── Default: template smoke (always runs — not a silent no-op) ─────
-  # Runs the template's own E2E harness (tests/e2e.sh). On the bare template
-  # this is a clean pass (no stack-specific checks enabled yet); downstream
-  # repos either extend tests/e2e.sh or uncomment a stack block below.
+  # ─── Default: engine E2E — accelerator conformance ─────────────────
+  # Runs the repo's E2E harness (tests/e2e.sh): conformance-corpus
+  # integrity (SHA256SUMS) + cross-implementation parity — the scalar
+  # reference and the Zig-native backend against the SAME locked cases
+  # (ADR-0020). The job's display name is kept unchanged so any ruleset
+  # required-context reference stays valid; rename it and the ruleset
+  # together, deliberately.
   e2e:
     name: E2E — template smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
+      - name: Install Rust toolchain
+        # gh actions-lock normalizes dtolnay refs to @master and pins the
+        # resolved commit in actions.lock (the lockfile IS the pin). The
+        # explicit `toolchain:` input is therefore mandatory — the @-ref no
+        # longer carries the version.
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Install pinned Zig
+        uses: mlugg/setup-zig@v2.0.5
+        with:
+          version: 0.16.0
       - name: Run E2E harness
-        run: |
-          if [ -f tests/e2e.sh ]; then
-            bash tests/e2e.sh
-          else
-            echo "::notice::no tests/e2e.sh present — nothing to run"
-          fi
+        # No existence guard: the harness is load-bearing now — a missing
+        # tests/e2e.sh must fail, not notice-and-pass.
+        run: bash tests/e2e.sh
 
 # ─── End-to-End Tests (downstream stack-specific examples) ─────────
 # Uncomment ONE of the following e2e job blocks matching your stack.

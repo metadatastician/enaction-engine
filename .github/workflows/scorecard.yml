@@ -20,7 +20,12 @@ jobs:
     # Reusable called-workflow permissions are CAPPED by the caller's grants;
     # without security-events: write here the scorecard SARIF upload fails with
     # startup_failure (hypatia WF018). id-token: write enables OIDC publish.
+    # actions: read matches the reusable's TOP-LEVEL permissions block at the
+    # pinned SHA — a caller granting less than the reusable declares is a
+    # 0-second startup_failure before any job runs (standards'
+    # rust-ci-reusable.yml documents the same trap in reverse).
     permissions:
+      actions: read
       contents: read
       security-events: write
       id-token: write
