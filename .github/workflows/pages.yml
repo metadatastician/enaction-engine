@@ -23,7 +23,11 @@ concurrency:
 
 jobs:
   build:
-    timeout-minutes: 20
+    # A cold casket build compiles Pandoc and Typst from source. The measured
+    # 20-minute ceiling killed GHC while it was still compiling Pandoc, before
+    # actions/cache could save the completed store. Allow the first build to
+    # finish and populate the cache; warm runs remain bounded by the same job.
+    timeout-minutes: 45
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,6 +37,10 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           repository: hyperpolymath/casket-ssg
+          # Last source revision before casket added an undeclared runtime
+          # dependency on the external liblol C library. Keep this immutable
+          # until casket publishes a release artifact with its native deps.
+          ref: d62e70a244759e73486ef8b84abb2592534f2900
           path: .casket-ssg
 
       - name: Setup GHCup
