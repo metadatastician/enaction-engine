@@ -26,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
           components: rustfmt, clippy
@@ -59,7 +59,7 @@ jobs:
         # truth is stable (the reusable pins it); .tool-versions' nightly is
         # the local mise toolchain only. gh actions-lock normalizes dtolnay to
         # @master and pins the resolved commit in actions.lock.
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
           components: clippy
