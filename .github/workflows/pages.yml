@@ -32,9 +32,10 @@ jobs:
 
       - name: Build site
         run: |
-          gem install asciidoctor --version 2.0.26 --no-document
+          gem install asciidoctor --version 2.0.26 --no-document \
+            --install-dir .gems
           mkdir -p _site
-          asciidoctor --backend html5 --destination-dir _site \
+          .gems/bin/asciidoctor --backend html5 --destination-dir _site \
             --out-file index.html README.adoc
           touch _site/.nojekyll
 
