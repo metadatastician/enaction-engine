@@ -50,15 +50,17 @@ The following claims were rechecked on 2026-08-29 with Idris2 0.7.0 by running
 | `acceptsCurrentVersion`, `rejectsWrongMajor`, `rejectsNewerMinor`
 
 | ABI-P6
-| Five stated pairs of operation codes are unequal.
-| `operationCodesDistinct`, `reluCodesDistinct`,
-  `fixedAndTensorCodesDistinct`, `binaryTensorCodesDistinct`,
-  `pointwiseBinaryCodesDistinct`
+| The operation-code function is injective over all seven admitted operations;
+  consequently every pair of different operations has different codes.
+| `operationCodeInjective` covers all 49 ordered constructor pairs, and
+  `differentOperationsHaveDifferentCodes` exposes the contrapositive form.
+  The five earlier named pair proofs remain as compatibility witnesses derived
+  from the exhaustive theorem.
 |===
 
-ABI-P6 is deliberately narrow. Five pairwise non-equalities do not prove that
-all seven operation codes are mutually distinct. Exhaustive uniqueness remains
-a gap.
+ABI-P6 is exhaustive: all seven equal-constructor cases and all 42 directed
+unequal-constructor cases are checked by Idris2. Equivalently, this covers all
+21 unordered pairs of different operations.
 
 == Tested implementation correspondence
 
@@ -115,11 +117,6 @@ for every file in its manifests. Its product meaning is limited:
 | Generic C-ABI compliance is quarantined and depends on ABI-G2.
 | Repair `ABI/Compliance.idr`, connect it to generated declarations, and gate
   the connection.
-
-| ABI-G4
-| Operation-code uniqueness is not exhaustive.
-| Prove injectivity of `operationCode`, or prove all 21 unordered pairs for the
-  seven admitted operations.
 
 | TP-G1
 | Generic Idris2 core types and Lean public-API safety are quarantined.
