@@ -84,21 +84,50 @@ record StructLayout where
 
 ||| Proof that all fields in a struct are correctly aligned
 public export
-data FieldsAligned : Vect n Field -> Type where
+data FieldsAligned : {n : Nat} -> Vect n Field -> Type where
   NoFields : FieldsAligned []
   ConsField :
+    {n : Nat} ->
     (f : Field) ->
     (rest : Vect n Field) ->
     (0 prf : Divides f.alignment f.offset) ->
     FieldsAligned rest ->
     FieldsAligned (f :: rest)
 
+||| Proof that every field ends at or before the declared struct size.
+public export
+data FieldsInBounds : (structSize : Nat) -> {n : Nat} -> Vect n Field -> Type where
+  NoBounds : {structSize : Nat} -> FieldsInBounds structSize []
+  ConsBound :
+    {structSize : Nat} ->
+    {n : Nat} ->
+    (f : Field) ->
+    (rest : Vect n Field) ->
+    (0 prf : LTE (f.offset + f.size) structSize) ->
+    FieldsInBounds structSize rest ->
+    FieldsInBounds structSize (f :: rest)
+
 ||| Predicate: Struct is C-ABI compliant
 public export
 data CABICompliant : StructLayout -> Type where
   CABIOk : (l : StructLayout) ->
-           (0 prf : FieldsAligned l.fields) ->
+           (0 aligned : FieldsAligned l.fields) ->
+           (0 bounded : FieldsInBounds l.totalSize l.fields) ->
            CABICompliant l
+
+private
+lteReflInternal : {n : Nat} -> LTE n n
+lteReflInternal {n = Z} = LTEZero
+lteReflInternal {n = S k} = LTESucc lteReflInternal
+
+||| Constructively extend a reflexive bound by a known number of bytes.
+public export
+ltePlusRight : (left, extra : Nat) -> LTE left (left + extra)
+ltePlusRight left Z = rewrite plusZeroRightNeutral left in lteReflInternal
+ltePlusRight left (S extra) =
+  replace {p = \right => LTE left right}
+          (plusSuccRightSucc left extra)
+          (lteSuccRight (ltePlusRight left extra))
 
 --------------------------------------------------------------------------------
 -- Example and Proofs
@@ -125,4 +154,8 @@ exampleLayoutValid = CABIOk Abi.Layout.exampleLayout (
   ConsField (MkField "x" 0 4 4) _ div4_0 (
   ConsField (MkField "y" 8 8 8) _ div8_8 (
   ConsField (MkField "z" 16 8 8) _ div8_16 (
-  NoFields))))
+  NoFields)))) (
+  ConsBound (MkField "x" 0 4 4) _ (ltePlusRight 4 20) (
+  ConsBound (MkField "y" 8 8 8) _ (ltePlusRight 16 8) (
+  ConsBound (MkField "z" 16 8 8) _ (ltePlusRight 24 0) (
+  NoBounds))))

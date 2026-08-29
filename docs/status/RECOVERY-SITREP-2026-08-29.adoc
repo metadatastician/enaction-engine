@@ -90,6 +90,12 @@ buffer requires data and a valid null data pointer denotes an empty buffer.
 Zig exercises the corresponding rejection paths, but the Idris-to-Zig
 refinement remains a recorded gap rather than a proof claim.
 
+Idris2 layout bounds:: The production `CABICompliant` certificate now requires
+every field to be aligned and to end within its declared struct size. All 33
+fields across request, buffer, capability and evidence are covered. Target
+compiler representation remains correspondence evidence, not a proved
+refinement.
+
 == Route forward
 
 . Keep pull request 53 narrow and blocked until required external gates can be

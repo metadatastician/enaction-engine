@@ -365,6 +365,19 @@ requestLayoutValid = CABIOk Abi.Accelerator.requestLayout
   (ConsField _ _ div8_32
   (ConsField _ _ div8_40
   (ConsField _ _ div8_48 NoFields)))))))))))))
+  (ConsBound _ _ (ltePlusRight 2 54)
+  (ConsBound _ _ (ltePlusRight 4 52)
+  (ConsBound _ _ (ltePlusRight 6 50)
+  (ConsBound _ _ (ltePlusRight 8 48)
+  (ConsBound _ _ (ltePlusRight 12 44)
+  (ConsBound _ _ (ltePlusRight 16 40)
+  (ConsBound _ _ (ltePlusRight 20 36)
+  (ConsBound _ _ (ltePlusRight 24 32)
+  (ConsBound _ _ (ltePlusRight 28 28)
+  (ConsBound _ _ (ltePlusRight 32 24)
+  (ConsBound _ _ (ltePlusRight 40 16)
+  (ConsBound _ _ (ltePlusRight 48 8)
+  (ConsBound _ _ (ltePlusRight 56 0) NoBounds)))))))))))))
 
 public export
 bufferLayout : StructLayout
@@ -377,6 +390,8 @@ public export
 bufferLayoutValid : CABICompliant Abi.Accelerator.bufferLayout
 bufferLayoutValid = CABIOk Abi.Accelerator.bufferLayout
   (ConsField _ _ div8_0 (ConsField _ _ div8_8 NoFields))
+  (ConsBound _ _ (ltePlusRight 8 8)
+  (ConsBound _ _ (ltePlusRight 16 0) NoBounds))
 
 public export
 capabilityLayout : StructLayout
@@ -406,6 +421,16 @@ capabilityLayoutValid = CABIOk Abi.Accelerator.capabilityLayout
   (ConsField _ _ div4_20
   (ConsField _ _ div4_24
   (ConsField _ _ div4_28 NoFields))))))))))
+  (ConsBound _ _ (ltePlusRight 2 30)
+  (ConsBound _ _ (ltePlusRight 4 28)
+  (ConsBound _ _ (ltePlusRight 6 26)
+  (ConsBound _ _ (ltePlusRight 8 24)
+  (ConsBound _ _ (ltePlusRight 12 20)
+  (ConsBound _ _ (ltePlusRight 16 16)
+  (ConsBound _ _ (ltePlusRight 20 12)
+  (ConsBound _ _ (ltePlusRight 24 8)
+  (ConsBound _ _ (ltePlusRight 28 4)
+  (ConsBound _ _ (ltePlusRight 32 0) NoBounds))))))))))
 
 public export
 evidenceLayout : StructLayout
@@ -431,3 +456,11 @@ evidenceLayoutValid = CABIOk Abi.Accelerator.evidenceLayout
   (ConsField _ _ div4_12
   (ConsField _ _ div4_16
   (ConsField _ _ div4_20 NoFields))))))))
+  (ConsBound _ _ (ltePlusRight 2 22)
+  (ConsBound _ _ (ltePlusRight 4 20)
+  (ConsBound _ _ (ltePlusRight 6 18)
+  (ConsBound _ _ (ltePlusRight 8 16)
+  (ConsBound _ _ (ltePlusRight 12 12)
+  (ConsBound _ _ (ltePlusRight 16 8)
+  (ConsBound _ _ (ltePlusRight 20 4)
+  (ConsBound _ _ (ltePlusRight 24 0) NoBounds))))))))

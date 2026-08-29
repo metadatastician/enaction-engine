@@ -36,10 +36,10 @@ where they apply to Enaction Engine:
 | # | Proof | Status | File
 
 | ABI-1 | Buffer pointer/nullability policy | Partial: product policy proved; Zig refinement open | `src/interface/Abi/Accelerator.idr` (`ABI-P7`); obsolete generic template remains quarantined
-| ABI-2 | Memory layout correctness (`HasSize`, `HasAlignment`) | Needed | `verification/proofs/idris2/ABI/Layout.idr`
+| ABI-2 | Production field alignment and bounds | Proved for all four accelerator layouts | `src/interface/Abi/Layout.idr`, `src/interface/Abi/Accelerator.idr` (`ABI-P1`–`ABI-P4`)
 | ABI-3 | Platform type size proofs (per platform) | Needed | `verification/proofs/idris2/ABI/Platform.idr`
 | ABI-4 | FFI function return type proofs | Needed | `verification/proofs/idris2/ABI/Foreign.idr`
-| ABI-5 | C ABI compliance (`CABICompliant`, `FieldsAligned`) | Needed | `verification/proofs/idris2/ABI/Compliance.idr`
+| ABI-5 | C ABI compliance (`CABICompliant`) | Partial: declared model proved; compiler refinement open | `src/interface/Abi/Layout.idr`, `src/interface/Abi/Accelerator.idr`
 |===
 
 === Typing Proofs (Prover Varies)
