@@ -38,13 +38,17 @@ jobs:
           failed=0
           for file in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$file" ] || continue
-            if ! head -1 "$file" | grep -q "^# SPDX-License-Identifier:"; then
-              echo "ERROR: $file missing SPDX header"
+            # gh actions-lock owns line 1 and places its management marker
+            # before the licence. Inspect the complete leading comment block
+            # and enforce this AGPL repository's exact code licence.
+            if ! awk '/^---[[:space:]]*$/ { next } /^#/ { print; next } { exit }' "$file" \
+                 | grep -qx '# SPDX-License-Identifier: AGPL-3.0-or-later'; then
+              echo "ERROR: $file has no AGPL-3.0-or-later SPDX identifier in its header comment block"
               failed=1
             fi
           done
           if [ $failed -eq 1 ]; then
-            echo "Add '# SPDX-License-Identifier: AGPL-3.0-or-later' as first line"
+            echo "Add '# SPDX-License-Identifier: AGPL-3.0-or-later' to the leading comment block"
             exit 1
           fi
           echo "All workflows have SPDX headers"

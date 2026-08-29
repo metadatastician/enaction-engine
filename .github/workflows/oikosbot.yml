@@ -35,13 +35,16 @@ jobs:
           mode: report
           path: .
           output: results.sarif
+          # v0.1.1 defaults to a removed manifest. This is the current public
+          # amd64 image, resolved from GHCR's registry and pinned immutably.
+          image: ghcr.io/hyperpolymath/oikos@sha256:35eb0aca8dd4baee3fdba9967c323ab17afc3911fda2b369ce61ac1aa75da03c
 
       # No `if: always()` here: when the analysis step fails (e.g. the oikos
       # image can't be pulled), running the upload anyway just adds a second,
       # misleading "Path does not exist: results.sarif" error on top of the
       # real one. One honest failure beats two.
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4.37.7
+        uses: github/codeql-action/upload-sarif@v4.37.8
         with:
           sarif_file: results.sarif
           category: oikosbot
