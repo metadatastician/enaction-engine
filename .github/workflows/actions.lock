@@ -7,7 +7,7 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/codeql.yml':
         - 'actions/checkout@v7.0.1'
-        - 'github/codeql-action@v4.37.7'
+        - 'github/codeql-action@v4.37.8'
     '.github/workflows/container-build.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/dependabot-automerge.yml':
@@ -29,17 +29,15 @@ workflows:
     '.github/workflows/mirror.yml': []
     '.github/workflows/oikosbot.yml':
         - 'actions/checkout@v7.0.1'
-        - 'github/codeql-action@v4.37.7'
+        - 'github/codeql-action@v4.37.8'
         - 'hyperpolymath/oikosbot@v0.1.1'
     '.github/workflows/openssf-compliance.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/pages.yml':
-        - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
         - 'actions/configure-pages@v6.0.0'
         - 'actions/deploy-pages@v5.0.0'
         - 'actions/upload-pages-artifact@v5.0.0'
-        - 'haskell-actions/setup@v2.12.0'
     '.github/workflows/quality.yml':
         - 'actions/checkout@v7.0.1'
         - 'editorconfig-checker/action-editorconfig-checker@v2.2.0'
@@ -54,7 +52,7 @@ workflows:
         - 'actions/checkout@v7.0.1'
     '.github/workflows/rust-ci.yml':
         - 'actions/checkout@v7.0.1'
-        - 'dtolnay/rust-toolchain@master'
+        - 'dtolnay/rust-toolchain@v1'
         - 'mlugg/setup-zig@v2.2.1'
     '.github/workflows/scorecard.yml': []
     '.github/workflows/secret-scanner.yml': []
@@ -82,11 +80,6 @@ dependencies:
         commit: 'sha1-508db95dd578ae2727ebd6217d5ba78e4fbda05d'
         owner_id: 44036562
         repo_id: 760701061
-    'actions/cache@v6.1.0':
-        ref: 'v6.1.0'
-        commit: 'sha1-55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
-        owner_id: 44036562
-        repo_id: 215566462
     'actions/checkout@v7.0.1':
         ref: 'v7.0.1'
         commit: 'sha1-3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -134,6 +127,11 @@ dependencies:
         commit: 'sha1-6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
         owner_id: 1940490
         repo_id: 260749683
+    'dtolnay/rust-toolchain@v1':
+        ref: 'v1'
+        commit: 'sha1-6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772'
+        owner_id: 1940490
+        repo_id: 260749683
     'editorconfig-checker/action-editorconfig-checker@v2.2.0':
         ref: 'v2.2.0'
         commit: 'sha1-840e866d93b8e032123c23bac69dece044d4d84c'
@@ -144,16 +142,11 @@ dependencies:
         commit: 'sha1-54075bcc5e249e4758d363f27d099f55d843f124'
         owner_id: 47606891
         repo_id: 331103973
-    'github/codeql-action@v4.37.7':
-        ref: 'v4.37.7'
-        commit: 'sha1-ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd'
+    'github/codeql-action@v4.37.8':
+        ref: 'v4.37.8'
+        commit: 'sha1-db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28'
         owner_id: 9919
         repo_id: 259445878
-    'haskell-actions/setup@v2.12.0':
-        ref: 'v2.12.0'
-        commit: 'sha1-6037f33647c3f17758a2356c80fc4a53d7e0685d'
-        owner_id: 75048950
-        repo_id: 623796603
     'hyperpolymath/oikosbot@v0.1.1':
         ref: 'v0.1.1'
         commit: 'sha1-f00dec4597dde6071a7f0fe38414c13b5847f316'
