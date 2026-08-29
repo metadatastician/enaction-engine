@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Recovery SITREP — 2026-08-29
+:toc:
+
+== Outcome
+
+The code-recovery pull request is substantially healthy but is not mergeable
+without bypass under the current external-analyser model. Work continues on
+proof accounting and game adoption; security and quality gates remain visible.
+
+== Completed
+
+* Standards issue 656 was resolved by standards pull request 688. Current
+  standards `main` passed 12/12 live-policy regressions, scanned 33 workflow
+  references with zero allowlist gaps, and rejected a planted forbidden action.
+* Enaction pull request 51 was folded into pull request 53 as a signed
+  descendant commit without rewriting history. The corrected invisible-
+  character pattern detected all 20 tested prohibited codepoints/ranges and
+  passed a visible-text negative control.
+* Pull request 53 now pins standards commit
+  `4d104d325b96c348d685956c6678139640c15c4b`. The authoritative Actions-lock
+  verifier reports all 27 workflows valid with zero findings.
+* The GitHub ruleset's exact before-state was preserved outside the repository.
+  Three contradictions were removed: unconditional update restriction,
+  impossible self-CODEOWNER approval, and 95% coverage with no producer. Merge
+  queue, signed commits, pull requests, resolved threads, strict required
+  statuses, CodeQL/Hypatia/Oikos thresholds, code quality and bypass actors were
+  unchanged. No bypass was used.
+* The refreshed head passes repository CI, Rust checks, the Zig-linked
+  accelerator, Hypatia, the baseline validator, governance preflight, OpenSSF,
+  secret scanning, workflow linting and the dogfood summary.
+
+== Open merge blockers
+
+=== Literal action-pin scanners versus the enforced lock model
+
+CodeQL, Codacy and Sonar all flag the same two
+`dtolnay/rust-toolchain@v1` lines. Enaction uses the estate's Actions lockfile
+model: repository settings require SHA pinning, runner logs resolve locked
+versions, and `gh actions-lock --verify` reports zero findings. The external
+analysers inspect literal YAML and do not consume that execution model.
+
+Standards issue 674 forbids the tempting workarounds: no inline pins, alert
+dismissals or threshold reductions. Required CodeQL and Sonar contexts remain
+in the ruleset. Resolution therefore needs upstream scanner support or an
+explicit future standards decision; pull request 53 remains blocked meanwhile.
+
+=== SonarQube Cloud identity
+
+The repository file declares `metadatastician_enaction-engine`, but that project
+does not exist. SonarQube Cloud project `metadatastician_affective-engine`
+exists with display name `enaction-engine` and posts to pull request 53. An
+authenticated owner must rename/provision the canonical project and rebind the
+repository. The quality gate must not be disabled; a repaired check must link
+to the canonical key.
+
+== Proof status
+
+See `PROOF-STATUS.adoc`. In short: the production Idris2 accelerator package
+and its stated layout/version/non-equality proofs typecheck; generated artifacts
+reproduce; Zig and cross-language conformance tests pass. Generic Agda/Coq
+templates are scaffolding, five Idris2/Lean modules remain quarantined, full
+operation-code uniqueness is absent, and Rust+Creusot verification does not
+exist yet.
+
+== Estate interface constraints
+
+SNIF:: A future BEAM numeric/buffer adapter uses the current SNIF boundary:
+freestanding Wasm, Zig `ReleaseSafe`, explicit error results, bounded execution,
+and no silent backend fallback. Wider `erl_nif` facilities require a separate
+ADR.
+
+Zig Hexadeca:: Enaction's FFI contains no `std.fs` or `std.io`, satisfying the
+current purity gate. It does not implement the sixteen-connector unified API
+and must not claim that surface without a real protocol-facing consumer.
+
+Idris2 ABI and Zig FFI:: Idris2 is normative for ABI types/layouts; generated
+declarations are deterministic wire artifacts; Zig implements the boundary;
+host languages do not independently redefine it.
+
+Rust and Creusot:: Rust implementation work is incomplete as formal work until
+Creusot contracts and a fail-closed, positive-controlled gate accompany it.
+
+== Route forward
+
+. Keep pull request 53 narrow and blocked until required external gates can be
+  satisfied without bypass.
+. Complete the authenticated Sonar remap and verify the new check target.
+. Track literal-scanner/Actions-lock compatibility at the standards/upstream
+  source; do not patch each consumer with a second pin authority.
+. Add Rust+Creusot proof obligations and connect remaining Idris2 obligations
+  to the production ABI before expanding accelerator claims.
+. Adopt selected existing facilities in IDApTIK. Record at least one boundary
+  surprise and service evidence.
+. Challenge the surviving boundary in Chronicles of Slavia before adding
+  conative crates or declaring generality.
+. Review the Enaction name and `ENACTIVE-COMMITMENTS.adoc` by 2026-11-30. Keep
+  the name until that review; the date is a proposal for owner approval. The
+  review happens earlier if both game passes complete, but is not postponed if
+  they do not.
+
+== Observation horizon
+
+GitHub observations cover the open issues and pull requests returned without a
+page cap for `metadatastician/enaction-engine`, PR 53's exact head at
+`692196676436c6cf87949925bc4b900085e288b5`, ruleset 20008023, and open
+code-scanning alerts explicitly queried for `refs/pull/53/head`. Local proof and
+interface observations cover the tracked tree at `origin/main` plus the two
+signed workflow descendants on PR 53. The dirty/diverged `meta-repos` and SNIF
+working trees were not treated as canonical and were not modified.

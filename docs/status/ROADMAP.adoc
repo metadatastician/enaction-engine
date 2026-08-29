@@ -3,10 +3,11 @@
 = Enaction Engine Roadmap
 :toc:
 
-This roadmap is evidence-gated. Only Phase 1 has implementation in this
-repository. Later phases are intended direction, not release commitments or
-claims of existing subsystems. A component earns its way in through a real game,
-working code, tests, and a stable boundary.
+This roadmap is evidence-gated. Implementation now exists in parts of Phases 1,
+2, 5, and the cross-cutting coprocessor boundary, but no phase has real-game
+adoption from this repository. Later phases are intended direction, not release
+commitments or claims of complete subsystems. A component earns its way in
+through a real game, working code, tests, and a stable boundary.
 
 == Admission rule
 
@@ -29,11 +30,13 @@ Next committed work is integration evidence: exercise `enaction-time` in a game
 host, preserve replay inputs independently of presentation, and measure shortcut
 behaviour under stalls. Full replay storage is not implemented here yet.
 
-=== 2. World-state and event substrate — exploratory
+=== 2. World-state and event substrate — partial, unadopted
 
-Identify a minimal deterministic state/event boundary from a real game. Specify
-ordering, identifiers, snapshots, and versioning without importing one game's
-ontology.
+`enaction-trace` implements typed, ordered and caused events, trope identity,
+belief kinetics, theory-of-mind ascription paths, retraction, and a perspective
+belief store. `enaction-contracts` implements versioned CAC/ESM types and
+package validators. A general world/state substrate, snapshots, persistence and
+game adoption remain absent.
 
 === 3. Host and rendering boundary — exploratory
 
@@ -45,20 +48,26 @@ and presentation sampling. A renderer is not implied by the current buffer.
 Represent embodied agents, affordances, constraints, chosen actions, and
 consequences over host-defined entities and events.
 
-=== 5. Cognitive state — exploratory
+=== 5. Cognitive state — partial seam, unadopted
 
-Extract evidence-backed facilities for perception, attention, memory, belief,
-inference, and planning. Avoid a monolithic “AI” API.
+Belief, salience/interest kinetics, false-belief ascription, retraction and
+projection queries are implemented and tested. Perception, attention, general
+memory, inference and planning are not complete subsystems. No game consumes
+the seam, so its generality remains provisional.
 
-=== 6. Affective state — exploratory
+=== 6. Affective state — typed boundary only
 
-Develop appraisal, mood, atmosphere, trust, fear, attachment, and significance
-as an interacting sibling dimension, not the engine identity.
+The trace can distinguish affective events and carries unsigned salience, but
+valence, appraisal, mood, atmosphere, trust, fear and attachment are not
+implemented. A domain tag is not an affect subsystem.
 
 === 7. Conative state — exploratory
 
 Develop needs, motives, goals, commitment, inhibition, and action selection,
 with explicit relationships to cognition, affect, and available action.
+The domain vocabulary exists, but goal, commitment and behavioural-selection
+machinery does not. ADR-0017 forbids creating it before real-game service and a
+recorded boundary surprise.
 
 === 8. Networking and persistence — exploratory
 
@@ -89,10 +98,46 @@ Use a second game's materially different ontology and demands to challenge the
 host, world, agency, and content contracts. Refactor boundaries that only fit
 IDApTIK rather than papering over them with game-specific engine concepts.
 
+== Recovery and adoption order — active
+
+. Land pull request 53 only through its required checks. Do not dismiss literal
+  pin alerts, inline-pin around the Actions lock model, weaken thresholds, or
+  use an administrator bypass.
+. Correct the SonarQube Cloud cross-project binding and pursue upstream support
+  for the enforced Actions lock model used by CodeQL, Codacy and Sonar.
+. Close the proof-accounting gaps: product proofs and compiling templates stay
+  separate; Rust means Rust plus Creusot; Idris2 owns ABI truth; Zig implements
+  the FFI; generated declarations are wire artifacts rather than a second
+  authority.
+. Exercise selected existing facilities in IDApTIK before adding conation or
+  another subsystem crate.
+. Challenge the surviving boundary in Chronicles of Slavia before calling it
+  general.
+. Review the Enaction name and its commitments no later than 2026-11-30. An
+  earlier review is appropriate if both proving-ground passes complete first;
+  an incomplete proving-ground programme does not postpone the deadline.
+
+== Interface constraints
+
+* A BEAM numeric or byte-buffer adapter uses `hyperpolymath/snifs`: a
+  freestanding WebAssembly guest, Zig `ReleaseSafe`, explicit fallibility,
+  bounded execution, and no silent fallback. Operations needing the wider
+  `erl_nif` surface require a separate ADR.
+* A Zig FFI must pass the estate Hexadeca purity floor: no direct `std.fs` or
+  `std.io` in the FFI. Passing that floor does not manufacture a sixteen-
+  connector protocol API. A unified Hexadeca connector is admitted only when
+  a real protocol-facing consumer needs it.
+* The stable interface chain is Idris2 ABI authority to deterministic generated
+  declarations to Zig FFI to host bindings. Rust code additionally requires
+  Creusot contracts and a fail-closed verification gate before formal Rust
+  correctness is claimed.
+
 == Commitment boundary
 
-Committed repository work is maintenance and validation of the current timing
-crate, truthful documentation, and proving-ground integration when scheduled by
-the games. Phases 2–10 and 12 are exploratory direction until backed by an
-accepted scoped proposal and implementation work. Dates are intentionally absent
-because evidence, not calendar optics, advances a phase.
+Committed repository work is recovery and validation of the implemented
+crates, truthful proof accounting, and proving-ground integration when
+scheduled by the games. Unimplemented portions of Phases 2–10 and Phase 12 are
+exploratory direction until backed by an accepted scoped proposal and
+implementation work. The 2026-11-30 naming review is a governance deadline,
+not a feature-delivery promise; evidence, not calendar optics, advances an
+implementation phase.
