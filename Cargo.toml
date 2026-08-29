@@ -13,6 +13,7 @@ members = [
     "crates/enaction-contracts",
     "crates/enaction-accelerator",
     "crates/enaction-accelerator-native",
+    "verification/creusot",
 ]
 # enaction-accelerator-native links a Zig-built static library (see
 # crates/enaction-accelerator-native/build.rs). It stays a workspace member
@@ -41,4 +42,5 @@ enaction-trace = { path = "crates/enaction-trace" }
 enaction-contracts = { path = "crates/enaction-contracts" }
 enaction-accelerator = { path = "crates/enaction-accelerator" }
 enaction-accelerator-native = { path = "crates/enaction-accelerator-native" }
+creusot-std = "=0.13.0"
 serde = { version = "1", features = ["derive"] }

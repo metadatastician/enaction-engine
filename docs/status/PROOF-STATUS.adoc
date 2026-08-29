@@ -22,8 +22,9 @@ does not mean every file is a completed Enaction proof.
 
 == Confirmed product proofs
 
-The following claims were rechecked on 2026-08-29 with Idris2 0.7.0 by running
-`idris2 --typecheck abi.ipkg`. All five production ABI modules typechecked.
+The ABI claims below were rechecked on 2026-08-29 with Idris2 0.7.0 by running
+`idris2 --typecheck abi.ipkg`. The Rust claim was checked with Creusot 0.13.0,
+Why3 1.8.2+git and its pinned `nightly-2026-06-22` toolchain.
 
 [cols="1,3,3", options="header"]
 |===
@@ -56,11 +57,24 @@ The following claims were rechecked on 2026-08-29 with Idris2 0.7.0 by running
   `differentOperationsHaveDifferentCodes` exposes the contrapositive form.
   The five earlier named pair proofs remain as compatibility witnesses derived
   from the exhaustive theorem.
+
+| RUST-P1
+| The production accelerator version predicate returns true exactly when host
+  and request majors match and the requested minor is no newer than the host.
+| `crates/enaction-accelerator/src/version.rs` — `ContractVersion::accepts`;
+  `scripts/check-creusot.sh` proved all four generated files through the narrow
+  harness in `verification/creusot`.
 |===
 
 ABI-P6 is exhaustive: all seven equal-constructor cases and all 42 directed
 unequal-constructor cases are checked by Idris2. Equivalently, this covers all
 21 unordered pairs of different operations.
+
+RUST-P1 is connected to production source rather than a copied model: the
+verification harness includes the exact module compiled by
+`enaction-accelerator`. A negative control changed `<=` to `<`; Creusot then
+failed `Coma.vc_accepts` with only 3/4 files proved. Restoring the implementation
+returned the gate to 4/4. This does not prove any other Rust module.
 
 == Tested implementation correspondence
 
@@ -123,10 +137,16 @@ for every file in its manifests. Its product meaning is limited:
 | Repair, product-specialise, and promote them from quarantine.
 
 | RUST-G1
-| Rust has tests but no Creusot contracts, installed Creusot tool, or CI gate.
-| Specify contracts for the Rust semantic reference and adapter, run Creusot
-  fail-closed in CI, and plant a failing contract control before claiming the
-  gate is effective.
+| Creusot proves only the production version-compatibility predicate; planner,
+  integer kernels, floating-point kernels and native adapter remain unproved.
+| Admit each exact production module to the narrow harness only when Creusot
+  can translate its dependencies, then state and positively control its own
+  contract. Creusot 0.13 currently ICEs on the planner's trait-object surface.
+
+| RUST-G2
+| The fail-closed local Creusot gate is not yet provisioned in GitHub Actions.
+| Install the exact Creusot 0.13.0 release and pinned Rust toolchain in a
+  required workflow; do not call local tool installation a CI gate.
 
 | CHAIN-G1
 | Model-to-generated-code-to-Zig-to-Rust equivalence is tested, not proved.
@@ -146,10 +166,8 @@ for every file in its manifests. Its product meaning is limited:
 ----
 idris2 --typecheck abi.ipkg
 scripts/generate-accelerator-abi.sh --check
+scripts/check-creusot.sh
 just proof-check-all
 (cd src/interface/ffi && zig build test)
 just e2e
 ----
-
-Creusot is intentionally absent from the passing command list until the
-contracts, tool provision and fail-closed gate exist.

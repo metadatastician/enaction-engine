@@ -8,8 +8,8 @@
 # scan for dangerous/unsafe constructs and report status. Run via
 # `just proof-check-all` for the full sweep.
 
-# Check all formal proofs (Idris2 + Lean4 + Agda + Coq)
-proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-scan-dangerous
+# Check all formal proofs (Idris2 + Lean4 + Agda + Coq + Rust/Creusot)
+proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-check-creusot proof-scan-dangerous
     @echo "=== All proof checks complete ==="
 
 # Each proof-check-<prover> delegates to scripts/check-proofs.sh, the single
@@ -33,6 +33,11 @@ proof-check-agda:
 # Check Coq proofs (per MANIFEST; fatal if coqc absent)
 proof-check-coq:
     @bash scripts/check-proofs.sh coq
+
+# Check the exact production Rust modules admitted by the narrow Creusot
+# harness. Tool/version/prover absence is fatal; scaffolding cannot pass.
+proof-check-creusot:
+    @bash scripts/check-creusot.sh
 
 # Scan for dangerous constructs USED in proof code (believe_me, sorry, Admitted,
 # postulate, ...). Comments are ignored — a comment naming a banned construct

@@ -60,9 +60,11 @@ to the canonical key.
 See `PROOF-STATUS.adoc`. In short: the production Idris2 accelerator package,
 its stated layout/version proofs, and exhaustive operation-code injectivity
 proof typecheck; generated artifacts reproduce; Zig and cross-language
-conformance tests pass. Generic Agda/Coq templates are scaffolding, five
-Idris2/Lean modules remain quarantined, and Rust+Creusot verification does not
-exist yet.
+conformance tests pass. Creusot proves the exact production Rust
+version-compatibility predicate with a positive-controlled local gate. Generic
+Agda/Coq templates are scaffolding, five Idris2/Lean modules remain
+quarantined, other Rust modules remain unproved, and Creusot is not yet a
+GitHub Actions gate.
 
 == Estate interface constraints
 
@@ -79,8 +81,9 @@ Idris2 ABI and Zig FFI:: Idris2 is normative for ABI types/layouts; generated
 declarations are deterministic wire artifacts; Zig implements the boundary;
 host languages do not independently redefine it.
 
-Rust and Creusot:: Rust implementation work is incomplete as formal work until
-Creusot contracts and a fail-closed, positive-controlled gate accompany it.
+Rust and Creusot:: One production predicate now has a Creusot contract and a
+fail-closed, positive-controlled local gate. No proof claim extends to the
+planner, kernels or adapter; GitHub Actions provisioning remains a gap.
 
 == Route forward
 
@@ -89,8 +92,9 @@ Creusot contracts and a fail-closed, positive-controlled gate accompany it.
 . Complete the authenticated Sonar remap and verify the new check target.
 . Track literal-scanner/Actions-lock compatibility at the standards/upstream
   source; do not patch each consumer with a second pin authority.
-. Add Rust+Creusot proof obligations and connect remaining Idris2 obligations
-  to the production ABI before expanding accelerator claims.
+. Extend Rust+Creusot proof obligations one exact production module at a time,
+  provision the pinned CI gate, and connect remaining Idris2 obligations to the
+  production ABI before expanding accelerator claims.
 . Adopt selected existing facilities in IDApTIK. Record at least one boundary
   surprise and service evidence.
 . Challenge the surviving boundary in Chronicles of Slavia before adding

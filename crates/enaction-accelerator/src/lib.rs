@@ -11,26 +11,11 @@
 use core::cmp::Ordering;
 use core::fmt;
 
+mod version;
+pub use version::ContractVersion;
+
 /// Stable version of the accelerator request contract.
 pub const ACCELERATOR_CONTRACT_VERSION: ContractVersion = ContractVersion::new(1, 0);
-
-/// A two-part compatibility version. A host accepts the same major and an
-/// operation minor version no newer than itself.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ContractVersion {
-    pub major: u16,
-    pub minor: u16,
-}
-
-impl ContractVersion {
-    pub const fn new(major: u16, minor: u16) -> Self {
-        Self { major, minor }
-    }
-
-    pub const fn accepts(self, requested: Self) -> bool {
-        self.major == requested.major && requested.minor <= self.minor
-    }
-}
 
 /// Descriptive device class. A class is not a capability claim.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
