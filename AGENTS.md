@@ -9,10 +9,15 @@ what is specific to *this* repo. Where they conflict, this file wins.
 Enaction Engine is a deterministic, type-safe game engine for worlds shaped
 through perception, affect, intention, action and consequence.
 
-The current implementation is only its first deterministic substrate:
-fixed-timestep stepping plus render interpolation. There is no renderer, ECS,
-asset pipeline, audio, input, physics, networking, or complete cognitive,
-affective, or conative subsystem. One crate exists: `enaction-time`.
+The current implementation is still a narrow deterministic substrate, not a
+complete engine. Five Rust crates now exist: `enaction-time`, `enaction-trace`,
+`enaction-contracts`, `enaction-accelerator`, and the separately built
+`enaction-accelerator-native`. They provide timing/interpolation, a typed CAC
+trace and belief store, contract validation, an operation-first scalar
+reference backend, and an Idris2-defined/Zig-implemented native adapter. There
+is no renderer, ECS, asset pipeline, audio, input, physics, networking, or
+complete cognitive, affective, or conative subsystem, and no game consumes the
+engine yet.
 
 Read `ARCHITECTURE.md` and `docs/decisions/` before proposing anything
 structural.

@@ -9,9 +9,13 @@ Its first invariant is:
 > The simulation advances in whole, equal steps, and render interpolation never
 > feeds simulation state.
 
-Today, only the first part of the deterministic substrate exists as the Rust
-crate `enaction-time`. The rest of this document is a target architecture, not
-an inventory of implemented features.
+Today, five narrow Rust crates exist: `enaction-time`, `enaction-trace`,
+`enaction-contracts`, `enaction-accelerator`, and the separately built
+`enaction-accelerator-native`. They implement timing/interpolation, a typed CAC
+trace and belief store, contract validation, an operation-first scalar
+reference backend, and an Idris2-defined/Zig-implemented native adapter. No
+game consumes them yet. The remainder of this document is a target
+architecture, not an inventory of implemented features.
 
 ## Layered destination
 
