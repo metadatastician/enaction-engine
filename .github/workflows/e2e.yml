@@ -52,13 +52,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
       - name: Install Rust toolchain
-        # gh actions-lock normalizes dtolnay refs to @master and pins the
-        # resolved commit in actions.lock (the lockfile IS the pin). The
-        # explicit `toolchain:` input is therefore mandatory — the @-ref no
-        # longer carries the version.
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
+        # Install explicitly so no setup Action creates a second, literal pin
+        # representation alongside actions.lock.
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
       - name: Install pinned Zig
         uses: mlugg/setup-zig@v2.2.1
         with:

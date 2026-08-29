@@ -26,10 +26,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
       - name: Cargo check
         run: cargo check --locked --all-targets
       - name: Format
@@ -52,17 +51,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
       - name: Install Rust toolchain
-        # Explicit install rather than the runner's preinstalled Rust, so this
-        # leg uses the SAME toolchain as the main Rust job (dtolnay + explicit
-        # `toolchain: stable`) — otherwise clippy -D warnings could drift
-        # between runner-image stable and the reusable's stable. The repo's CI
-        # truth is stable (the reusable pins it); .tool-versions' nightly is
-        # the local mise toolchain only. gh actions-lock normalizes dtolnay to
-        # @master and pins the resolved commit in actions.lock.
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-          components: clippy
+        # Explicit install rather than the runner's preinstalled Rust keeps
+        # this leg on the same stable toolchain as the main Rust job. Avoiding
+        # a setup Action also removes a false conflict between literal SHA-pin
+        # scanners and the repository's single actions.lock pin authority.
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
       - name: Install pinned Zig
         uses: mlugg/setup-zig@v2.2.1
         with:
