@@ -1,0 +1,192 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture Decision Record: 0021-beam-snif-boundary
+
+Date: 2026-08-29
+
+== Status
+
+Accepted policy; implementation deferred
+
+Extends ADR-0020's BEAM-facing rule. It does not admit a BEAM consumer, SNIF
+guest, host dependency or release artifact.
+
+== Context
+
+ADR-0020 requires a future BEAM-facing numeric or byte-buffer adapter to use
+the estate's `hyperpolymath/snifs` framework rather than an in-VM native NIF.
+That decision names the direction but does not define Enaction's admission
+boundary, resource limits, wire authority or failure semantics precisely
+enough to review an implementation.
+
+The native accelerator ABI cannot simply be compiled to wasm32. ABI v1 is a
+pointer-bearing, 64-bit native layout and the production Zig FFI now rejects
+narrower targets. SNIF guests instead exchange flat numbers and bytes through
+WebAssembly linear memory. Treating those boundaries as interchangeable would
+erase a real representation and trust boundary.
+
+The authoritative SNIF policy inspected for this decision is
+`hyperpolymath/snifs` `origin/main` at
+`aa21252a99b15e68db505a12e962773e2aa13ff0`. Its supported surface is pure
+computation over `i32`, `i64`, `f32`, `f64` and byte buffers. It uses a
+`wasm32-freestanding` guest without WASI, a Wasmex/Wasmtime host, explicit
+fallible results, fuel, a host timeout and store memory limits. BEAM resources,
+monitors, message sending, dirty-scheduler integration, zero-copy BEAM terms
+and I/O are outside that surface.
+
+The local SNIF checkout was ahead, behind and dirty when this ADR was prepared;
+it was not modified or treated as an authority. The recorded remote object was
+read directly. A future implementation must revalidate the selected upstream
+revision rather than assuming this observation remains current.
+
+== Decision
+
+=== Admission trigger
+
+No SNIF code or dependency is added until a real BEAM consumer names an
+Enaction operation, data shape, call frequency, latency budget and failure
+policy. An architectural preference, empty adapter, example export or generated
+file is not a consumer.
+
+The implementation proposal MUST identify why the operation belongs within
+SNIF's numeric/byte-buffer scope. If it needs BEAM terms, resources, monitors,
+messaging, dirty-scheduler facilities, zero-copy term access or I/O, it is not
+disguised as a SNIF. A separate ADR must select an alternative boundary and
+justify any request for direct `erl_nif` access.
+
+=== Guest and host boundary
+
+An admitted Enaction SNIF has all of these properties:
+
+* The guest is Zig targeting `wasm32-freestanding`; WASI and host I/O imports
+  are forbidden.
+* Production artifacts are compiled with `ReleaseSafe`. `ReleaseFast` is not a
+  production option and cannot be selected through configuration fallback.
+* The host uses the estate SNIF framework's crash-isolating Wasmex/Wasmtime
+  path. Enaction does not grow a second sandbox host with similar-looking
+  semantics.
+* Only flat numeric values and explicitly bounded byte buffers cross the
+  boundary. Host objects and native pointers never cross.
+* The callable export set is an allowlist. Unknown exports fail before guest
+  execution.
+* Each request receives clean guest state at the framework's documented
+  transaction boundary. Persistent state, if ever required, needs a separately
+  versioned protocol and decision.
+
+=== Wire authority
+
+The SNIF wire ABI is distinct from native accelerator ABI v1.
+
+Idris2 remains normative for the SNIF request, result, version and bounded-
+buffer model. Deterministically generated Zig declarations are wire artifacts;
+they are not a second authority or an implementation. The Zig guest implements
+the generated boundary. A BEAM wrapper marshals values but does not redefine
+field widths, status codes or version compatibility.
+
+The first implementation must include positive and negative compiler-layout
+correspondence checks for the admitted wasm32 target. Native ABI layout
+certificates do not prove the WebAssembly representation, and a generated file
+does not close that refinement gap.
+
+=== Resource contract
+
+Every admitted operation declares finite, positive bounds for:
+
+* fuel per transaction;
+* linear-memory growth or maximum store memory;
+* host call timeout as a nondeterministic backstop above fuel;
+* input and output byte lengths;
+* operation-specific dimensions and work units; and
+* queued work or checkout time at the host boundary.
+
+Missing, unlimited or overflowed bounds are admission failures. Fuel exhaustion,
+timeout, memory-limit failure, malformed lengths, an unknown export, a guest
+trap and a load/instantiation failure are distinct host-visible errors. The
+wire protocol may group them for compatibility only if the detailed cause is
+retained in evidence and diagnostics.
+
+Fuel is the deterministic execution budget. A wall-clock timeout is a safety
+backstop and MUST NOT be promoted into deterministic evidence. Successful
+completion within a timeout does not establish deterministic execution across
+targets.
+
+=== Enaction execution semantics
+
+Planning may select an admitted SNIF backend before execution if the request's
+lane and evidence requirements allow it. Once execution begins:
+
+* a SNIF failure is returned explicitly;
+* an authoritative request is terminal for that attempt and is never silently
+  retried on a native, scalar or other backend;
+* advisory work may be rescheduled only as a new, host-visible decision; and
+* evidence records the guest artifact digest, SNIF framework revision, engine
+  configuration, operation/version, declared bounds and outcome class.
+
+Crash isolation does not imply semantic correctness. A successful SNIF result
+still needs the same operation conformance and determinism evidence as another
+backend before it can enter an authoritative lane.
+
+=== Supply and release conditions
+
+An Enaction SNIF is not loadable or releasable until CI:
+
+* pins and verifies the selected SNIF framework revision under the estate's
+  single Actions-lock authority;
+* rebuilds the `ReleaseSafe` guest from tracked source;
+* records and checks the guest digest;
+* rejects a planted forbidden import or WASI dependency;
+* demonstrates fuel exhaustion, memory rejection and a guest trap while the
+  BEAM caller survives;
+* demonstrates that `ReleaseFast` cannot enter the production artifact path;
+* checks the generated wire declarations for drift; and
+* exercises at least one real BEAM consumer end to end.
+
+Absence of the BEAM/Wasm toolchain is a failure for that gate, not a skipped
+success. Passing these tests establishes implementation evidence, not a formal
+end-to-end proof.
+
+== Proof and trust boundary
+
+This ADR proves nothing and reports no Enaction SNIF implementation.
+
+The inspected SNIF repository distinguishes its machine-checked logical models,
+empirical BEAM tests and trusted runtime base. In particular, it records an
+unclosed model-to-code correspondence gap and trusts Wasmtime/Wasmex runtime
+faithfulness. Enaction inherits those assumptions if it adopts that framework;
+it does not inherit the upstream proof claims as proofs of an as-yet nonexistent
+Enaction adapter.
+
+For Enaction, future proof obligations include:
+
+* Idris2 consistency of the product-specific wire model and bounds;
+* refinement from generated wasm32 declarations and Zig validation to that
+  model;
+* operation semantics and determinism where the authoritative lane is sought;
+* host result mapping, including the impossibility of returning a value from a
+  failed execution; and
+* an explicit statement of the Wasmtime/Wasmex and compiler trusted computing
+  base.
+
+Scaffolding, compilation, artifact generation, sandbox configuration and crash
+tests are recorded under their actual evidence classes and are never labelled
+as proof.
+
+== Consequences
+
+* Native accelerator ABI v1 stays 64-bit and is not weakened to accommodate
+  wasm32.
+* A future BEAM consumer gets crash isolation and bounded execution without
+  silently changing Enaction's operation or fallback policy.
+* SNIF stays within its numeric/byte-buffer ceiling; wider BEAM integration is
+  forced into an explicit decision.
+* Idris2 ABI authority and Zig FFI implementation remain the interface chain,
+  but a new product-specific wasm32 model is required before implementation.
+* No dependency, guest, host wrapper, supported backend or release capability
+  exists merely because this policy is accepted.
+
+== Review
+
+Review this decision when a real BEAM consumer is proposed, when the selected
+SNIF framework changes its guest or host boundary, or by the Enaction identity
+review on 2026-11-30, whichever occurs first.
+

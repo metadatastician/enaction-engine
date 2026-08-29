@@ -61,7 +61,10 @@ where they apply to Enaction Engine:
 |===
 | # | Proof Needed | Category | Prover | Priority | File(s)
 
-| | | | | |
+| SNIF-1 | Product-specific wasm32 request/result/buffer invariants and
+  generated-Zig refinement, if a real BEAM consumer is admitted | ABI/SEC |
+  Idris2 plus an explicit refinement method | Deferred until admission |
+  ADR-0021; no implementation or proof file exists
 |===
 
 == Dangerous Patterns (BANNED)

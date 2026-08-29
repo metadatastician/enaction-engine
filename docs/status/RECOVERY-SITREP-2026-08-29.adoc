@@ -111,8 +111,9 @@ OS/architecture tuple has a proved compiler-layout refinement.
   resumes it; then verify the new target without weakening the quality gate.
 . Track literal-scanner/Actions-lock compatibility at the standards/upstream
   source; do not patch each consumer with a second pin authority.
-. Draft the SNIF boundary ADR next. Keep freestanding Wasm distinct from the
-  pointer-bearing native accelerator ABI and do not claim an implemented SNIF.
+. Apply ADR-0021 only when a real BEAM consumer appears. Keep freestanding Wasm
+  distinct from the pointer-bearing native accelerator ABI; the accepted policy
+  does not claim an implemented SNIF.
 . Design the Zig unified Hexadeca surface only around a real protocol-facing
   consumer; do not create sixteen unused connector stubs.
 . Extend Rust+Creusot proof obligations one exact production module at a time
@@ -151,10 +152,11 @@ OS/architecture tuple has a proved compiler-layout refinement.
   intended guard. This is enforcement and correspondence evidence, not a
   platform proof.
 
-| Next
+| Policy complete; implementation deferred
 | SNIF ADR
-| Specify the bounded freestanding-Wasm/`ReleaseSafe` boundary, explicit errors
-  and no fallback. Confirm existing estate policy before committing text.
+| ADR-0021 specifies the bounded freestanding-Wasm/`ReleaseSafe` boundary,
+  explicit errors and no fallback. Implementation waits for a real BEAM
+  consumer and a product-specific Idris2 wasm32 wire model.
 
 | Then
 | Zig unified Hexadeca API/FFI
@@ -167,13 +169,13 @@ OS/architecture tuple has a proved compiler-layout refinement.
   weaken the gate.
 |===
 
-Resume instruction:: Start from the head of the final target-boundary pull
-request, refresh every stacked pull request's actual base and checks, and stop
-if pull request 53 remains externally blocked. The first new design artifact is
-the SNIF ADR; the next implementation design is the real-consumer Hexadeca
-surface. Re-read `PROOF-STATUS.adoc` and `PROOF-NEEDS.adoc` before making any
-proof claim. A typechecked scaffold, generated declaration, runtime test or
-compile-time guard is not by itself a proof.
+Resume instruction:: Start from the head of the SNIF ADR pull request, refresh
+every stacked pull request's actual base and checks, and stop if pull request 53
+remains externally blocked. The next design task is to identify the real
+protocol-facing consumer for a unified Hexadeca surface. Re-read
+`PROOF-STATUS.adoc` and `PROOF-NEEDS.adoc` before making any proof claim. A
+typechecked scaffold, generated declaration, runtime test or compile-time guard
+is not by itself a proof.
 
 Safe stopping point:: Once the target-boundary commit is pushed, its stacked
 pull request exists, and its remote checks have been observed, there are no
