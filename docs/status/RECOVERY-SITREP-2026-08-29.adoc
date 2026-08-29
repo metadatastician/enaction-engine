@@ -114,8 +114,9 @@ OS/architecture tuple has a proved compiler-layout refinement.
 . Apply ADR-0021 only when a real BEAM consumer appears. Keep freestanding Wasm
   distinct from the pointer-bearing native accelerator ABI; the accepted policy
   does not claim an implemented SNIF.
-. Design the Zig unified Hexadeca surface only around a real protocol-facing
-  consumer; do not create sixteen unused connector stubs.
+. Keep the Zig unified Hexadeca surface deferred: the bounded consumer audit
+  found no admissible current consumer. Re-run its explicit admission test when
+  a real Enaction protocol peer appears; do not create sixteen unused stubs.
 . Extend Rust+Creusot proof obligations one exact production module at a time
   and connect remaining Idris2 obligations to the production ABI before
   expanding accelerator claims.
@@ -158,10 +159,11 @@ OS/architecture tuple has a proved compiler-layout refinement.
   explicit errors and no fallback. Implementation waits for a real BEAM
   consumer and a product-specific Idris2 wasm32 wire model.
 
-| Then
+| Audited; trigger not met
 | Zig unified Hexadeca API/FFI
-| Select a real protocol-facing consumer and define one coherent sixteen-
-  connector surface around its needs. Scaffolding does not satisfy this item.
+| The consumer audit found no qualifying current Enaction peer. Preserve the
+  purity floor and `HEX-G1`; reassess when a real game, UMS preview host or
+  Groove peer consumes an Enaction-owned capability.
 
 | Later, explicitly deferred
 | Sonar identity and gate repair
@@ -171,8 +173,8 @@ OS/architecture tuple has a proved compiler-layout refinement.
 
 Resume instruction:: Start from the head of the SNIF ADR pull request, refresh
 every stacked pull request's actual base and checks, and stop if pull request 53
-remains externally blocked. The next design task is to identify the real
-protocol-facing consumer for a unified Hexadeca surface. Re-read
+remains externally blocked. Hexadeca remains deferred until the consumer-audit
+trigger is met. Re-read
 `PROOF-STATUS.adoc` and `PROOF-NEEDS.adoc` before making any proof claim. A
 typechecked scaffold, generated declaration, runtime test or compile-time guard
 is not by itself a proof.
