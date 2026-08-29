@@ -19,5 +19,6 @@ permissions:
 
 jobs:
   governance:
-    # Includes the lockfile-aware header-block fix from standards#597.
-    uses: hyperpolymath/standards/.github/workflows/governance-reusable.yml@13cb62ace40313527f9576b5d5a6a8f2712356a3
+    # Includes the lock-aware gates and permissionless allowlist preflight
+    # validated on standards main after #688 and #690.
+    uses: hyperpolymath/standards/.github/workflows/governance-reusable.yml@4d104d325b96c348d685956c6678139640c15c4b
