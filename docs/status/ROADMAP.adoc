@@ -126,7 +126,9 @@ IDApTIK rather than papering over them with game-specific engine concepts.
 * A Zig FFI must pass the estate Hexadeca purity floor: no direct `std.fs` or
   `std.io` in the FFI. Passing that floor does not manufacture a sixteen-
   connector protocol API. A unified Hexadeca connector is admitted only when
-  a real protocol-facing consumer needs it.
+  a real protocol-facing consumer needs it. The bounded 2026-08-29 audit found
+  no qualifying current Enaction consumer; its candidates and re-entry trigger
+  are recorded in `docs/reports/HEXADECA-CONSUMER-AUDIT-2026-08-29.adoc`.
 * The stable interface chain is Idris2 ABI authority to deterministic generated
   declarations to Zig FFI to host bindings. Rust code additionally requires
   Creusot contracts and a fail-closed verification gate before formal Rust

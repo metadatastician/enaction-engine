@@ -206,9 +206,14 @@ manifest remains limited:
 
 | HEX-G1
 | The FFI passes the Hexadeca purity floor but has no sixteen-connector unified
-  protocol surface.
-| Admit such an adapter only for a real protocol consumer; do not treat an
-  internal numeric ABI as a protocol connector by naming alone.
+  protocol surface. The 2026-08-29 consumer audit found no admissible current
+  consumer: historical IDApTIK/UMS and Hypatia surfaces are stub/reference
+  material, IDApTIK multiplayer belongs to the game/Burble boundary, UMS has no
+  working Enaction adapter, and Groove has no Enaction peer pair.
+| Admit such an adapter only for a real protocol consumer under the trigger in
+  `docs/reports/HEXADECA-CONSUMER-AUDIT-2026-08-29.adoc`; do not treat an
+  internal numeric ABI, purity scan or sixteen-member enum as a protocol
+  connector or proof.
 |===
 
 == Verification commands

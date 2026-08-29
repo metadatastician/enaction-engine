@@ -1,0 +1,160 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Hexadeca Consumer Audit — 2026-08-29
+:toc:
+
+== Decision outcome
+
+No current protocol-facing consumer justifies a unified sixteen-connector Zig
+API/FFI in Enaction Engine. The Hexadeca implementation trigger is therefore
+not met.
+
+This is a bounded negative result, not a claim that no future consumer can
+exist. It blocks speculative connector code while leaving the admission test
+and candidate routes explicit.
+
+== What would count
+
+An admissible consumer must already perform or be committed to perform a
+protocol exchange involving an Enaction-owned capability. It must name:
+
+* the producer and consumer processes or services;
+* the Enaction operation and version crossing the boundary;
+* at least one real transport and encoding;
+* request, response, failure and lifecycle semantics;
+* why a unified connector surface is better than that protocol's ordinary
+  binding; and
+* an executable end-to-end conformance case.
+
+A roadmap name, sixteen-member enum, generated ordinal table, start-function
+stub, empty transport module, internal C ABI, purity scan, or unused adapter
+trait does not meet the trigger.
+
+The word _unified_ cannot make sixteen unrelated protocols substitutable.
+Common operations and error/lifecycle semantics must exist before transport
+adapters can share an API honestly.
+
+== Candidate audit
+
+[cols="2,3,3", options="header"]
+|===
+| Candidate | Observed implementation | Disposition
+
+| Enaction native accelerator
+| The production Zig implementation exposes a narrow, pointer-bearing C ABI
+  for accelerator capability discovery and numeric execution. No network,
+  message-bus or service transport consumes it.
+| Not a protocol consumer. Passing the no-`std.fs`/no-`std.io` purity floor
+  does not turn an internal ABI into a connector.
+
+| Universal Modding Studio
+| Current UMS records an optional Enaction preview schema and a tested
+  `SimulationAdapter` seam, but no loader, interactive frontend or working
+  Enaction adapter. Its current readiness ledger independently records
+  Hexadeca as blocked because no canonical unified API is locatable.
+| Potential future trigger only if a real preview host and client choose a
+  protocol boundary. The present schema and trait are not a transport.
+
+| Historical IDApTIK/UMS `feat/zig-hexadeca`
+| The gone remote branch generated sixteen ordinals across Nickel, Zig, Rust
+  and Idris2. Its own ledger states that zero of sixteen connectors had a
+  transport handler and that dispatch returned `NotImplemented` for every tag.
+| Useful negative-control and wire-drift precedent; not a consumer and not a
+  canonical implementation to copy.
+
+| IDApTIK multiplayer
+| IDApTIK has a real Phoenix Channels protocol client over WebSocket and a
+  Burble transport. The game owns typed commands/events and its relay topology.
+  Its accepted ADR-0009 says IDApTIK currently links no Enaction crate and the
+  relay is not semantic authority.
+| Real protocol, wrong ownership boundary. Moving game multiplayer transport
+  into Enaction would violate the two-layer/kernel decision and duplicate
+  Burble rather than satisfy Hexadeca.
+
+| Chronicles of Slavia
+| No protocol endpoint or Enaction integration was observed in the inspected
+  current remote tree.
+| No present consumer. Reassess only when a real integration appears.
+
+| Groove
+| Groove implements manifest discovery, compatibility, connection lifecycle,
+  signatures and conformance tooling. Its normative specification says Groove
+  is not a data transport and lets a capability declare its own data-plane
+  protocol. Enaction has no registered Groove provider/consumer pair.
+| Real protocol infrastructure, but not a demand for sixteen Enaction
+  transports. A future signed Enaction capability with a real peer could become
+  a trigger; a manifest alone would not.
+
+| Hypatia Hexadeca surface
+| Hypatia carries the familiar sixteen-protocol enum and per-connector Zig
+  modules. Its own sources label the modules as reference-fidelity start shims
+  or stubs; the shared dispatcher table does not establish real transport
+  semantics for Enaction.
+| Project-local reference material only. Do not import its protocol list,
+  ordinals, port arithmetic or proof labels as estate authority.
+
+| Estate `zig-hexadeca-check` action
+| The inspected action searches all Zig files for `std.fs` or `std.io`, and
+  skips successfully when a repository contains no Zig. It does not validate a
+  sixteen-connector API, protocol behavior, wire compatibility or consumers.
+| Purity floor only. It is neither the missing canonical API nor evidence that
+  an implementation exists.
+|===
+
+== Route when a trigger appears
+
+The first qualifying consumer starts a new ADR and implementation proposal.
+That proposal must proceed in this order:
+
+. Record the real producer/consumer exchange and one protocol-specific
+  conformance fixture before defining a unified API.
+. Determine whether multiple transports actually share one operation model.
+  If only one transport is needed, implement one transport; do not manufacture
+  fifteen siblings.
+. Put request/result/version/lifecycle invariants in a product-specific Idris2
+  ABI. Generated Zig declarations are deterministic artifacts, not proof.
+. Implement the boundary in Zig and keep filesystem, network and host I/O in
+  explicit injected capabilities or protocol adapters rather than the pure FFI
+  core.
+. For every admitted connector, require a real handler, positive conformance
+  fixture, malformed-input negative control, lifecycle/teardown test and
+  explicit `NotImplemented` result for every unadmitted tag.
+. Add cross-language ordinal checks only after the connector set has an
+  authority. A count-equals-sixteen theorem proves the count, not transport
+  correctness or protocol substitutability.
+. If Rust is present, its correctness claim requires Rust/Creusot. If a BEAM
+  native-compute boundary is present, ADR-0021 requires SNIF rather than a raw
+  NIF.
+
+== Current action
+
+Do not add Hexadeca source files, connector enums, ports, dependencies or CI
+claims to Enaction Engine. Preserve the existing pure Zig numeric FFI and the
+`HEX-G1` proof-ledger gap.
+
+The next legitimate evidence is external to this repository: a game, UMS
+preview host, or Groove peer must actually consume an Enaction-owned capability.
+Until that occurs, documentation is the correct destination architecture under
+ADR-0012.
+
+== Observation horizon
+
+The audit read these remote-tracking trees without modifying them:
+
+* IDApTIK `origin/main` at
+  `e9450be179d0437320298c03d447f2f3615f05ed`;
+* Universal Modding Studio `origin/main` at
+  `a77f349925490c22d64ca59e6468362462fdb838`;
+* Chronicles of Slavia `origin/main` at
+  `7a1a5f64df1c0a16a061859aebfa090fbcbef9f5`;
+* Groove `origin/main` at
+  `062234bcda4e4868457d866f9f42fbcde7502df9`; and
+* the estate CI/CD suite `origin/main` at
+  `fc64172aa53e85289d5d7d6e15c2435a867cc1c9`.
+
+The historical IDApTIK/UMS branch was inspected at its local commits
+`a0c555f` and `ca859ba`; its upstream tracking branch was marked gone. The
+Hypatia working tree was dirty and behind, so it was used only to locate
+project-local labels and stubs, not as a canonical source. No absence claim
+extends beyond the enumerated trees, paths and revisions.
+
