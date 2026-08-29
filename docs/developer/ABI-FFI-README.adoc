@@ -167,15 +167,22 @@ const handle = init() orelse return error.InitFailed;
 defer free(handle);
 ```
 
-### 3. **Cross-Compilation**
+### 3. **Bounded Cross-Compilation**
 
-Built-in cross-compilation to any platform:
+The accelerator ABI v1 layout is defined for 64-bit-pointer targets. The Zig
+implementation rejects narrower targets at compile time. These examples are
+intended target forms, not evidence that every OS/architecture combination has
+been built or that compiler layout refines the Idris model:
 
 ```bash
 zig build -Dtarget=x86_64-linux
 zig build -Dtarget=aarch64-macos
 zig build -Dtarget=x86_64-windows
 ```
+
+`wasm32` is not an accelerator ABI v1 target. It remains relevant to the
+separate SNIF and determinism work, whose wire boundary must not be conflated
+with this native pointer-bearing ABI.
 
 ### 4. **Zero Dependencies**
 
@@ -209,6 +216,9 @@ typechecked deterministic renderer; the check command regenerates C-compatible,
 Zig and Rust declarations and compares them byte-for-byte.
 
 ### Cross-Compile
+
+Only 64-bit-pointer targets are admitted by accelerator ABI v1. A successful
+cross-build is build evidence for that target, not a formal platform proof.
 
 ```bash
 cd ffi/zig

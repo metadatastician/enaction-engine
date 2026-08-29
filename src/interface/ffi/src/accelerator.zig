@@ -11,6 +11,12 @@ const axiom_pointwise = @import("axiom_pointwise.zig");
 const axiom_matmul = @import("axiom_matmul.zig");
 
 comptime {
+    // The normative Idris2 accelerator layout models every data pointer as an
+    // eight-byte field.  Reject narrower targets here rather than allowing an
+    // unrelated linker failure (or a coincidentally equal total struct size)
+    // to masquerade as ABI validation.
+    if (@bitSizeOf(usize) != 64)
+        @compileError("Enaction accelerator ABI v1 requires 64-bit pointers");
     if (@sizeOf(abi.Request) != 56 or @alignOf(abi.Request) != 8)
         @compileError("Idris2 Request layout and Zig layout disagree");
     if (@offsetOf(abi.Request, "dim0") != 32 or @offsetOf(abi.Request, "dim2") != 48)
@@ -18,6 +24,11 @@ comptime {
     if (@sizeOf(abi.BufferI32) != 16 or @sizeOf(abi.BufferI64) != 16 or
         @sizeOf(abi.BufferF32In) != 16 or @sizeOf(abi.BufferF32Out) != 16)
         @compileError("Idris2 buffer layout and Zig layout disagree");
+    if (@offsetOf(abi.BufferI32, "data") != 0 or @offsetOf(abi.BufferI32, "len") != 8 or
+        @offsetOf(abi.BufferI64, "data") != 0 or @offsetOf(abi.BufferI64, "len") != 8 or
+        @offsetOf(abi.BufferF32In, "data") != 0 or @offsetOf(abi.BufferF32In, "len") != 8 or
+        @offsetOf(abi.BufferF32Out, "data") != 0 or @offsetOf(abi.BufferF32Out, "len") != 8)
+        @compileError("Idris2 buffer field offsets and Zig offsets disagree");
     if (@sizeOf(abi.Capability) != 32 or @alignOf(abi.Capability) != 4)
         @compileError("Idris2 Capability layout and Zig layout disagree");
     if (@sizeOf(abi.Evidence) != 24 or @alignOf(abi.Evidence) != 4)
