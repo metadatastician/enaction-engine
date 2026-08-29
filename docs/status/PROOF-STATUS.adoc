@@ -193,6 +193,17 @@ manifest remains limited:
 | Add a proof-carrying or mechanically checked refinement chain; keep the
   current cross-language tests as independent evidence.
 
+| SNIF-G1
+| ADR-0021 defines a future BEAM/SNIF policy, but Enaction has no BEAM
+  consumer, product-specific Idris2 wasm32 wire model, Zig guest, generated
+  wasm32 declarations, host adapter or end-to-end evidence. Upstream SNIF
+  logical proofs do not prove this absent integration, and the upstream
+  model-to-code and Wasmtime/Wasmex trust gaps remain.
+| On admission of a real BEAM consumer, prove the product wire invariants in
+  Idris2, mechanically check the wasm32 declaration/Zig-validation refinement,
+  state the runtime TCB, and keep crash-isolation, fuel and conformance tests in
+  their empirical evidence class.
+
 | HEX-G1
 | The FFI passes the Hexadeca purity floor but has no sixteen-connector unified
   protocol surface.
