@@ -37,7 +37,7 @@ where they apply to Enaction Engine:
 
 | ABI-1 | Buffer pointer/nullability policy | Partial: product policy proved; Zig refinement open | `src/interface/Abi/Accelerator.idr` (`ABI-P7`); obsolete generic template remains quarantined
 | ABI-2 | Production field alignment and bounds | Proved for all four accelerator layouts | `src/interface/Abi/Layout.idr`, `src/interface/Abi/Accelerator.idr` (`ABI-P1`–`ABI-P4`)
-| ABI-3 | Platform type size proofs (per platform) | Needed | `verification/proofs/idris2/ABI/Platform.idr`
+| ABI-3 | Platform type size proofs (per platform) | Partial: Zig enforces 64-bit pointers; target-specific Idris witnesses and compiler refinement remain open | `src/interface/ffi/src/accelerator.zig`; quarantined `verification/proofs/idris2/ABI/Platform.idr` is not product proof
 | ABI-4 | FFI function return type proofs | Needed | `verification/proofs/idris2/ABI/Foreign.idr`
 | ABI-5 | C ABI compliance (`CABICompliant`) | Partial: declared model proved; compiler refinement open | `src/interface/Abi/Layout.idr`, `src/interface/Abi/Accelerator.idr`
 |===

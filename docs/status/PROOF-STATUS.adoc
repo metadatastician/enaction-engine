@@ -156,9 +156,13 @@ manifest remains limited:
 | ABI-G2
 | Product layout alignment and field bounds are proved by ABI-P1 through
   ABI-P4, but the generic layout/platform templates remain quarantined and the
-  platform model in `Abi.Types` is still explicitly simplified.
+  platform model in `Abi.Types` is still explicitly simplified. The production
+  Zig FFI now rejects non-64-bit pointer targets and checks every buffer field
+  offset, but that is enforcement and tested correspondence, not an Idris
+  platform proof.
 | Retire or product-specialise the generic templates and replace the fixed
-  platform assumption with target-specific, checked size witnesses.
+  platform assumption with target-specific, checked size witnesses mechanically
+  connected to the build target.
 
 | ABI-G3
 | Product `CABICompliant` certificates establish the declared Idris layout

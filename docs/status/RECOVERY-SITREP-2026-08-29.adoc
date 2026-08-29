@@ -96,16 +96,28 @@ fields across request, buffer, capability and evidence are covered. Target
 compiler representation remains correspondence evidence, not a proved
 refinement.
 
+Native target boundary:: Accelerator ABI v1 is now explicitly limited to
+64-bit-pointer targets by a production Zig compile-time guard. Buffer sizes and
+field offsets are checked against the Idris-declared layout. A wasm32 negative
+control reaches the guard and fails. No claim is made that the generic Idris
+platform template detects the build target, or that each documented
+OS/architecture tuple has a proved compiler-layout refinement.
+
 == Route forward
 
 . Keep pull request 53 narrow and blocked until required external gates can be
   satisfied without bypass.
-. Complete the authenticated Sonar remap and verify the new check target.
+. Leave the authenticated Sonar remap deferred until the owner explicitly
+  resumes it; then verify the new target without weakening the quality gate.
 . Track literal-scanner/Actions-lock compatibility at the standards/upstream
   source; do not patch each consumer with a second pin authority.
-. Extend Rust+Creusot proof obligations one exact production module at a time,
-  provision the pinned CI gate, and connect remaining Idris2 obligations to the
-  production ABI before expanding accelerator claims.
+. Draft the SNIF boundary ADR next. Keep freestanding Wasm distinct from the
+  pointer-bearing native accelerator ABI and do not claim an implemented SNIF.
+. Design the Zig unified Hexadeca surface only around a real protocol-facing
+  consumer; do not create sixteen unused connector stubs.
+. Extend Rust+Creusot proof obligations one exact production module at a time
+  and connect remaining Idris2 obligations to the production ABI before
+  expanding accelerator claims.
 . Adopt selected existing facilities in IDApTIK. Record at least one boundary
   surprise and service evidence.
 . Challenge the surviving boundary in Chronicles of Slavia before adding
@@ -115,12 +127,68 @@ refinement.
   review happens earlier if both game passes complete, but is not postponed if
   they do not.
 
+== Wind-up handoff
+
+[cols="1,2,4", options="header"]
+|===
+| State | Item | Resume condition or next action
+
+| Blocked, retained
+| Pull request 53: CI recovery
+| Required external CodeQL/Codacy/Sonar conditions must be satisfied without
+  bypass, dismissal, a second pin authority or history rewrite.
+
+| Complete, stacked
+| Pull requests 54–58
+| SITREP, operation-code injectivity, Rust/Creusot version predicate, Idris2
+  pointer policy, and Idris2 production layout bounds are each isolated in
+  order. Do not merge a child before its base.
+
+| Complete locally; final stacked PR pending at time of this receipt
+| Native ABI target boundary
+| The production Zig FFI admits only 64-bit pointer targets, checks buffer
+  offsets, passes native tests, and rejects a planted wasm32 target at the
+  intended guard. This is enforcement and correspondence evidence, not a
+  platform proof.
+
+| Next
+| SNIF ADR
+| Specify the bounded freestanding-Wasm/`ReleaseSafe` boundary, explicit errors
+  and no fallback. Confirm existing estate policy before committing text.
+
+| Then
+| Zig unified Hexadeca API/FFI
+| Select a real protocol-facing consumer and define one coherent sixteen-
+  connector surface around its needs. Scaffolding does not satisfy this item.
+
+| Later, explicitly deferred
+| Sonar identity and gate repair
+| Resume only on owner instruction. Correct configuration, but never disable or
+  weaken the gate.
+|===
+
+Resume instruction:: Start from the head of the final target-boundary pull
+request, refresh every stacked pull request's actual base and checks, and stop
+if pull request 53 remains externally blocked. The first new design artifact is
+the SNIF ADR; the next implementation design is the real-consumer Hexadeca
+surface. Re-read `PROOF-STATUS.adoc` and `PROOF-NEEDS.adoc` before making any
+proof claim. A typechecked scaffold, generated declaration, runtime test or
+compile-time guard is not by itself a proof.
+
+Safe stopping point:: Once the target-boundary commit is pushed, its stacked
+pull request exists, and its remote checks have been observed, there are no
+uncommitted repository changes or background proof processes required for this
+stage. It is then safe to close the agent session; open pull requests and
+external checks continue on GitHub.
+
 == Observation horizon
 
-GitHub observations cover the open issues and pull requests returned without a
-page cap for `metadatastician/enaction-engine`, PR 53's exact head at
-`692196676436c6cf87949925bc4b900085e288b5`, ruleset 20008023, and open
-code-scanning alerts explicitly queried for `refs/pull/53/head`. Local proof and
-interface observations cover the tracked tree at `origin/main` plus the two
-signed workflow descendants on PR 53. The dirty/diverged `meta-repos` and SNIF
-working trees were not treated as canonical and were not modified.
+GitHub observations cover the explicitly queried open issues and pull requests
+for `metadatastician/enaction-engine`, the full status rollups of pull requests
+57 and 58, ruleset 20008023, and the previously recorded pull request 53
+code-scanning alerts. Local proof and interface observations cover the tracked
+stack from pull request 53 through the target-boundary branch created from pull
+request 58. Cross-target evidence is one planted `wasm32-freestanding` negative
+control plus native x86_64-linux tests; no aarch64, macOS or Windows build was
+observed in this stage. The dirty/diverged `meta-repos` and SNIF working trees
+were not treated as canonical and were not modified.
