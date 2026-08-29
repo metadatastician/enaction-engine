@@ -158,6 +158,43 @@ statusCode IndexOutOfRange = 14
 statusCode AliasingViolation = 15
 statusCode NonFiniteInput = 16
 
+||| Abstract presence of a data pointer at the accelerator buffer boundary.
+||| The generated ABI carries a nullable pointer plus a length; address values
+||| themselves remain runtime data and are deliberately not invented here.
+public export
+data BufferPointerPresence = NullData | DataPresent
+
+||| Normative minimum validity rule for buffer data pointers. Empty buffers may
+||| use a null data pointer; a non-empty buffer must carry a data pointer.
+||| Individual operations may impose stricter output-shape requirements.
+public export
+bufferDataPointerValid : BufferPointerPresence -> Nat -> Bool
+bufferDataPointerValid NullData Z = True
+bufferDataPointerValid NullData (S _) = False
+bufferDataPointerValid DataPresent _ = True
+
+||| A valid non-empty buffer necessarily carries a data pointer.
+public export
+nonEmptyBufferRequiresData : (pointer : BufferPointerPresence) -> (length : Nat) ->
+                             bufferDataPointerValid pointer (S length) = True ->
+                             pointer = DataPresent
+nonEmptyBufferRequiresData NullData length Refl impossible
+nonEmptyBufferRequiresData DataPresent length valid = Refl
+
+||| Conversely, a valid null data pointer necessarily denotes an empty buffer.
+public export
+nullDataOnlyForEmptyBuffer : (length : Nat) ->
+                             bufferDataPointerValid NullData length = True ->
+                             length = 0
+nullDataOnlyForEmptyBuffer Z valid = Refl
+nullDataOnlyForEmptyBuffer (S length) Refl impossible
+
+||| A present data pointer satisfies the minimum pointer rule at every length.
+public export
+presentDataAlwaysValid : (length : Nat) ->
+                         bufferDataPointerValid DataPresent length = True
+presentDataAlwaysValid length = Refl
+
 ||| A host accepts its ABI major and no operation minor newer than it knows.
 public export
 acceptsVersion : Bits16 -> Bits16 -> Bits16 -> Bits16 -> Bool

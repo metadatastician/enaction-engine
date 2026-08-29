@@ -58,6 +58,13 @@ Why3 1.8.2+git and its pinned `nightly-2026-06-22` toolchain.
   The five earlier named pair proofs remain as compatibility witnesses derived
   from the exhaustive theorem.
 
+| ABI-P7
+| Under the normative accelerator buffer policy, every valid non-empty buffer
+  has data present and every valid null data pointer denotes an empty buffer.
+| `bufferDataPointerValid`, `nonEmptyBufferRequiresData`,
+  `nullDataOnlyForEmptyBuffer`, and `presentDataAlwaysValid` in
+  `src/interface/Abi/Accelerator.idr`.
+
 | RUST-P1
 | The production accelerator version predicate returns true exactly when host
   and request majors match and the requested minor is no newer than the host.
@@ -69,6 +76,13 @@ Why3 1.8.2+git and its pinned `nightly-2026-06-22` toolchain.
 ABI-P6 is exhaustive: all seven equal-constructor cases and all 42 directed
 unequal-constructor cases are checked by Idris2. Equivalently, this covers all
 21 unordered pairs of different operations.
+
+ABI-P7 quantifies over every natural-number buffer length in the abstract
+pointer-presence model. A negative control admitted null data for a successor
+length; Idris2 then rejected both impossible cases in the two converse
+theorems. Restoring rejection returned the package typecheck to green. The
+theorem establishes the normative policy, not refinement of every Zig entry
+point.
 
 RUST-P1 is connected to production source rather than a copied model: the
 verification harness includes the exact module compiled by
@@ -82,7 +96,8 @@ These checks passed on 2026-08-29, but remain tests rather than proofs:
 
 * `scripts/generate-accelerator-abi.sh --check` reproduced the committed C,
   Zig, Rust and Julia declarations, symbol inventory and source digest.
-* `zig build test` passed for the pure-Zig FFI.
+* `zig build test` passed for the pure-Zig FFI, including null/non-empty buffer
+  rejection and failure-atomicity cases corresponding to ABI-P7.
 * `just e2e` passed 3/3 gates with zero skips: corpus integrity, scalar Rust
   reference conformance, and Rust/Zig byte-for-byte parity across fresh
   processes.
@@ -94,8 +109,10 @@ the Rust implementation or the C/Zig/Rust/Julia toolchain end to end.
 
 == Compiled scaffolding and disconnected proofs
 
-The canonical `just proof-check-all` sweep passed on 2026-08-29 and accounted
-for every file in its manifests. Its product meaning is limited:
+The canonical `just proof-check-all` sweep now typechecks the production
+`abi.ipkg` before checking every file in the generic manifests. Passing the
+production package confirms only the propositions named above; the generic
+manifest remains limited:
 
 * `verification/proofs/idris2/ABI/Foreign.idr` compiles, but proves properties
   of a generic `FFIResult`; it is not connected to the production accelerator
@@ -118,9 +135,12 @@ for every file in its manifests. Its product meaning is limited:
 | ID | Gap | Evidence required to close it
 
 | ABI-G1
-| Non-null pointer proof in the generic proof tree is quarantined.
-| Repair `verification/proofs/idris2/ABI/Pointers.idr`, connect it to the
-  production ABI, and promote it to `gated`.
+| The product buffer-nullability policy is proved by ABI-P7, but the old
+  `verification/proofs/idris2/ABI/Pointers.idr` template remains quarantined
+  and no formal refinement connects every Zig pointer check to the Idris rule.
+| Retire or product-specialise the obsolete template, then prove the generated
+  nullable-pointer representation and Zig validators refine ABI-P7. Until then,
+  keep the existing Zig cases classified as tested correspondence.
 
 | ABI-G2
 | Generic memory-layout and platform-size modules are quarantined.
