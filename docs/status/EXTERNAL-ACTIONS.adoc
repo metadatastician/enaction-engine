@@ -2,17 +2,20 @@
 // Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
 = External Identity Actions
 
-The repository content uses the canonical `metadatastician/enaction-engine`
-identity. The following provider-side operations require authenticated owner
-access and are not established by editing this repository:
+The repository and its content use the canonical
+`metadatastician/enaction-engine` identity. The following provider-side
+operations require authenticated owner access and are not established by
+editing this repository:
 
-* Rename the GitHub repository to `enaction-engine`, preserving history and
-  redirects, then set the local `origin` to
-  `git@github.com:metadatastician/enaction-engine.git`.
-* Rename or provision the SonarCloud project as
-  `metadatastician_enaction-engine` before enabling its workflow or badge.
-* After the GitHub rename is live, verify provider-indexed services such as
-  OpenSSF Scorecard and Software Heritage under the canonical URL before adding
-  their badges.
+* Correct the SonarQube Cloud binding. Measured on 2026-08-29,
+  `metadatastician_enaction-engine` returned 404, while
+  `metadatastician_affective-engine` existed with display name
+  `enaction-engine` and posted its quality gate to pull request 53. Rename or
+  provision the canonical project key and rebind this GitHub repository. A
+  successful repair is evidenced by a new pull-request check whose details URL
+  names `metadatastician_enaction-engine`; do not remove or weaken the quality
+  gate to make the check green.
+* Verify provider-indexed services such as OpenSSF Scorecard and Software
+  Heritage under the canonical URL before adding their badges.
 
 Do not publish provider badges until their canonical targets resolve.

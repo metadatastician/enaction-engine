@@ -1,101 +1,158 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Template: rsr-template-repo/docs/status/PROOF-STATUS.adoc
-// Tracks proof completion. Requirements defined in PROOF-NEEDS.adoc
-= Proof Status — ENACTION_ENGINE
+= Proof Status — Enaction Engine
+:toc:
 
-== Summary
+== Classification rule
 
-[cols="2,1,1,1,1,1", options="header"]
+This ledger distinguishes four things that must not be conflated:
+
+Confirmed proof:: A product-connected proposition was checked by its proof
+tool against the actual source of authority.
+Compiled scaffold:: A proof-assistant file compiles, but explicitly describes
+itself as a template or does not connect to Enaction's implementation.
+Tested correspondence:: Executable implementations agree on observed cases;
+this is evidence, but not a formal proof.
+Gap:: The proposition, implementation connection, toolchain or fail-closed gate
+needed for a proof claim is absent or failing.
+
+Scaffolding is never reported as proof. A passing aggregate proof runner means
+its gated modules compiled and its quarantined modules failed as recorded; it
+does not mean every file is a completed Enaction proof.
+
+== Confirmed product proofs
+
+The following claims were rechecked on 2026-08-29 with Idris2 0.7.0 by running
+`idris2 --typecheck abi.ipkg`. All five production ABI modules typechecked.
+
+[cols="1,3,3", options="header"]
 |===
-| Category | Total | Done | In Progress | Blocked | Remaining
+| ID | Confirmed proposition | Source
 
-| ABI/FFI (ABI) | 5 | 0 | 0 | 0 | 5
-| Typing (TP) | 2 | 0 | 0 | 0 | 2
-| Invariant (INV) | 0 | 0 | 0 | 0 | 0
-| Security (SEC) | 0 | 0 | 0 | 0 | 0
-| Concurrency (CONC) | 0 | 0 | 0 | 0 | 0
-| Algorithm (ALG) | 0 | 0 | 0 | 0 | 0
-| Domain (DOM) | 0 | 0 | 0 | 0 | 0
-| *Total* | *7* | *0* | *0* | *0* | *7*
-|===
+| ABI-P1
+| Request fields are aligned under the declared 56-byte, 8-aligned layout.
+| `src/interface/Abi/Accelerator.idr` — `requestLayoutValid`
 
-*Overall*: 0% proven
+| ABI-P2
+| The 16-byte pointer/length buffer layout satisfies the declared alignment.
+| `src/interface/Abi/Accelerator.idr` — `bufferLayoutValid`
 
-== Proofs Done
+| ABI-P3
+| The declared 32-byte capability layout satisfies its field alignments.
+| `src/interface/Abi/Accelerator.idr` — `capabilityLayoutValid`
 
-// Format:
-// | ID | Proof | Prover | File | Date | Verified By |
-// | ABI-1 | Non-null pointer proofs | Idris2 | verification/proofs/idris2/ABI/Pointers.idr | 2026-XX-XX | idris2 --check |
+| ABI-P4
+| The declared 24-byte evidence layout satisfies its field alignments.
+| `src/interface/Abi/Accelerator.idr` — `evidenceLayoutValid`
 
-[cols="1,3,1,3,1,2", options="header"]
-|===
-| ID | Proof | Prover | File | Date | Verified By
+| ABI-P5
+| The current version is accepted; a wrong major and newer minor are rejected.
+| `acceptsCurrentVersion`, `rejectsWrongMajor`, `rejectsNewerMinor`
 
-| — | No proofs completed yet | — | — | — | —
-|===
-
-== Proofs In Progress
-
-[cols="1,3,1,2,1,2", options="header"]
-|===
-| ID | Proof | Prover | Assignee | Started | Blocker
-
-| — | — | — | — | — | —
-|===
-
-== Proofs Blocked
-
-[cols="1,3,2,3", options="header"]
-|===
-| ID | Proof | Blocked By | Notes
-
-| — | — | — | —
-|===
-
-== Proofs Remaining
-
-[cols="1,3,1,1,1,1", options="header"]
-|===
-| ID | Proof | Category | Prover | Priority | Est. Effort
-
-| ABI-1 | Non-null pointer proofs | ABI | Idris2 | P1 | 2h
-| ABI-2 | Memory layout correctness | ABI | Idris2 | P1 | 4h
-| ABI-3 | Platform type size proofs | ABI | Idris2 | P1 | 2h
-| ABI-4 | FFI function return type proofs | ABI | Idris2 | P1 | 2h
-| ABI-5 | C ABI compliance | ABI | Idris2 | P1 | 4h
-| TP-1 | Core data type well-formedness | TP | Idris2 | P1 | 4h
-| TP-2 | Public API type safety | TP | Lean4 | P2 | 4h
+| ABI-P6
+| Five stated pairs of operation codes are unequal.
+| `operationCodesDistinct`, `reluCodesDistinct`,
+  `fixedAndTensorCodesDistinct`, `binaryTensorCodesDistinct`,
+  `pointwiseBinaryCodesDistinct`
 |===
 
-== Verification Commands
+ABI-P6 is deliberately narrow. Five pairwise non-equalities do not prove that
+all seven operation codes are mutually distinct. Exhaustive uniqueness remains
+a gap.
+
+== Tested implementation correspondence
+
+These checks passed on 2026-08-29, but remain tests rather than proofs:
+
+* `scripts/generate-accelerator-abi.sh --check` reproduced the committed C,
+  Zig, Rust and Julia declarations, symbol inventory and source digest.
+* `zig build test` passed for the pure-Zig FFI.
+* `just e2e` passed 3/3 gates with zero skips: corpus integrity, scalar Rust
+  reference conformance, and Rust/Zig byte-for-byte parity across fresh
+  processes.
+* GitHub's exact pull-request head passed workspace Rust tests, Clippy,
+  formatting and the separately built Zig-linked native adapter.
+
+These observations support the model-to-code correspondence. They do not prove
+the Rust implementation or the C/Zig/Rust/Julia toolchain end to end.
+
+== Compiled scaffolding and disconnected proofs
+
+The canonical `just proof-check-all` sweep passed on 2026-08-29 and accounted
+for every file in its manifests. Its product meaning is limited:
+
+* `verification/proofs/idris2/ABI/Foreign.idr` compiles, but proves properties
+  of a generic `FFIResult`; it is not connected to the production accelerator
+  exports.
+* `verification/proofs/agda/Properties.agda` compiles under `agda --safe`, but
+  labels itself an Agda proof template and proves generic list/monotonicity
+  examples.
+* `verification/proofs/coq/TypeSafety.v` compiles, but labels itself a Coq proof
+  template and proves soundness of an example expression language unrelated to
+  Enaction.
+* `src/interface/Abi/Foreign.idr`, `Types.idr`, and the generic Zig integration
+  test still contain RSR-template names or explicit template language. Their
+  presence in a typechecked package does not establish the advertised generic
+  FFI safety claim.
+
+== Explicit gaps
+
+[cols="1,3,3", options="header"]
+|===
+| ID | Gap | Evidence required to close it
+
+| ABI-G1
+| Non-null pointer proof in the generic proof tree is quarantined.
+| Repair `verification/proofs/idris2/ABI/Pointers.idr`, connect it to the
+  production ABI, and promote it to `gated`.
+
+| ABI-G2
+| Generic memory-layout and platform-size modules are quarantined.
+| Repair `ABI/Layout.idr` and `ABI/Platform.idr`, then state which production
+  declarations each proposition governs.
+
+| ABI-G3
+| Generic C-ABI compliance is quarantined and depends on ABI-G2.
+| Repair `ABI/Compliance.idr`, connect it to generated declarations, and gate
+  the connection.
+
+| ABI-G4
+| Operation-code uniqueness is not exhaustive.
+| Prove injectivity of `operationCode`, or prove all 21 unordered pairs for the
+  seven admitted operations.
+
+| TP-G1
+| Generic Idris2 core types and Lean public-API safety are quarantined.
+| Repair, product-specialise, and promote them from quarantine.
+
+| RUST-G1
+| Rust has tests but no Creusot contracts, installed Creusot tool, or CI gate.
+| Specify contracts for the Rust semantic reference and adapter, run Creusot
+  fail-closed in CI, and plant a failing contract control before claiming the
+  gate is effective.
+
+| CHAIN-G1
+| Model-to-generated-code-to-Zig-to-Rust equivalence is tested, not proved.
+| Add a proof-carrying or mechanically checked refinement chain; keep the
+  current cross-language tests as independent evidence.
+
+| HEX-G1
+| The FFI passes the Hexadeca purity floor but has no sixteen-connector unified
+  protocol surface.
+| Admit such an adapter only for a real protocol consumer; do not treat an
+  internal numeric ABI as a protocol connector by naming alone.
+|===
+
+== Verification commands
 
 [source,bash]
 ----
-# Check all Idris2 proofs
-just proof-check-idris2
-
-# Check all Lean4 proofs
-just proof-check-lean4
-
-# Check all Agda proofs
-just proof-check-agda
-
-# Check all Coq proofs
-just proof-check-coq
-
-# Run all proof checks
+idris2 --typecheck abi.ipkg
+scripts/generate-accelerator-abi.sh --check
 just proof-check-all
-
-# Scan for dangerous patterns
-panic-attack assail --proofs-only
+(cd src/interface/ffi && zig build test)
+just e2e
 ----
 
-== Changelog
-
-[cols="1,3,1", options="header"]
-|===
-| Date | Change | By
-
-| 2026-04-04 | Initial proof status tracking | Template
-|===
+Creusot is intentionally absent from the passing command list until the
+contracts, tool provision and fail-closed gate exist.
