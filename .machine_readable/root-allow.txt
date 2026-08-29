@@ -31,6 +31,7 @@ RSR-PHILOSOPHY.adoc        # RSR philosophy statement (root authority file; was 
 Justfile                   # delegates phases to build/just/*.just
 coordination.k9            # repo-local session binding (template-mandated)
 abi.ipkg                   # Idris2 package for the ABI seam; sourcedir=src/interface (estate canon: root-level *-abi.ipkg). Single case-consistent src/interface/Abi/ dir. Typecheck: `idris2 --typecheck abi.ipkg`.
+why3find.json              # Creusot/Why3 proof-search configuration; cargo-creusot requires this at the Cargo workspace root.
 archetypes/                # template-only archetype overlays (ADR-0003); `just init` removes this dir from minted repos
 
 # ─── Conventional dotfiles (tool-required at root) ───────────────────────────
