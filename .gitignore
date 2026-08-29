@@ -123,6 +123,10 @@ dist/
 /build/ttc/
 /build/exec/
 
+# Creusot/Why3 generated verification output and local prover cache.
+/verif/
+/.why3find/
+
 # Arrival-pack build artifact (regenerated from a2ml)
 .machine_readable/arrival-pack/claude-md-data.json
 
