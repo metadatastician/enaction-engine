@@ -56,6 +56,7 @@ dependencies = [
 name = "enaction-contracts"
 version = "0.1.0"
 dependencies = [
+ "creusot-std",
  "enaction-trace",
  "serde",
  "serde_json",
@@ -66,6 +67,7 @@ name = "enaction-creusot-verification"
 version = "0.1.0"
 dependencies = [
  "creusot-std",
+ "serde",
 ]
 
 [[package]]

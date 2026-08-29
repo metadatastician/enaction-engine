@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Contract and profile versioning (CAC-KERNEL §5–§6, ADR-0009).
 
+use creusot_std::macros::ensures;
+use creusot_std::prelude::DeepModel;
+#[cfg(not(creusot))]
 use serde::{Deserialize, Serialize};
 
 /// A contract version: the compatibility unit of the CAC kernel.
@@ -8,7 +11,11 @@ use serde::{Deserialize, Serialize};
 /// Deliberately two-part, not semver. A patch level would imply releases the
 /// contract does not have; what loaders need is exactly a compatibility major
 /// and an additive minor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, DeepModel)]
+#[cfg_attr(
+    not(creusot),
+    derive(PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)
+)]
 pub struct ContractVersion {
     pub major: u16,
     pub minor: u16,
@@ -30,11 +37,13 @@ impl ContractVersion {
     /// crate's ruling (recorded in ADR-0019) since additive features a host
     /// lacks are exactly as unloadable as a wrong major.
     #[must_use]
+    #[ensures(result == (self.major == declared.major && declared.minor <= self.minor))]
     pub fn accepts(self, declared: ContractVersion) -> bool {
         self.major == declared.major && declared.minor <= self.minor
     }
 }
 
+#[cfg(not(creusot))]
 impl std::fmt::Display for ContractVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}.{}", self.major, self.minor)
@@ -43,6 +52,7 @@ impl std::fmt::Display for ContractVersion {
 
 /// A profile reference: game- or scenario-specific vocabulary and policy,
 /// declared without changing kernel semantics (CAC-KERNEL §5).
+#[cfg(not(creusot))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProfileRef {
     /// Namespaced identifier, e.g. `"idaptik/esm/v1"` or `"slavia/esm/v1"`.

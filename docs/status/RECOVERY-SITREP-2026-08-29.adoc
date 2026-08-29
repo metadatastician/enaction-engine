@@ -60,11 +60,11 @@ to the canonical key.
 See `PROOF-STATUS.adoc`. In short: the production Idris2 accelerator package,
 its stated layout/version proofs, and exhaustive operation-code injectivity
 and buffer-pointer policy proofs typecheck; generated artifacts reproduce; Zig
-and cross-language conformance tests pass. Creusot proves the exact production Rust
-version-compatibility predicate with a positive-controlled local gate. Generic
-Agda/Coq templates are scaffolding, five Idris2/Lean modules remain
-quarantined, other Rust modules remain unproved, and Creusot is not yet a
-GitHub Actions gate.
+and cross-language conformance tests pass. Creusot proves two exact production
+Rust version-compatibility predicates with positive-controlled local checks.
+Generic Agda/Coq templates are scaffolding, five Idris2/Lean modules remain
+quarantined, other Rust modules remain unproved, and Creusot is not yet a GitHub
+Actions gate.
 
 == Estate interface constraints
 
@@ -81,9 +81,10 @@ Idris2 ABI and Zig FFI:: Idris2 is normative for ABI types/layouts; generated
 declarations are deterministic wire artifacts; Zig implements the boundary;
 host languages do not independently redefine it.
 
-Rust and Creusot:: One production predicate now has a Creusot contract and a
-fail-closed, positive-controlled local gate. No proof claim extends to the
-planner, kernels or adapter; GitHub Actions provisioning remains a gap.
+Rust and Creusot:: Two production predicates now have exact Creusot contracts
+and fail-closed, positive-controlled local checks. No proof claim extends to
+package-validation callers, the planner, kernels or adapter; GitHub Actions
+provisioning remains a gap.
 
 Idris2 pointer policy:: The production ABI now proves that a valid non-empty
 buffer requires data and a valid null data pointer denotes an empty buffer.

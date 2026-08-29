@@ -7,3 +7,6 @@
 
 #[path = "../../../crates/enaction-accelerator/src/version.rs"]
 pub mod accelerator_version;
+
+#[path = "../../../crates/enaction-contracts/src/version.rs"]
+pub mod contracts_version;

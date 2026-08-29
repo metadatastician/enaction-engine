@@ -61,6 +61,10 @@ where they apply to Enaction Engine:
 |===
 | # | Proof Needed | Category | Prover | Priority | File(s)
 
+| CAC-1 | Exact CAC/ESM contract-version compatibility predicate | FUNC |
+  Creusot | Confirmed (`RUST-P2`); callers remain outside the claim |
+  `crates/enaction-contracts/src/version.rs`, `verification/creusot/src/lib.rs`
+
 | SNIF-1 | Product-specific wasm32 request/result/buffer invariants and
   generated-Zig refinement, if a real BEAM consumer is admitted | ABI/SEC |
   Idris2 plus an explicit refinement method | Deferred until admission |
