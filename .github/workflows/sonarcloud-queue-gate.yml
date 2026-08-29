@@ -1,0 +1,90 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: SonarCloud Queue Gate
+
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+  checks: read
+  pull-requests: read
+
+jobs:
+  attest:
+    name: SonarCloud queue attestation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Require the official SonarCloud result for the queued head
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          event_name=$(jq -r '.action as $action | if has("pull_request") then "pull_request" elif has("merge_group") then "merge_group" else empty end' "$GITHUB_EVENT_PATH")
+          case "$event_name" in
+            pull_request)
+              pr_number=$(jq -r '.number' "$GITHUB_EVENT_PATH")
+              ;;
+            merge_group)
+              head_ref=$(jq -r '.merge_group.head_ref' "$GITHUB_EVENT_PATH")
+              if [[ ! "$head_ref" =~ /pr-([0-9]+)- ]]; then
+                echo "Unable to identify one pull request from merge-group ref: $head_ref" >&2
+                exit 1
+              fi
+              pr_number=${BASH_REMATCH[1]}
+              # shellcheck disable=SC2016 # GraphQL variables are literal here.
+              queue_sha=$(gh api graphql \
+                -f query='query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){mergeQueueEntry{headCommit{oid}}}}}' \
+                -f owner="${GH_REPO%%/*}" \
+                -f repo="${GH_REPO#*/}" \
+                -F number="$pr_number" \
+                --jq '.data.repository.pullRequest.mergeQueueEntry.headCommit.oid')
+              if [[ "$queue_sha" != "$GITHUB_SHA" ]]; then
+                echo "Queue entry $queue_sha does not match event commit $GITHUB_SHA" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Unsupported event payload" >&2
+              exit 1
+              ;;
+          esac
+
+          pr_head=$(gh api "repos/$GH_REPO/pulls/$pr_number" --jq '.head.sha')
+          if [[ ! "$pr_head" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid pull-request head returned for #$pr_number" >&2
+            exit 1
+          fi
+
+          for attempt in {1..60}; do
+            result=$(gh api --paginate "repos/$GH_REPO/commits/$pr_head/check-runs" \
+              | jq -rs '
+                  [.[].check_runs[]
+                    | select(.name == "SonarCloud Code Analysis" and .app.id == 12526)]
+                  | sort_by(.started_at)
+                  | last
+                  | if . == null then "missing\tmissing"
+                    else [.status, (.conclusion // "pending")] | @tsv
+                    end')
+            status=${result%%$'\t'*}
+            conclusion=${result#*$'\t'}
+            if [[ "$status" == "completed" ]]; then
+              if [[ "$conclusion" == "success" ]]; then
+                echo "Official SonarQubeCloud analysis passed for PR #$pr_number at $pr_head"
+                exit 0
+              fi
+              echo "Official SonarQubeCloud analysis concluded: $conclusion" >&2
+              exit 1
+            fi
+            echo "Waiting for official SonarQubeCloud analysis ($attempt/60): $status"
+            sleep 10
+          done
+
+          echo "Official SonarQubeCloud analysis did not complete within 10 minutes" >&2
+          exit 1

@@ -7,6 +7,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  merge_group:
   schedule:
     - cron: '0 6 1 * *'   # monthly 1st 06:00 UTC (Actions burn cut, standards#288)
 concurrency:
@@ -28,13 +29,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Default to `actions` — scaffolded repos rarely have JS/TS
-          # source; `javascript-typescript` produced "no source files"
-          # failures on every CodeQL run. The `actions` extractor scans
-          # workflow files which every repo has. Override per-repo if
-          # the scaffolded project actually contains JS/TS code.
-          # Per hypatia rule `codeql_language_matrix_mismatch`.
           - language: actions
+            build-mode: none
+          # Rust is part of this repository's production substrate. CodeQL is
+          # a security analysis gate; Rust/Creusot proof claims remain subject
+          # to the separate proof ledger and exact negative controls.
+          - language: rust
             build-mode: none
     steps:
       - name: Checkout
@@ -44,6 +44,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4.37.8
         with:

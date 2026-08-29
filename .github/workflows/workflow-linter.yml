@@ -34,17 +34,43 @@ jobs:
 
       - name: Check SPDX Headers
         run: |
+          echo "=== Testing SPDX Checker ==="
+          mkdir -p /tmp/spdx_test
+          cat << 'EOF' > /tmp/spdx_test/valid.yml
+          # This workflow is managed by gh actions-lock.
+          # SPDX-License-Identifier: AGPL-3.0-or-later
+          name: Valid
+          EOF
+          cat << 'EOF' > /tmp/spdx_test/invalid.yml
+          # SPDX-License-Identifier: MPL-2.0
+          name: Invalid
+          EOF
+          cat << 'EOF' > /tmp/spdx_test/missing.yml
+          name: Missing
+          EOF
+          check_spdx() {
+            awk '/^---[[:space:]]*$/ { next } /^#/ { print; next } { exit }' "$1" | grep -qx '# SPDX-License-Identifier: AGPL-3.0-or-later'
+          }
+          if ! check_spdx /tmp/spdx_test/valid.yml; then echo "Test failed: rejected valid header"; exit 1; fi
+          if check_spdx /tmp/spdx_test/invalid.yml; then echo "Test failed: accepted invalid header"; exit 1; fi
+          if check_spdx /tmp/spdx_test/missing.yml; then echo "Test failed: accepted missing header"; exit 1; fi
+          echo "SPDX test passed"
+          
           echo "=== Checking SPDX License Headers ==="
           failed=0
           for file in .github/workflows/*.yml .github/workflows/*.yaml; do
             [ -f "$file" ] || continue
-            if ! head -1 "$file" | grep -q "^# SPDX-License-Identifier:"; then
-              echo "ERROR: $file missing SPDX header"
+            # gh actions-lock owns line 1 and places its management marker
+            # before the licence. Inspect the complete leading comment block
+            # and enforce this AGPL repository's exact code licence.
+            if ! awk '/^---[[:space:]]*$/ { next } /^#/ { print; next } { exit }' "$file" \
+                 | grep -qx '# SPDX-License-Identifier: AGPL-3.0-or-later'; then
+              echo "ERROR: $file has no AGPL-3.0-or-later SPDX identifier in its header comment block"
               failed=1
             fi
           done
           if [ $failed -eq 1 ]; then
-            echo "Add '# SPDX-License-Identifier: AGPL-3.0-or-later' as first line"
+            echo "Add '# SPDX-License-Identifier: AGPL-3.0-or-later' to the leading comment block"
             exit 1
           fi
           echo "All workflows have SPDX headers"

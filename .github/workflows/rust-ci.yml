@@ -1,9 +1,9 @@
 # This workflow is managed by gh actions-lock.
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # This workflow is managed by gh actions-lock.
-# Rust CI — thin wrapper calling the shared estate reusable in
-# hyperpolymath/standards. Configure once, propagate everywhere.
-# See: docs/CI-REUSABLE-WORKFLOWS.adoc in standards.
+# Rust CI — explicit repository checks plus the Zig-linked accelerator seam.
+# Keeping these steps local avoids an opaque startup failure in GitHub's
+# reusable-workflow loader while preserving every previously intended gate.
 name: Rust CI
 on:
   push:
@@ -17,9 +17,28 @@ permissions:
   contents: read
 jobs:
   rust-ci:
-    uses: hyperpolymath/standards/.github/workflows/rust-ci-reusable.yml@bd0df9ead7faf0cdfe0e13e7966d91e28d0101d4
+    name: Check, format, clippy, and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+      - name: Cargo check
+        run: cargo check --locked --all-targets
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --locked --all-targets
   # enaction-accelerator-native links a Zig-built static library. The shared
-  # reusable has no toolchain hook, so the crate sits outside the workspace
+  # Rust leg has no Zig toolchain, so the crate sits outside the workspace
   # default-members (Cargo.toml) and gets its own visible, failable leg here
   # — the estate doctrine forbids silent skips. Zig pin matches mise.toml /
   # .tool-versions (0.16.0: build.zig uses the 0.15+ addLibrary API and the
@@ -32,17 +51,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7.0.1
       - name: Install Rust toolchain
-        # Explicit install rather than the runner's preinstalled Rust, so this
-        # leg uses the SAME toolchain the reusable installs (dtolnay + explicit
-        # `toolchain: stable`) — otherwise clippy -D warnings could drift
-        # between runner-image stable and the reusable's stable. The repo's CI
-        # truth is stable (the reusable pins it); .tool-versions' nightly is
-        # the local mise toolchain only. gh actions-lock normalizes dtolnay to
-        # @master and pins the resolved commit in actions.lock.
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-          components: clippy
+        # Explicit install rather than the runner's preinstalled Rust keeps
+        # this leg on the same stable toolchain as the main Rust job. Avoiding
+        # a setup Action also removes a false conflict between literal SHA-pin
+        # scanners and the repository's single actions.lock pin authority.
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup default stable
       - name: Install pinned Zig
         uses: mlugg/setup-zig@v2.2.1
         with:
