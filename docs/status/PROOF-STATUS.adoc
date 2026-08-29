@@ -31,19 +31,23 @@ Why3 1.8.2+git and its pinned `nightly-2026-06-22` toolchain.
 | ID | Confirmed proposition | Source
 
 | ABI-P1
-| Request fields are aligned under the declared 56-byte, 8-aligned layout.
+| All 13 request fields are aligned and end within the declared 56-byte,
+  8-aligned layout.
 | `src/interface/Abi/Accelerator.idr` — `requestLayoutValid`
 
 | ABI-P2
-| The 16-byte pointer/length buffer layout satisfies the declared alignment.
+| Both fields in the 16-byte pointer/length buffer layout are aligned and end
+  within the declared size.
 | `src/interface/Abi/Accelerator.idr` — `bufferLayoutValid`
 
 | ABI-P3
-| The declared 32-byte capability layout satisfies its field alignments.
+| All 10 fields in the declared 32-byte capability layout are aligned and end
+  within the declared size.
 | `src/interface/Abi/Accelerator.idr` — `capabilityLayoutValid`
 
 | ABI-P4
-| The declared 24-byte evidence layout satisfies its field alignments.
+| All eight fields in the declared 24-byte evidence layout are aligned and end
+  within the declared size.
 | `src/interface/Abi/Accelerator.idr` — `evidenceLayoutValid`
 
 | ABI-P5
@@ -83,6 +87,13 @@ length; Idris2 then rejected both impossible cases in the two converse
 theorems. Restoring rejection returned the package typecheck to green. The
 theorem establishes the normative policy, not refinement of every Zig entry
 point.
+
+ABI-P1 through ABI-P4 now cover all 33 fields across the four production
+accelerator layouts. `CABICompliant` requires both `FieldsAligned` and
+`FieldsInBounds`, while `StructLayout` retains the total-size alignment
+witness. A negative control enlarged the final request field so it ended at
+byte 64 in a 56-byte struct; Idris2 rejected the final bounds witness. Restoring
+the eight-byte field returned the production package to green.
 
 RUST-P1 is connected to production source rather than a copied model: the
 verification harness includes the exact module compiled by
@@ -143,14 +154,19 @@ manifest remains limited:
   keep the existing Zig cases classified as tested correspondence.
 
 | ABI-G2
-| Generic memory-layout and platform-size modules are quarantined.
-| Repair `ABI/Layout.idr` and `ABI/Platform.idr`, then state which production
-  declarations each proposition governs.
+| Product layout alignment and field bounds are proved by ABI-P1 through
+  ABI-P4, but the generic layout/platform templates remain quarantined and the
+  platform model in `Abi.Types` is still explicitly simplified.
+| Retire or product-specialise the generic templates and replace the fixed
+  platform assumption with target-specific, checked size witnesses.
 
 | ABI-G3
-| Generic C-ABI compliance is quarantined and depends on ABI-G2.
-| Repair `ABI/Compliance.idr`, connect it to generated declarations, and gate
-  the connection.
+| Product `CABICompliant` certificates establish the declared Idris layout
+  model, not that every target compiler gives the generated C/Zig/Rust/Julia
+  declarations exactly that representation.
+| Add target-specific compiler layout assertions or a mechanically checked
+  refinement from generated declarations to the Idris model; keep current
+  runtime layout tests as correspondence evidence.
 
 | TP-G1
 | Generic Idris2 core types and Lean public-API safety are quarantined.
