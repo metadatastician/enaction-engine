@@ -57,11 +57,11 @@ to the canonical key.
 
 == Proof status
 
-See `PROOF-STATUS.adoc`. In short: the production Idris2 accelerator package
-and its stated layout/version/non-equality proofs typecheck; generated artifacts
-reproduce; Zig and cross-language conformance tests pass. Generic Agda/Coq
-templates are scaffolding, five Idris2/Lean modules remain quarantined, full
-operation-code uniqueness is absent, and Rust+Creusot verification does not
+See `PROOF-STATUS.adoc`. In short: the production Idris2 accelerator package,
+its stated layout/version proofs, and exhaustive operation-code injectivity
+proof typecheck; generated artifacts reproduce; Zig and cross-language
+conformance tests pass. Generic Agda/Coq templates are scaffolding, five
+Idris2/Lean modules remain quarantined, and Rust+Creusot verification does not
 exist yet.
 
 == Estate interface constraints

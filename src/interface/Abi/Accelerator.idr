@@ -176,25 +176,96 @@ public export
 rejectsNewerMinor : acceptsVersion Abi.Accelerator.abiMajor Abi.Accelerator.abiMinor 1 1 = False
 rejectsNewerMinor = Refl
 
+||| The numeric operation discriminant is injective over every admitted
+||| operation. This covers all 49 ordered constructor pairs (the seven equal
+||| pairs and all 42 unequal directions), rather than sampling selected pairs.
+public export
+operationCodeInjective : (left, right : Operation) ->
+                         operationCode left = operationCode right ->
+                         left = right
+operationCodeInjective FixedI32Dot FixedI32Dot Refl = Refl
+operationCodeInjective FixedI32Dot FixedI32MatMul Refl impossible
+operationCodeInjective FixedI32Dot TensorF32Relu Refl impossible
+operationCodeInjective FixedI32Dot TensorF32Relu6 Refl impossible
+operationCodeInjective FixedI32Dot TensorF32MatMul Refl impossible
+operationCodeInjective FixedI32Dot TensorF32Add Refl impossible
+operationCodeInjective FixedI32Dot TensorF32Mul Refl impossible
+operationCodeInjective FixedI32MatMul FixedI32Dot Refl impossible
+operationCodeInjective FixedI32MatMul FixedI32MatMul Refl = Refl
+operationCodeInjective FixedI32MatMul TensorF32Relu Refl impossible
+operationCodeInjective FixedI32MatMul TensorF32Relu6 Refl impossible
+operationCodeInjective FixedI32MatMul TensorF32MatMul Refl impossible
+operationCodeInjective FixedI32MatMul TensorF32Add Refl impossible
+operationCodeInjective FixedI32MatMul TensorF32Mul Refl impossible
+operationCodeInjective TensorF32Relu FixedI32Dot Refl impossible
+operationCodeInjective TensorF32Relu FixedI32MatMul Refl impossible
+operationCodeInjective TensorF32Relu TensorF32Relu Refl = Refl
+operationCodeInjective TensorF32Relu TensorF32Relu6 Refl impossible
+operationCodeInjective TensorF32Relu TensorF32MatMul Refl impossible
+operationCodeInjective TensorF32Relu TensorF32Add Refl impossible
+operationCodeInjective TensorF32Relu TensorF32Mul Refl impossible
+operationCodeInjective TensorF32Relu6 FixedI32Dot Refl impossible
+operationCodeInjective TensorF32Relu6 FixedI32MatMul Refl impossible
+operationCodeInjective TensorF32Relu6 TensorF32Relu Refl impossible
+operationCodeInjective TensorF32Relu6 TensorF32Relu6 Refl = Refl
+operationCodeInjective TensorF32Relu6 TensorF32MatMul Refl impossible
+operationCodeInjective TensorF32Relu6 TensorF32Add Refl impossible
+operationCodeInjective TensorF32Relu6 TensorF32Mul Refl impossible
+operationCodeInjective TensorF32MatMul FixedI32Dot Refl impossible
+operationCodeInjective TensorF32MatMul FixedI32MatMul Refl impossible
+operationCodeInjective TensorF32MatMul TensorF32Relu Refl impossible
+operationCodeInjective TensorF32MatMul TensorF32Relu6 Refl impossible
+operationCodeInjective TensorF32MatMul TensorF32MatMul Refl = Refl
+operationCodeInjective TensorF32MatMul TensorF32Add Refl impossible
+operationCodeInjective TensorF32MatMul TensorF32Mul Refl impossible
+operationCodeInjective TensorF32Add FixedI32Dot Refl impossible
+operationCodeInjective TensorF32Add FixedI32MatMul Refl impossible
+operationCodeInjective TensorF32Add TensorF32Relu Refl impossible
+operationCodeInjective TensorF32Add TensorF32Relu6 Refl impossible
+operationCodeInjective TensorF32Add TensorF32MatMul Refl impossible
+operationCodeInjective TensorF32Add TensorF32Add Refl = Refl
+operationCodeInjective TensorF32Add TensorF32Mul Refl impossible
+operationCodeInjective TensorF32Mul FixedI32Dot Refl impossible
+operationCodeInjective TensorF32Mul FixedI32MatMul Refl impossible
+operationCodeInjective TensorF32Mul TensorF32Relu Refl impossible
+operationCodeInjective TensorF32Mul TensorF32Relu6 Refl impossible
+operationCodeInjective TensorF32Mul TensorF32MatMul Refl impossible
+operationCodeInjective TensorF32Mul TensorF32Add Refl impossible
+operationCodeInjective TensorF32Mul TensorF32Mul Refl = Refl
+
+||| Contrapositive form for consumers: different operations cannot share a
+||| numeric discriminant.
+public export
+differentOperationsHaveDifferentCodes : (left, right : Operation) ->
+                                         Not (left = right) ->
+                                         Not (operationCode left = operationCode right)
+differentOperationsHaveDifferentCodes left right operationsDiffer codesEqual =
+  operationsDiffer (operationCodeInjective left right codesEqual)
+
 public export
 operationCodesDistinct : Not (operationCode FixedI32Dot = operationCode FixedI32MatMul)
-operationCodesDistinct Refl impossible
+operationCodesDistinct = differentOperationsHaveDifferentCodes
+  FixedI32Dot FixedI32MatMul (\case Refl impossible)
 
 public export
 reluCodesDistinct : Not (operationCode TensorF32Relu = operationCode TensorF32Relu6)
-reluCodesDistinct Refl impossible
+reluCodesDistinct = differentOperationsHaveDifferentCodes
+  TensorF32Relu TensorF32Relu6 (\case Refl impossible)
 
 public export
 fixedAndTensorCodesDistinct : Not (operationCode FixedI32MatMul = operationCode TensorF32Relu)
-fixedAndTensorCodesDistinct Refl impossible
+fixedAndTensorCodesDistinct = differentOperationsHaveDifferentCodes
+  FixedI32MatMul TensorF32Relu (\case Refl impossible)
 
 public export
 binaryTensorCodesDistinct : Not (operationCode TensorF32MatMul = operationCode TensorF32Add)
-binaryTensorCodesDistinct Refl impossible
+binaryTensorCodesDistinct = differentOperationsHaveDifferentCodes
+  TensorF32MatMul TensorF32Add (\case Refl impossible)
 
 public export
 pointwiseBinaryCodesDistinct : Not (operationCode TensorF32Add = operationCode TensorF32Mul)
-pointwiseBinaryCodesDistinct Refl impossible
+pointwiseBinaryCodesDistinct = differentOperationsHaveDifferentCodes
+  TensorF32Add TensorF32Mul (\case Refl impossible)
 
 private
 div8_56 : Divides 8 56
