@@ -35,7 +35,7 @@ where they apply to Enaction Engine:
 |===
 | # | Proof | Status | File
 
-| ABI-1 | Non-null pointer proofs (`So (ptr /= 0)`) | Needed | `verification/proofs/idris2/ABI/Pointers.idr`
+| ABI-1 | Buffer pointer/nullability policy | Partial: product policy proved; Zig refinement open | `src/interface/Abi/Accelerator.idr` (`ABI-P7`); obsolete generic template remains quarantined
 | ABI-2 | Memory layout correctness (`HasSize`, `HasAlignment`) | Needed | `verification/proofs/idris2/ABI/Layout.idr`
 | ABI-3 | Platform type size proofs (per platform) | Needed | `verification/proofs/idris2/ABI/Platform.idr`
 | ABI-4 | FFI function return type proofs | Needed | `verification/proofs/idris2/ABI/Foreign.idr`

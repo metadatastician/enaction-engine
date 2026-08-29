@@ -8,8 +8,8 @@
 # scan for dangerous/unsafe constructs and report status. Run via
 # `just proof-check-all` for the full sweep.
 
-# Check all formal proofs (Idris2 + Lean4 + Agda + Coq + Rust/Creusot)
-proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-check-creusot proof-scan-dangerous
+# Check all formal proofs (production Idris2 ABI + proof manifests + Rust/Creusot)
+proof-check-all: proof-check-idris2-abi proof-check-idris2 proof-check-lean4 proof-check-agda proof-check-coq proof-check-creusot proof-scan-dangerous
     @echo "=== All proof checks complete ==="
 
 # Each proof-check-<prover> delegates to scripts/check-proofs.sh, the single
@@ -19,6 +19,12 @@ proof-check-all: proof-check-idris2 proof-check-lean4 proof-check-agda proof-che
 # header for the four "checks that could not fail" this replaces.
 
 # Check Idris2 proofs (per MANIFEST; fatal if idris2 absent)
+proof-check-idris2-abi:
+    @command -v idris2 >/dev/null 2>&1 || { echo "FAIL: idris2 not found." >&2; exit 1; }
+    @idris2 --typecheck abi.ipkg
+
+# Check the generic Idris2 proof manifest separately. Quarantined templates do
+# not become product proofs merely because the production ABI package passes.
 proof-check-idris2:
     @bash scripts/check-proofs.sh idris2
 
