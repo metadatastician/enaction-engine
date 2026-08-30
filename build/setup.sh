@@ -5,11 +5,6 @@
 # Detects your shell, platform, and installs prerequisites.
 # Then hands off to `just setup` for project-specific configuration.
 #
-# hypatia: allow code_safety/shell_download_then_run -- the only remote fetch
-#   (install_just_upstream) deliberately downloads to a temp file and runs that
-#   file rather than piping `curl | sh`, so the script can be inspected; the
-#   upstream just installer is a rolling script that cannot be checksum-pinned.
-#
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/metadatastician/enaction-engine/main/setup.sh -o setup.sh && sh setup.sh
 #   # or after cloning:
@@ -133,20 +128,94 @@ detect_platform() {
 }
 
 # ── Install just ──
-# Fetch-then-run rather than `curl | sh`: piping a remote script straight into a
-# shell executes whatever the network returns with no chance to inspect or
-# verify it (CWE-494). Download to a temp file first, then run that file.
-install_just_upstream() {
-    _ji_tmp=$(mktemp 2>/dev/null || echo "/tmp/just-install.$$.sh")
-    if curl -fsSL https://just.systems/install.sh -o "$_ji_tmp"; then
-        sh "$_ji_tmp" --to /usr/local/bin
-        _ji_rc=$?
+# Use versioned upstream binaries with release-published digests. Unsupported
+# platforms fail closed rather than executing a mutable installer script.
+install_just_verified() {
+    _ji_version="1.58.0"
+
+    case "$OS:$ARCH" in
+        linux:x86_64|linux:amd64)
+            _ji_target="x86_64-unknown-linux-musl"
+            _ji_sha256="4a5cc2f53e6f0f8c59092a6cc38291eb729d46a7dd95d3ae582008881b84931d"
+            ;;
+        linux:aarch64|linux:arm64)
+            _ji_target="aarch64-unknown-linux-musl"
+            _ji_sha256="748237128c4c40cbdabc65e841d05ceba13cc23a91eaba395495894c1d9764df"
+            ;;
+        macos:x86_64|macos:amd64)
+            _ji_target="x86_64-apple-darwin"
+            _ji_sha256="9a09cfef66aaa79da58203970103a0684307716caaabd3e9844cacc4dc0f4023"
+            ;;
+        macos:aarch64|macos:arm64)
+            _ji_target="aarch64-apple-darwin"
+            _ji_sha256="50ae3e996c974a0bf32ea7d10f495070df33f1b43e0616b2769e3d4821ed8f48"
+            ;;
+        *)
+            fail "No checksum-verified just artifact for $OS/$ARCH."
+            return 1
+            ;;
+    esac
+
+    _ji_tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/just-install.XXXXXX") || {
+        fail "Could not create a private temporary directory."
+        return 1
+    }
+    _ji_archive="$_ji_tmp_dir/just.tar.gz"
+    _ji_url="https://github.com/casey/just/releases/download/${_ji_version}/just-${_ji_version}-${_ji_target}.tar.gz"
+
+    if ! curl --proto '=https' --proto-redir '=https' --tlsv1.2 \
+        --fail --show-error --location --output "$_ji_archive" "$_ji_url"; then
+        fail "Could not download the pinned just ${_ji_version} archive."
+        rm -f "$_ji_archive"
+        rmdir "$_ji_tmp_dir"
+        return 1
+    fi
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        _ji_actual=$(sha256sum "$_ji_archive" | awk '{print $1}')
+    elif command -v shasum >/dev/null 2>&1; then
+        _ji_actual=$(shasum -a 256 "$_ji_archive" | awk '{print $1}')
     else
-        fail "Could not download the just installer."
+        fail "No SHA-256 verifier is available; refusing to install just."
+        rm -f "$_ji_archive"
+        rmdir "$_ji_tmp_dir"
+        return 1
+    fi
+
+    if [ "$_ji_actual" != "$_ji_sha256" ]; then
+        fail "just ${_ji_version} archive checksum mismatch."
+        rm -f "$_ji_archive"
+        rmdir "$_ji_tmp_dir"
+        return 1
+    fi
+
+    if ! tar -xzf "$_ji_archive" -C "$_ji_tmp_dir" just; then
+        fail "Could not extract the verified just archive."
+        rm -f "$_ji_archive" "$_ji_tmp_dir/just"
+        rmdir "$_ji_tmp_dir"
+        return 1
+    fi
+
+    if [ -w /usr/local/bin ]; then
+        if install -m 0755 "$_ji_tmp_dir/just" /usr/local/bin/just; then
+            _ji_rc=0
+        else
+            _ji_rc=$?
+        fi
+    elif command -v sudo >/dev/null 2>&1; then
+        if sudo install -m 0755 "$_ji_tmp_dir/just" /usr/local/bin/just; then
+            _ji_rc=0
+        else
+            _ji_rc=$?
+        fi
+    else
+        fail "/usr/local/bin is not writable and sudo is unavailable."
         _ji_rc=1
     fi
-    rm -f "$_ji_tmp"
-    return $_ji_rc
+
+    rm -f "$_ji_archive" "$_ji_tmp_dir/just"
+    rmdir "$_ji_tmp_dir"
+    return "$_ji_rc"
 }
 
 install_just() {
@@ -159,7 +228,7 @@ install_just() {
 
     case "$PKG_MGR" in
         dnf)        sudo dnf install -y just ;;
-        apt)        sudo apt-get install -y just 2>/dev/null || install_just_upstream ;;
+        apt)        sudo apt-get install -y just 2>/dev/null || install_just_verified ;;
         pacman)     sudo pacman -S --noconfirm just ;;
         apk)        sudo apk add just ;;
         brew)       brew install just ;;
@@ -168,8 +237,8 @@ install_just() {
         rpm-ostree) sudo rpm-ostree install just ;;
         guix)       guix install just ;;
         *)
-            info "Using just installer script..."
-            install_just_upstream
+            info "Using checksum-verified just release artifact..."
+            install_just_verified
             ;;
     esac
 
