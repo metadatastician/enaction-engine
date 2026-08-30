@@ -11,11 +11,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  actions: read
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
 # Serialise Pages deploys; never cancel an in-flight deploy.
 concurrency:
@@ -26,6 +22,9 @@ jobs:
   build:
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7.0.1
@@ -50,6 +49,9 @@ jobs:
 
   deploy:
     timeout-minutes: 20
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

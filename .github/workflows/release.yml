@@ -41,7 +41,7 @@ jobs:
           elif [ -f "Cargo.toml" ]; then
             echo "::notice::Detected Rust project (Cargo.toml)"
             echo "build_type=cargo" >> "$GITHUB_OUTPUT"
-            cargo build --release
+            cargo build --release --locked
           elif [ -f "build.zig" ]; then
             echo "::notice::Detected Zig project (build.zig)"
             echo "build_type=zig" >> "$GITHUB_OUTPUT"

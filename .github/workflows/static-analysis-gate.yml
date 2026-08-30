@@ -12,9 +12,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-permissions:
-  actions: read
-  contents: read
+permissions: {}
 jobs:
   # ---------------------------------------------------------------------------
   # Job 1: panic-attack assail
@@ -23,6 +21,8 @@ jobs:
     name: panic-attack assail
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -127,6 +127,8 @@ jobs:
     name: Hypatia neurosymbolic scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -231,6 +233,8 @@ jobs:
     name: Patch Bridge CVE triage
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
@@ -313,6 +317,8 @@ jobs:
     name: Deposit findings for gitbot-fleet
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      actions: read
     needs: [panic-attack-assail, hypatia-scan, patch-bridge-triage]
     if: always()
     steps:
