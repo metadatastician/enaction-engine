@@ -95,8 +95,20 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
       - name: Install git-cliff
         run: |
-          curl -sSfL https://github.com/orhun/git-cliff/releases/latest/download/git-cliff-$(uname -m)-unknown-linux-gnu.tar.gz \
-            | tar -xz --strip-components=1 -C /usr/local/bin/ git-cliff-*/git-cliff
+          set -euo pipefail
+          GIT_CLIFF_VERSION="2.13.1"
+          GIT_CLIFF_SHA256="9a1263f24e59a2f508c7b3d3283c9dea94a8bf697f96dbc18cc783cac6284546"
+          GIT_CLIFF_ARCHIVE="$RUNNER_TEMP/git-cliff-${GIT_CLIFF_VERSION}.tar.gz"
+
+          curl --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            --fail --show-error --location \
+            --output "$GIT_CLIFF_ARCHIVE" \
+            "https:[REDACTED:HIGH_ENTROPY]${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${GIT_CLIFF_SHA256}  ${GIT_CLIFF_ARCHIVE}" | sha256sum --check --strict
+          tar --extract --gzip --file "$GIT_CLIFF_ARCHIVE" \
+            --strip-components=1 --directory /usr/local/bin \
+            "git-cliff-${GIT_CLIFF_VERSION}/git-cliff"
+          git cliff --version
       - name: Generate changelog for this release
         id: cliff
         run: |
