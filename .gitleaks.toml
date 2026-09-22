@@ -36,7 +36,7 @@
 # removed from the tree instead.
 
 [extend]
-useDefault = true
+path = ".gitleaks-estate.toml"
 
 [allowlist]
 description = "Estate baseline: dependency metadata, anchored placeholder shapes, published test vectors"
