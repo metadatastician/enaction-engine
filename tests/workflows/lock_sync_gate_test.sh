@@ -52,6 +52,7 @@ fi
 
 assert_present 'runs for pull requests' '^[[:space:]]{2}pull_request:[[:space:]]*$'
 assert_present 'runs for pushes' '^[[:space:]]{2}push:[[:space:]]*$'
+assert_present 'can be dispatched manually after an unrerunnable startup failure' '^[[:space:]]{2}workflow_dispatch:[[:space:]]*$'
 assert_present 'limits push runs to main' '^[[:space:]]+branches:[[:space:]]*\[main\][[:space:]]*$'
 assert_present 'uses read-only repository contents permission' '^[[:space:]]+contents:[[:space:]]*read[[:space:]]*$'
 assert_absent 'has no path filter that could suppress a required check' '^[[:space:]]+paths(-ignore)?:'

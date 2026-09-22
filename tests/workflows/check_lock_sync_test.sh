@@ -117,6 +117,17 @@ assert_failure() {
   fi
 }
 
+assert_output_contains() {
+  local label="$1"
+  local expected="$2"
+
+  if [[ "$OUTPUT" == *"$expected"* ]]; then
+    pass "$label"
+  else
+    fail "$label" "output did not contain '$expected': $OUTPUT"
+  fi
+}
+
 test_accepts_synchronised_lock() {
   new_fixture synchronised
   write_workflow build.yml 'actions/checkout@abc123'
@@ -124,6 +135,15 @@ test_accepts_synchronised_lock() {
 
   run_checker
   assert_success 'accepts a synchronised, transitively closed lock' '0 dangling edges'
+}
+
+test_accepts_listed_zero_uses_workflow() {
+  new_fixture listed-zero-uses
+  write_workflow housekeeping.yml
+  write_closed_lock housekeeping.yml
+
+  run_checker
+  assert_success 'accepts an empty lock entry for a workflow with no external uses' 'zero-uses: workflows included'
 }
 
 test_accepts_yaml_extension_and_normalises_subpath() {
@@ -203,6 +223,45 @@ test_reports_unonboarded_workflow() {
 
   run_checker
   assert_failure 'rejects a workflow with no path entry in the lockfile' 'not onboarded'
+  assert_output_contains 'also reports an action-bearing workflow as unlisted' 'FAIL actions.lock: UNLISTED WORKFLOWS'
+}
+
+test_reports_unlisted_zero_uses_workflow() {
+  new_fixture unlisted-zero-uses
+  write_workflow housekeeping.yml
+  {
+    printf '%s\n' "version: 'v0.0.2'" 'workflows:' 'dependencies:'
+  } >"$WORKFLOWS_DIR/actions.lock"
+
+  run_checker
+  assert_failure 'rejects an unlisted workflow even when it has no external uses' 'FAIL actions.lock: UNLISTED WORKFLOWS'
+  assert_output_contains 'counts a single unlisted workflow' '1 workflow file(s) have no key in the lockfile'
+  assert_output_contains 'names the unlisted workflow by its canonical lock path' '.github/workflows/housekeeping.yml'
+  assert_output_contains 'explains the empty-list remediation for zero-use workflows' "'.github/workflows/x.yml': []"
+}
+
+test_reports_every_unlisted_workflow() {
+  new_fixture multiple-unlisted
+  write_workflow listed.yml
+  write_workflow first-missing.yml
+  write_workflow second-missing.yaml
+  write_closed_lock listed.yml
+
+  run_checker
+  assert_failure 'rejects multiple unlisted workflows together' '2 workflow file(s) have no key in the lockfile'
+  assert_output_contains 'names an unlisted .yml workflow' '.github/workflows/first-missing.yml'
+  assert_output_contains 'names an unlisted .yaml workflow' '.github/workflows/second-missing.yaml'
+}
+
+test_requires_exact_workflow_path_coverage() {
+  new_fixture exact-path
+  write_workflow build.yml
+  write_workflow build-extra.yml
+  write_closed_lock build-extra.yml
+
+  run_checker
+  assert_failure 'does not let a similarly named lock key cover another workflow' '1 workflow file(s) have no key in the lockfile'
+  assert_output_contains 'reports the exact uncovered path when lock keys share a prefix' '.github/workflows/build.yml'
 }
 
 test_reports_ref_missing_from_existing_path() {
@@ -373,6 +432,7 @@ test_allows_unreferenced_dependency_record() {
 }
 
 test_accepts_synchronised_lock
+test_accepts_listed_zero_uses_workflow
 test_accepts_yaml_extension_and_normalises_subpath
 test_ignores_local_and_non_action_uses
 test_accepts_duplicate_uses_once
@@ -380,6 +440,9 @@ test_requires_lockfile
 test_requires_workflow_files
 test_requires_gnu_awk
 test_reports_unonboarded_workflow
+test_reports_unlisted_zero_uses_workflow
+test_reports_every_unlisted_workflow
+test_requires_exact_workflow_path_coverage
 test_reports_ref_missing_from_existing_path
 test_reports_stale_lock_entry
 test_requires_each_workflow_to_own_its_refs
