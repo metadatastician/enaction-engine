@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
 # enaction-engine.launcher.a2ml — per-app launcher config for Enaction Engine.
-# Compliant with launcher-standard.a2ml v0.3.0
+# Compliant with launcher-standard_praxis.deed v0.4.0
 
 [project]
 name         = "enaction-engine"
