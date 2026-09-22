@@ -27,6 +27,7 @@ workflows:
         - 'hyperpolymath/standards@571cc734cd69fb846032ec77a662aa8ee4fc32cd'
     '.github/workflows/label-triage.yml': []
     '.github/workflows/labels.yml': []
+    '.github/workflows/lock-sync-gate.yml': []
     '.github/workflows/mirror.yml':
         - 'hyperpolymath/standards@571cc734cd69fb846032ec77a662aa8ee4fc32cd'
     '.github/workflows/oikosbot.yml':
@@ -61,6 +62,7 @@ workflows:
         - 'hyperpolymath/standards@571cc734cd69fb846032ec77a662aa8ee4fc32cd'
     '.github/workflows/security-policy.yml':
         - 'actions/checkout@v7.0.1'
+    '.github/workflows/sonarcloud-queue-gate.yml': []
     '.github/workflows/static-analysis-gate.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/download-artifact@v8.0.1'
