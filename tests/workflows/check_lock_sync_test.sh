@@ -240,6 +240,18 @@ test_reports_unlisted_zero_uses_workflow() {
   assert_output_contains 'explains the empty-list remediation for zero-use workflows' "'.github/workflows/x.yml': []"
 }
 
+test_reports_unlisted_local_only_workflow() {
+  new_fixture unlisted-local-only
+  write_workflow local.yml './local-action' 'docker://alpine:3.22'
+  {
+    printf '%s\n' "version: 'v0.0.2'" 'workflows:' 'dependencies:'
+  } >"$WORKFLOWS_DIR/actions.lock"
+
+  run_checker
+  assert_failure 'rejects an unlisted workflow whose uses do not require dependency locks' 'FAIL actions.lock: UNLISTED WORKFLOWS'
+  assert_output_contains 'names the uncovered local-only workflow' '.github/workflows/local.yml'
+}
+
 test_reports_every_unlisted_workflow() {
   new_fixture multiple-unlisted
   write_workflow listed.yml
@@ -441,6 +453,7 @@ test_requires_workflow_files
 test_requires_gnu_awk
 test_reports_unonboarded_workflow
 test_reports_unlisted_zero_uses_workflow
+test_reports_unlisted_local_only_workflow
 test_reports_every_unlisted_workflow
 test_requires_exact_workflow_path_coverage
 test_reports_ref_missing_from_existing_path
