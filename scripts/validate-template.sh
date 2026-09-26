@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# RSR Repository Validation Script
-# Verifies that this repository follows the required RSR structure.
+# RSR Template Validation Script
+# Verifies that a repository follows the RSR template structure and contains all required files
 #
 # Exit codes:
 #   0 = validation passed
@@ -55,6 +55,36 @@ check_file_exists() {
     fi
 }
 
+# The repo deed's FILENAME carries the repository name (filename dispatch:
+# <stem>_chora.deed, stem = repo slug — deed.abnf v1.0.0), so the check is a
+# glob, not a literal. Pre-deed era this slot was 0-AI-MANIFEST.a2ml; the
+# family-7 allocation manifest and the ply tree folded into the deed
+# (standards#837 pilot).
+check_deed_exists() {
+    local description="${1:-}"
+    local f
+    for f in "$REPO_ROOT"/*_chora.deed; do
+        if [ -f "$f" ]; then
+            [ "$VERBOSE" = "1" ] && log_pass "Repo deed exists: ${f#"$REPO_ROOT"/}"
+            return 0
+        fi
+    done
+    log_error "Required repo deed missing: no <reponame>_chora.deed at root ${description:+(${description})}"
+    return 1
+}
+
+check_file_either() {
+    local first="$1"
+    local second="$2"
+    local description="${3:-}"
+    if [ -f "$REPO_ROOT/$first" ] || [ -f "$REPO_ROOT/$second" ]; then
+        [ "$VERBOSE" = "1" ] && log_pass "File exists: $first or $second"
+        return 0
+    fi
+    log_error "Required file missing: $first or $second ${description:+($description)}"
+    return 1
+}
+
 check_dir_exists() {
     local dir="$1"
     local description="${2:-}"
@@ -65,6 +95,24 @@ check_dir_exists() {
         log_error "Required directory missing: $dir ${description:+(${description})}"
         return 1
     fi
+}
+
+# The machine tree has two estate spellings: `.machine_readable/` is canonical,
+# `machine-readable/` is the minority form ~9 repositories still carry. This
+# file already had check_file_either for exactly this reason; directories had no
+# such helper, and the gap let the matrix check below name the hyphenated form
+# while its own message said `.machine_readable/`. Naming only one spelling
+# fails whichever half of the estate has not migrated.
+check_dir_either() {
+    local first="$1"
+    local second="$2"
+    local description="${3:-}"
+    if [ -d "$REPO_ROOT/$first" ] || [ -d "$REPO_ROOT/$second" ]; then
+        [ "$VERBOSE" = "1" ] && log_pass "Directory exists: $first or $second"
+        return 0
+    fi
+    log_error "Required directory missing: $first or $second ${description:+(${description})}"
+    return 1
 }
 
 # Case-tolerant ABI seam checks: accept the canonical case-consistent
@@ -116,15 +164,15 @@ log_info "Phase 1: Core repository structure"
 echo ""
 
 # Root files
-check_file_exists "0-AI-MANIFEST.a2ml" "AI manifest (universal entry point)"
+check_deed_exists "repo deed (universal AI entry point)"
 check_file_exists "README.adoc" "High-level pitch"
-check_file_exists "EXPLAINME.adoc" "Developer deep-dive"
+check_file_either "EXPLAINME.adoc" "docs/EXPLAINME.adoc" "Developer deep-dive"
 check_file_exists "LICENSE" "License file"
 check_file_exists "Justfile" "Task runner"
-check_file_exists "AUDIT.adoc" "Release audit gate"
+check_file_either "AUDIT.adoc" "docs/AUDIT.adoc" "Release audit gate"
 
 # Directories
-check_dir_exists ".machine_readable" "Machine-readable metadata"
+check_dir_either ".machine_readable" "machine-readable" "Machine-readable metadata"
 check_dir_exists ".github" "GitHub community metadata"
 check_abi_dir_exists "Idris2 ABI definitions"
 check_dir_exists "src/interface/ffi" "Zig FFI implementation"
@@ -163,15 +211,48 @@ REQUIRED_WORKFLOWS=(
     "security-policy.yml"
     "wellknown-enforcement.yml"
     "workflow-linter.yml"
-    "npm-bun-blocker.yml"
-    "ts-blocker.yml"
+    # npm-bun-blocker.yml and ts-blocker.yml were retired in #14 and replaced by
+    # runtime-policy.yml: the old gate failed any build carrying bun.lockb with
+    # "Use Deno instead", which blocked the estate's new first-choice runtime, so
+    # none of the 55 repos carrying it ever adopted Bun. This list was not
+    # updated, so it has required two files the template deliberately no longer
+    # ships — which is why validate-template.sh has been red since that merge.
+    "runtime-policy.yml"
     "secret-scanner.yml"
 )
 
+# A workflow renamed upstream must not read as a missing workflow here. #106
+# moved wellknown-enforcement.yml to dot-wellknown-enforcement.yml to match the
+# .well-known/ URL convention and left this list requiring the old name, so this
+# gate failed on main — the same way it failed when the two retired files above
+# stayed listed. Resolve EITHER spelling and let the alias be dropped once the
+# rename has propagated, exactly as check-root-shape.sh resolves both root
+# spellings instead of assuming the migration is finished everywhere.
+WORKFLOW_ALIASES=(
+    "wellknown-enforcement.yml:dot-wellknown-enforcement.yml"
+)
+
+resolve_required_workflow() {
+    local want="$1" pair alt
+    if [ -f "$REPO_ROOT/.github/workflows/$want" ]; then
+        printf '%s\n' "$want"
+        return 0
+    fi
+    for pair in "${WORKFLOW_ALIASES[@]}"; do
+        [ "${pair%%:*}" = "$want" ] || continue
+        alt="${pair#*:}"
+        if [ -f "$REPO_ROOT/.github/workflows/$alt" ]; then
+            printf '%s\n' "$alt"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Check required workflows
 for workflow in "${REQUIRED_WORKFLOWS[@]}"; do
-    if [ -f "$REPO_ROOT/.github/workflows/$workflow" ]; then
-        [ "$VERBOSE" = "1" ] && log_pass "Workflow found: $workflow"
+    if found="$(resolve_required_workflow "$workflow")"; then
+        [ "$VERBOSE" = "1" ] && log_pass "Workflow found: $found"
     else
         log_error "Required workflow missing: $workflow"
     fi
@@ -225,17 +306,28 @@ check_file_exists "src/interface/ffi/test/integration_test.zig" "Integration tes
 #==============================================================================
 
 echo ""
+# The heading is unconditional; the skip below is not. It previously read
+# "(skipped in template repo)" on every run, so in an instantiated repo — where
+# the check DOES run — the log said it had been skipped. A live check that
+# reports itself as skipped is worse than a silent one: it invites people to
+# stop reading the phase. The skip announces itself on the line that performs it.
 log_info "Phase 5: Placeholder token replacement"
 echo ""
 
-# Check that key project files have no unresolved placeholders.
-for file in "$REPO_ROOT/README.adoc" "$REPO_ROOT/Justfile" "$REPO_ROOT/.machine_readable/descriptiles/STATE.a2ml"; do
-    if [ -f "$file" ]; then
-        if has_placeholder "$file"; then
-            log_warning "File contains unresolved placeholders: $(basename "$file")"
+# Note: Template repo is allowed to have placeholders
+# For derived repos, we'd check that placeholders are replaced
+if [ "$(basename "$REPO_ROOT")" = "rsr-template-repo" ]; then
+    log_pass "Skipping placeholder check for template repo"
+else
+    # Check that key files don't have unresolved placeholders
+    for file in "$REPO_ROOT/README.adoc" "$REPO_ROOT/Justfile" "$REPO_ROOT/.machine_readable/descriptiles/STATE.a2ml"; do
+        if [ -f "$file" ]; then
+            if has_placeholder "$file"; then
+                log_warning "File contains unresolved placeholders: $(basename "$file")"
+            fi
         fi
-    fi
-done
+    done
+fi
 
 #==============================================================================
 # VALIDATION PHASE 6: SPDX LICENSE HEADERS
@@ -245,9 +337,33 @@ echo ""
 log_info "Phase 6: SPDX License Headers"
 echo ""
 
-# Check source files for SPDX headers (excluding build artifacts)
-SOURCE_FILES=$(find "$REPO_ROOT/src" -type f \( -name "*.idr" -o -name "*.zig" \) \
-              ! -path "*/.zig-cache/*" ! -path "*/zig-cache/*" 2>/dev/null || true)
+# Check source files for SPDX headers (excluding build artifacts).
+#
+# Scans the whole repository, not just src/, and every estate source language —
+# not just Idris2 and Zig.
+#
+# This used to be `find "$REPO_ROOT/src" ... \( -name "*.idr" -o -name "*.zig" \)`.
+# That is fine for the template, whose only sources are src/interface/{abi,ffi},
+# but wrong for the repos instantiated from it: a multi-language project keeps
+# code in core-zig/, beam/, clients/, normalizer/ and so on, so the scan saw a
+# handful of files and printed "SPDX headers: 10/10 (100%)". Measured across all
+# languages the same repo was at 172/188 (91%) — the number was not wrong, it was
+# answering a much narrower question than it appeared to.
+#
+# Uses `git ls-files` so it follows .gitignore and never descends into vendored
+# or build directories; falls back to `find` outside a work tree.
+SPDX_EXTS='idr|zig|rs|ex|exs|res|resi|factor|fs|lean|jl|gleam|ml|mli|hs|sh|nix|scm'
+if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    SOURCE_FILES=$(git -C "$REPO_ROOT" ls-files \
+        | grep -E "\.($SPDX_EXTS)$" \
+        | sed "s|^|$REPO_ROOT/|" || true)
+else
+    SOURCE_FILES=$(find "$REPO_ROOT" -type f \
+        ! -path "*/.git/*" ! -path "*/.zig-cache/*" ! -path "*/zig-cache/*" \
+        ! -path "*/node_modules/*" ! -path "*/target/*" ! -path "*/_build/*" \
+        ! -path "*/.lake/*" ! -path "*/deps/*" \
+        2>/dev/null | grep -E "\.($SPDX_EXTS)$" || true)
+fi
 SOURCE_COUNT=$(echo "$SOURCE_FILES" | grep -c "." || true)
 SPDX_COUNT=0
 
@@ -298,8 +414,8 @@ fi
 # path / import breakage that a bare per-file `idris2 --check` masks as a
 # tolerated "module name does not match file name" warning.
 if command -v idris2 &> /dev/null; then
-    if [ -f "$REPO_ROOT/abi.ipkg" ]; then
-        if (cd "$REPO_ROOT" && idris2 --typecheck abi.ipkg) > /dev/null 2>&1; then
+    if [ -f "$REPO_ROOT/src/interface/abi.ipkg" ]; then
+        if (cd "$REPO_ROOT" && idris2 --typecheck src/interface/abi.ipkg) > /dev/null 2>&1; then
             log_pass "Idris2 ABI typechecks (abi.ipkg)"
         else
             log_error "Idris2 ABI does NOT typecheck (abi.ipkg)"

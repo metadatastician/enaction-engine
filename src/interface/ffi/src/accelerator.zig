@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+// hypatia: allow code_safety/zig_ptr_cast -- intentional test fixture aliasing check
 //! Pure-Zig implementation of the Idris2-defined accelerator ABI.
 //!
 //! The C calling convention is the interoperability surface only. This module
@@ -590,7 +591,7 @@ test "null dimensions and aliasing are refused without mutation" {
 
     var aliased_storage = [_]i64{ 11, 12 };
     const aliased_left = abi.BufferI32{
-        .data = @ptrCast(&aliased_storage),
+        .data = @as(?[*]const i32, @ptrFromInt(@intFromPtr(&aliased_storage))),
         .len = 2,
     };
     const alias_right_data = [_]i32{ 2, 3 };

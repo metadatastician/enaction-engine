@@ -152,13 +152,13 @@ scorecard_ref="$(action_refs hyperpolymath/standards/.github/workflows/scorecard
 
 assert_sha 'Governance reusable workflow is pinned to an immutable revision' "$governance_ref"
 assert_eq 'Governance reusable workflow uses the approved revision' \
-  '8f31a5a4ba591d544b65f91f6d78b136e07756f0' "$governance_ref"
+  'da2c748aad55c1a1dcba00b60fe4a35017bc6540' "$governance_ref"
 assert_sha 'Hypatia reusable workflow is pinned to an immutable revision' "$hypatia_ref"
 assert_eq 'Hypatia reusable workflow uses the approved revision' \
-  'cc58c0cb23f73fc2019ce85a56a468e5248a93b3' "$hypatia_ref"
+  'da2c748aad55c1a1dcba00b60fe4a35017bc6540' "$hypatia_ref"
 assert_sha 'Scorecard reusable workflow is pinned to an immutable revision' "$scorecard_ref"
 assert_eq 'Scorecard reusable workflow uses the approved revision' \
-  '8750b94ac1bbe8c51ad13fe106669b13478f0b62' "$scorecard_ref"
+  'da2c748aad55c1a1dcba00b60fe4a35017bc6540' "$scorecard_ref"
 
 printf '\nfoundation CI configuration tests: %d passed, %d failed\n' "$PASS" "$FAIL"
 exit "$FAIL"
