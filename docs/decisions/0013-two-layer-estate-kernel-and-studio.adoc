@@ -74,8 +74,8 @@ Six edges:
 * The question "which repository is the engine" has one answer, and the answer
   is checkable rather than asserted.
 * This engine is currently far smaller than this decision implies. That is
-  recorded, not hidden: see `docs/status/DEFECTS.adoc` and the readiness grade.
-  This ADR fixes direction; it does not report an inventory.
+  recorded, not hidden: see `docs/status/DEFECTS.adoc` and the ungraded readiness
+  status. This ADR fixes direction; it does not report an inventory.
 * Each edge gets an executable check. The local half of every boundary must be
   checkable with **no sibling repository present** — a check that silently skips
   when a sibling is absent is not a check. The cross-repository half lives in

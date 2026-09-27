@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= RSR Template Repository
-
-image:https://img.shields.io/badge/Code-AGPL--3.0--or--later-blue.svg[Code licence: AGPL-3.0-or-later,link="https://www.gnu.org/licenses/agpl-3.0"] image:https://img.shields.io/badge/Docs-CC--BY--SA--4.0-blue.svg[Docs licence: CC-BY-SA-4.0,link="https://creativecommons.org/licenses/by-sa/4.0/"]
+= Generic RSR Template Outline (Reference)
 :toc:
 :sectnums:
 
-// Badges
-image:https://img.shields.io/badge/RSR-Infrastructure-cd7f32[RSR Infrastructure]
-image:https://img.shields.io/badge/Phase-Maintenance-brightgreen[Phase]
-image:https://img.shields.io/badge/Guix-Primary-purple?logo=gnu[Guix]
+[IMPORTANT]
+====
+This is an inherited outline of a generic RSR template, retained as reference
+material. It does not describe the current Enaction Engine tree, prove RSR
+compliance, or award a certification. For current project scope and assurance
+status, see the root `README.adoc` and `docs/status/READINESS.adoc`.
+====
 
 == Overview
 
-**The canonical template for RSR (Rhodium Standard Repository) projects.**
-
-This repository provides the standardized structure, configuration, and tooling for all RSR-compliant repos. Use it to:
+This reference sketches common structure, configuration, and tooling used by
+some Rhodium Standard Repository projects. It is not a statement that every
+listed feature or gate exists in this repository. Use it only as background for
+future project-specific planning:
 
 * Bootstrap new projects with RSR compliance
 * Reference the standard directory structure

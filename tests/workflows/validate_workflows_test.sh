@@ -89,19 +89,18 @@ log_info "Checking for required workflows"
 echo ""
 
 REQUIRED_WORKFLOWS=(
-    "hypatia-scan.yml"
     "codeql.yml"
-    "scorecard.yml"
-    "quality.yml"
+    "governance.yml"
+    "hypatia-scan.yml"
+    "lock-sync-gate.yml"
     "mirror.yml"
-    "instant-sync.yml"
-    "guix-policy.yml"
-    "security-policy.yml"
-    "wellknown-enforcement.yml"
-    "workflow-linter.yml"
-    "npm-bun-blocker.yml"
-    "ts-blocker.yml"
+    "quality.yml"
+    "runtime-policy.yml"
+    "rust-ci.yml"
+    "scorecard.yml"
     "secret-scanner.yml"
+    "security-policy.yml"
+    "workflow-linter.yml"
 )
 
 FOUND_COUNT=0

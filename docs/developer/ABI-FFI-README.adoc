@@ -1,400 +1,93 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= ABI/FFI Standards
-{{~ Aditionally delete this line and fill out the template below ~}}
+= Accelerator ABI and FFI Boundary
+:toc:
 
-# ENACTION_ENGINE ABI/FFI Documentation
+== Scope
 
-## Overview
+The foreign-function interface in this repository is a narrow CPU accelerator
+boundary. It is not a general engine API, game-host SDK, application lifecycle
+API, or UMS integration.
 
-This library follows the **Hyperpolymath RSR Standard** for ABI and FFI design:
+== Authority and implementation
 
-- **ABI (Application Binary Interface)** defined in **Idris2** with formal proofs
-- **FFI (Foreign Function Interface)** implemented in **Zig** for C compatibility
-- **Generated C headers** bridge Idris2 ABI to Zig FFI
-- **Any language** can call through standard C ABI
+[cols="1,3"]
+|===
+| Layer | Responsibility
 
-## Architecture
+| Idris2 authority
+| `src/interface/Abi/Accelerator.idr` defines the versioned ABI types,
+  discriminants and declared layouts. `Layout.idr` supplies the layout model.
 
-```
-┌─────────────────────────────────────────────┐
-│  ABI Definitions (Idris2)                   │
-│  src/interface/Abi/                                   │
-│  - Types.idr      (Type definitions)        │
-│  - Layout.idr     (Memory layout proofs)    │
-│  - Foreign.idr    (FFI declarations)        │
-└─────────────────┬───────────────────────────┘
-                  │
-                  │ generates (at compile time)
-                  ▼
-┌─────────────────────────────────────────────┐
-│  C Headers (auto-generated)                 │
-│  generated/abi/enaction_engine.h                │
-└─────────────────┬───────────────────────────┘
-                  │
-                  │ imported by
-                  ▼
-┌─────────────────────────────────────────────┐
-│  FFI Implementation (Zig)                   │
-│  ffi/zig/src/main.zig                       │
-│  - Implements C-compatible functions        │
-│  - Zero-cost abstractions                   │
-│  - Memory-safe by default                   │
-└─────────────────┬───────────────────────────┘
-                  │
-                  │ compiled to libenaction_engine.so/.a
-                  ▼
-┌─────────────────────────────────────────────┐
-│  Any Language via C ABI                     │
-│  - Rust, ReScript, Julia, Python, etc.     │
-└─────────────────────────────────────────────┘
-```
+| Generated declarations
+| `Abi.Generate` renders C-compatible, Zig, Rust and Julia declarations into
+  `src/interface/generated/abi/`. These files are outputs, not independent
+  authorities.
 
-## Directory Structure
+| Zig implementation
+| `src/interface/ffi/src/accelerator.zig` implements the exported operations;
+  `axiom_matmul.zig` and `axiom_pointwise.zig` contain the current CPU kernels.
 
-```
-enaction_engine/
-├── src/
-│   ├── abi/                    # ABI definitions (Idris2)
-│   │   ├── Types.idr           # Core type definitions with proofs
-│   │   ├── Layout.idr          # Memory layout verification
-│   │   └── Foreign.idr         # FFI function declarations
-│   └── lib/                    # Core library (any language)
-│
-├── ffi/
-│   └── zig/                    # FFI implementation (Zig)
-│       ├── build.zig           # Build configuration
-│       ├── build.zig.zon       # Dependencies
-│       ├── src/
-│       │   └── main.zig        # C-compatible FFI implementation
-│       ├── test/
-│       │   └── integration_test.zig
-│       └── include/
-│           └── enaction_engine.h   # C header (optional, can be generated)
-│
-├── generated/                  # Auto-generated files
-│   └── abi/
-│       └── enaction_engine.h       # Generated from Idris2 ABI
-│
-└── bindings/                   # Language-specific wrappers (optional)
-    ├── rust/
-    ├── rescript/
-    └── julia/
-```
+| Rust adapter
+| `crates/enaction-accelerator-native/` owns the Rust-side adapter and links
+  the Zig-built library. The ordinary Rust job does not silently include it;
+  `.github/workflows/rust-ci.yml` has a separate Zig-enabled CI job.
+|===
 
-## Why Idris2 for ABI?
+The ABI is version 1 and currently limited to targets with 64-bit pointers.
+The implementation rejects unsupported pointer widths. Passing a build or
+layout check is empirical correspondence evidence; it is not a theorem that
+every target compiler implements the Idris layout model.
 
-### 1. **Formal Verification**
+== Generate and verify declarations
 
-Idris2's dependent types allow proving properties about the ABI at compile-time:
-
-```idris
--- Prove struct size is correct
-public export
-exampleStructSize : HasSize ExampleStruct 16
-
--- Prove field alignment is correct
-public export
-fieldAligned : Divides 8 (offsetOf ExampleStruct.field)
-
--- Prove ABI is platform-compatible
-public export
-abiCompatible : Compatible (ABI 1) (ABI 2)
-```
-
-### 2. **Type Safety**
-
-Encode invariants that C/Zig cannot express:
-
-```idris
--- Non-null pointer guaranteed at type level
-data Handle : Type where
-  MkHandle : (ptr : Bits64) -> {auto 0 nonNull : So (ptr /= 0)} -> Handle
-
--- Array with length proof
-data Buffer : (n : Nat) -> Type where
-  MkBuffer : Vect n Byte -> Buffer n
-```
-
-### 3. **Platform Abstraction**
-
-Platform-specific types with compile-time selection:
-
-```idris
-CInt : Platform -> Type
-CInt Linux = Bits32
-CInt Windows = Bits32
-
-CSize : Platform -> Type
-CSize Linux = Bits64
-CSize Windows = Bits64
-```
-
-### 4. **Safe Evolution**
-
-Prove that new ABI versions are backward-compatible:
-
-```idris
--- Compiler enforces compatibility
-abiUpgrade : ABI 1 -> ABI 2
-abiUpgrade old = MkABI2 {
-  -- Must preserve all v1 fields
-  v1_compat = old,
-  -- Can add new fields
-  new_features = defaults
-}
-```
-
-## Why Zig for FFI?
-
-### 1. **C ABI Compatibility**
-
-Zig exports C-compatible functions naturally:
-
-```zig
-export fn library_function(param: i32) i32 {
-    return param * 2;
-}
-```
-
-### 2. **Memory Safety**
-
-Compile-time safety without runtime overhead:
-
-```zig
-// Null check enforced at compile time
-const handle = init() orelse return error.InitFailed;
-defer free(handle);
-```
-
-### 3. **Bounded Cross-Compilation**
-
-The accelerator ABI v1 layout is defined for 64-bit-pointer targets. The Zig
-implementation rejects narrower targets at compile time. These examples are
-intended target forms, not evidence that every OS/architecture combination has
-been built or that compiler layout refines the Idris model:
-
-```bash
-zig build -Dtarget=x86_64-linux
-zig build -Dtarget=aarch64-macos
-zig build -Dtarget=x86_64-windows
-```
-
-`wasm32` is not an accelerator ABI v1 target. It remains relevant to the
-separate SNIF and determinism work, whose wire boundary must not be conflated
-with this native pointer-bearing ABI.
-
-### 4. **Zero Dependencies**
-
-No runtime, no libc required (unless explicitly needed):
-
-```zig
-// Minimal binary size
-pub const lib = @import("std");
-// Only includes what you use
-```
-
-## Building
-
-### Build FFI Library
-
-```bash
-cd src/interface/ffi
-zig build test
-zig build -Doptimize=ReleaseSafe
-```
-
-### Generate C Header from Idris2 ABI
-
-```bash
+[source,sh]
+----
+idris2 --typecheck abi.ipkg
 scripts/generate-accelerator-abi.sh
 scripts/generate-accelerator-abi.sh --check
-```
+----
 
-Idris2 0.7 does not provide a `c-header` code generator. `Abi.Generate` is the
-typechecked deterministic renderer; the check command regenerates C-compatible,
-Zig and Rust declarations and compares them byte-for-byte.
+Idris2 0.7.0 does not provide a `c-header` code generator. `Abi.Generate` is
+the checked deterministic renderer. Do not reintroduce an `idris2 --cg
+c-header` path or hand-maintained duplicate ABI declarations.
 
-### Cross-Compile
+== Build and run the Zig tests
 
-Only 64-bit-pointer targets are admitted by accelerator ABI v1. A successful
-cross-build is build evidence for that target, not a formal platform proof.
-
-```bash
-cd ffi/zig
-
-# Linux x86_64
-zig build -Dtarget=x86_64-linux
-
-# macOS ARM64
-zig build -Dtarget=aarch64-macos
-
-# Windows x86_64
-zig build -Dtarget=x86_64-windows
-```
-
-## Usage
-
-### From C
-
-```c
-#include "enaction_engine.h"
-
-int main() {
-    void* handle = enaction_engine_init();
-    if (!handle) return 1;
-
-    int result = enaction_engine_process(handle, 42);
-    if (result != 0) {
-        const char* err = enaction_engine_last_error();
-        fprintf(stderr, "Error: %s\n", err);
-    }
-
-    enaction_engine_free(handle);
-    return 0;
-}
-```
-
-Compile with:
-```bash
-gcc -o example example.c -lenaction_engine -L./zig-out/lib
-```
-
-### From Idris2
-
-```idris
-import ENACTION_ENGINE.ABI.Foreign
-
-main : IO ()
-main = do
-  Just handle <- init
-    | Nothing => putStrLn "Failed to initialize"
-
-  Right result <- process handle 42
-    | Left err => putStrLn $ "Error: " ++ errorDescription err
-
-  free handle
-  putStrLn "Success"
-```
-
-### From Rust
-
-```rust
-#[link(name = "enaction_engine")]
-extern "C" {
-    fn enaction_engine_init() -> *mut std::ffi::c_void;
-    fn enaction_engine_free(handle: *mut std::ffi::c_void);
-    fn enaction_engine_process(handle: *mut std::ffi::c_void, input: u32) -> i32;
-}
-
-fn main() {
-    unsafe {
-        let handle = enaction_engine_init();
-        assert!(!handle.is_null());
-
-        let result = enaction_engine_process(handle, 42);
-        assert_eq!(result, 0);
-
-        enaction_engine_free(handle);
-    }
-}
-```
-
-### From Julia
-
-```julia
-const libenaction_engine = "libenaction_engine"
-
-function init()
-    handle = ccall((:enaction_engine_init, libenaction_engine), Ptr{Cvoid}, ())
-    handle == C_NULL && error("Failed to initialize")
-    handle
-end
-
-function process(handle, input)
-    result = ccall((:enaction_engine_process, libenaction_engine), Cint, (Ptr{Cvoid}, UInt32), handle, input)
-    result
-end
-
-function cleanup(handle)
-    ccall((:enaction_engine_free, libenaction_engine), Cvoid, (Ptr{Cvoid},), handle)
-end
-
-# Usage
-handle = init()
-try
-    result = process(handle, 42)
-    println("Result: $result")
-finally
-    cleanup(handle)
-end
-```
-
-## Testing
-
-### Unit Tests (Zig)
-
-```bash
-cd ffi/zig
+[source,sh]
+----
+cd src/interface/ffi
+zig build
 zig build test
-```
+----
 
-### Integration Tests
+The inline Zig tests cover implemented operations, validation failures,
+non-finite inputs, overflow, alias rejection and output atomicity. They do not
+show that a game host, UMS preview, GPU backend or every documented OS/target
+combination is integrated.
 
-```bash
-cd ffi/zig
-zig build test-integration
-```
+== Build the Rust adapter
 
-### ABI Verification (Idris2)
+[source,sh]
+----
+cargo check --locked -p enaction-accelerator-native --all-targets
+cargo clippy --locked -p enaction-accelerator-native --all-targets -- -D warnings
+cargo test --locked -p enaction-accelerator-native --all-targets
+----
 
-```idris
--- Compile-time verification
-%runElab verifyABI
+These commands require Rust stable and the pinned Zig release used by the
+repository's accelerator CI job. The adapter does not establish a stable
+external ABI commitment beyond the checked versioned contract.
 
--- Runtime checks
-main : IO ()
-main = do
-  verifyLayoutsCorrect
-  verifyAlignmentsCorrect
-  putStrLn "ABI verification passed"
-```
+== Evidence boundary
 
-## Contributing
+`docs/status/PROOF-STATUS.adoc` distinguishes the propositions checked by
+Idris2 and Creusot from generated-code checks, Zig/Rust tests, compile-time
+guards and target-specific observations. In particular, passing the current
+conformance tests is tested correspondence, not a proof of all Zig behavior or
+an end-to-end compiler refinement.
 
-When modifying the ABI/FFI:
-
-1. **Update ABI first** (`src/interface/Abi/*.idr`)
-   - Modify type definitions
-   - Update proofs
-   - Ensure backward compatibility
-
-2. **Generate C header**
-   ```bash
-   scripts/generate-accelerator-abi.sh
-   scripts/generate-accelerator-abi.sh --check
-   ```
-
-3. **Update FFI implementation** (`src/interface/ffi/src/*.zig`)
-   - Implement new functions
-   - Match ABI types exactly
-
-4. **Add tests**
-   - Unit tests in Zig
-   - Integration tests
-   - ABI verification tests
-
-5. **Update documentation**
-   - Function signatures
-   - Usage examples
-   - Migration guide (if breaking changes)
-
-## License
-
-AGPL-3.0-or-later
-
-## See Also
-
-- [Idris2 Documentation](https://idris2.readthedocs.io)
-- [Zig Documentation](https://ziglang.org/documentation/master/)
-- [Rhodium Standard Repositories](https://github.com/metadatastician/rhodium-standard-repositories)
+The repository currently has no generic `enaction_engine_init` / `process`
+lifecycle API, no placeholder integration test, and no consumer-ready engine
+SDK. Future bindings must begin with a real consumer and an accepted interface
+contract; do not add an empty FFI facade.

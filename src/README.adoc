@@ -1,3 +1,43 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= src Pillar
+= Engine Source Map
+
+This repository is a Rust workspace with a separately built Zig accelerator
+implementation and an Idris2 ABI specification. It is a library workspace, not
+a runnable game or an executable host.
+
+== Rust crates
+
+[cols="1,3"]
+|===
+| Crate | Current responsibility
+
+| `enaction-time`
+| Fixed-step accounting and render-only interpolation.
+
+| `enaction-trace`
+| Typed, ordered and caused cognitive-affective-conative trace events; belief,
+  ascription and retraction queries. No game consumes this seam yet.
+
+| `enaction-contracts`
+| Version and package contract types plus validation. This is not a UMS
+  dependency or a complete on-disk package protocol.
+
+| `enaction-accelerator`
+| Operation-first capability planning and CPU reference kernels.
+
+| `enaction-accelerator-native`
+| Rust adapter for the versioned Zig accelerator ABI. It is tested in the
+  dedicated Zig-linked CI job.
+|===
+
+== Foreign-function interface
+
+`interface/Abi/Accelerator.idr` is the ABI authority. Generated declarations
+are under `interface/generated/abi/`; `interface/ffi/src/accelerator.zig`
+implements the native entry points and contains the pure-Zig tests. The Rust
+native adapter lives in `../crates/enaction-accelerator-native/`.
+
+See `docs/developer/ABI-FFI-README.adoc` for the boundary, build commands and
+the limits of current proof and target evidence. No generic lifecycle API,
+placeholder integration test or game-facing FFI SDK is provided.

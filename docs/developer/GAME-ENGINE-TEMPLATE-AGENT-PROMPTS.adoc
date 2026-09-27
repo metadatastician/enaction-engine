@@ -1,0 +1,409 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+= Game-Engine Template Conversion and Agent Handoff Prompts
+:toc:
+:sectnums:
+
+== Purpose and status
+
+This document is a planning brief and a set of copyable future-agent prompts.
+It does *not* create engine subsystems, empty crates, adapters, or a game host.
+The current repository is an experimental library workspace, not a complete
+engine. Destination architecture remains distinct from implemented behaviour;
+see link:../architecture/TOPOLOGY.adoc[the current topology],
+link:../status/ROADMAP.adoc[the evidence-gated roadmap], and
+link:../decisions/0012-no-speculative-subsystems.adoc[ADR-0012].
+
+The intended result is a reusable game-engine project template that retains
+useful RSR and estate governance while making game-engine boundaries, build and
+test conventions, and future component ownership explicit. It must progress to
+a working, testable engine slice—not stop at a tree of placeholder directories.
+
+== Repository facts to preserve
+
+=== Implemented foundations
+
+These packages already exist and should be evaluated before proposing a second
+implementation:
+
+[cols="1,3", options="header"]
+|===
+| Existing component | Current boundary
+
+| `crates/enaction-time/`
+| Fixed-step accounting, double buffering, and render-only interpolation. It
+  is not a game loop and has not replaced IDApTIK's timing implementation.
+
+| `crates/enaction-trace/`
+| Typed, ordered trace events and belief/ascription/retraction queries. It is a
+  game-neutral seam; no game consumes it yet.
+
+| `crates/enaction-contracts/`
+| Version and package contract values and validation. It is not a complete
+  package protocol and has no dependency on the UMS application.
+
+| `crates/enaction-accelerator/`
+| Operation planning and deterministic CPU reference kernels.
+
+| `crates/enaction-accelerator-native/`
+| Optional Rust adapter to the versioned Idris2/Zig accelerator boundary. It
+  needs Zig and is intentionally outside the default Cargo members.
+|===
+
+The current accelerator authority is `src/interface/Abi/`, generated
+interfaces are under `src/interface/generated/abi/`, and the pure-Zig
+implementation is under `src/interface/ffi/`. Do not fold this narrow compute
+boundary into a hypothetical general-purpose runtime API.
+
+=== Product and estate boundaries
+
+* Keep game-specific ontology and rules in games; keep the engine host-neutral.
+* Keep repository governance, security gates, estate contractiles, and RSR
+  conventions separate from the engine's runtime architecture. RSR use is not
+  an RSR certification.
+* Preserve the accepted no-empty-subsystem rule. A proposed component directory
+  is a plan until it has a proving-ground need, behaviour, tests, provenance,
+  and a reviewed boundary.
+* Preserve the two-layer UMS/engine boundary in ADR-0013 and
+  `docs/architecture/UMS-INTEGRATION.adoc`: UMS is an optional authoring and
+  packaging application; the engine is independently buildable and runnable.
+  Neither project may require adopting the other. The engine/runtime must not
+  hard-depend on the UMS application. Any exchange must use a documented,
+  versioned, independently implementable data contract that is usable in
+  headless CI and without UMS installed.
+* Treat configured checks as gates, not evidence that those gates passed. Do not
+  add completion percentages, aggregate CRG grades, or compliance badges.
+
+== Planning-only component map
+
+Use the workspace's existing crate-per-component convention as the starting
+point. The following is a *target map to assess*, not an instruction to create
+these directories now:
+
+[source,text]
+----
+crates/
+  enaction-time/                 implemented: time and render interpolation
+  enaction-trace/                implemented: typed trace and belief queries
+  enaction-contracts/            implemented: version/package validation
+  enaction-accelerator/          implemented: CPU reference operations
+  enaction-accelerator-native/   implemented: optional Zig-backed adapter
+
+  enaction-runtime/              candidate first new component: host loop,
+                                  deterministic schedule, lifecycle and replay
+  enaction-platform/             candidate: OS/window/input boundary, only when
+                                  a concrete consumer needs it
+  enaction-renderer/             candidate: presentation backend, only after a
+                                  vertical slice selects and tests a backend
+  enaction-assets/               candidate: content loading/asset boundary,
+                                  only after a real package consumer exists
+  enaction-audio/                deferred until a game needs and tests it
+  enaction-physics/              deferred until a game needs and tests it
+  enaction-network/              deferred until a real multi-peer use exists
+  enaction-storage/              deferred until a real save/recovery use exists
+  enaction-tools/                separate developer tooling; never a runtime
+                                  dependency merely to make the tree symmetrical
+
+src/interface/                   narrow language/ABI boundaries only
+conformance/                     versioned, checksummed shared fixtures
+examples/                        runnable consumer(s), not placeholder APIs
+tests/                            repository and integration-level checks
+verification/                     propositions, proof sources, and proof gates
+docs/architecture/               current flow, target flow, ownership, contracts
+docs/decisions/                   accepted changes to dependency direction
+.machine_readable/                repository/estate policy, not runtime code
+----
+
+The names and split of future packages are open to review. Do not create empty
+crates, placeholder modules, or reserved directories just to match this map.
+If one proving-ground game can be served by a smaller integrated package, prefer
+that evidence over directory symmetry. Mark every map entry `implemented`,
+`planned`, `blocked`, or `unassessed`, with source and test evidence.
+
+== Practical route to a functioning engine
+
+Use ordered, mergeable vertical slices:
+
+. *Headless host:* implement the smallest runnable host that advances whole
+  `enaction-time` steps, owns a minimal world state, and applies a deterministic
+  schedule. Establish input ordering at a fixed tick boundary; do not design a
+  general ECS before a concrete world requires it.
+. *Replay evidence:* record the deterministic inputs and relevant state hashes;
+  run the same scenario twice and prove identical outcomes. Keep rendering,
+  clocks, logging, and trace observation from feeding back into simulation state.
+. *First consumer:* build one small game-like example or proving-ground
+  consumer that uses the public crate boundaries from a clean checkout. It must
+  exercise real state transitions, not just compile imports.
+. *Contracts and packages:* accept a minimal versioned package fixture, validate
+  it headlessly, and load it without UMS installed. UMS may later emit the same
+  contract; it is not required to build, test, or run the engine.
+. *Input and presentation:* add only the platform/input and rendering slices
+  required to make the first consumer usable. Keep presentation sampling
+  separate from simulation and test the boundary with deterministic fixtures.
+. *Expand on evidence:* admit assets, physics, audio, persistence, networking,
+  multiplayer, or tools only when a concrete consumer and an explicit contract
+  justify each one. Add a second, materially different game before claiming a
+  general engine abstraction.
+
+A functioning milestone must be buildable and runnable from documented
+commands, have deterministic tests and a user-visible or game-consumable
+behaviour, and identify unsupported platforms and gaps. A runnable headless
+slice is meaningful progress; it is not a claim that every engine subsystem is
+complete.
+
+== Related repositories to inspect, not assume as dependencies
+
+Before recommending reuse, inspect each repository's current README, licence,
+status, public API, and tests. Record the exact idea borrowed or rejected. A
+repository mention is not permission to add a Cargo dependency, copy code, or
+make cross-repository changes.
+
+* `hyperpolymath/absolute-zero`
+* `hyperpolymath/evil-weevil`
+* `hyperpolymath/epistemic-types`
+* `hyperpolymath/echo-types`
+* `hyperpolymath/choreographic-types`
+* `hyperpolymath/residual-evidence-types`
+* `hyperpolymath/tropical-types`
+* `metadatastician/universal-modding-studio`
+* Proving grounds already named by this repository: `metadatastician/IDApTIK`
+  and Chronicles of Slavia, as documented in the existing ADRs and roadmap.
+
+The `-types` repositories are optional research inputs, not an obligation to
+adopt a particular type system. `absolute-zero` and `evil-weevil` likewise
+remain separately owned projects unless a specific, versioned interface is
+proposed and independently tested. Keep all integrations removable and
+optional; do not make a game or the engine depend on a research repository just
+because its subject appears related.
+
+== Global handoff protocol for all agents
+
+. Work from the coordinator's assigned branch/worktree. Never switch branches,
+  overwrite another agent's changes, or modify files outside the assigned
+  ownership list.
+. At start, record `git branch --show-current`, `git status --short`, and the
+  baseline commit. Stop and ask the coordinator if the worktree contains
+  unexplained edits to files you need.
+. Never run `git reset --hard`, `git clean -fdx`, `git checkout HEAD -- .`,
+  `git restore .`, or a broad stash/restore to "fix" a conflict. Preserve
+  unrelated work; restore only a specifically reviewed path when authorised.
+. Do not run formatters over the entire repository if the task owns only one
+  component. Review `git diff --check`, the complete diff, and the exact staged
+  paths before handing work back.
+. One integration coordinator exclusively owns shared files: root
+  `Cargo.toml`, `Cargo.lock`, `Justfile`, `.github/workflows/`, generated ABI
+  declarations, shared CI scripts, `.machine_readable/`, and project-wide
+  status/topology documents. Component agents send a narrow patch request for
+  those files rather than editing them concurrently.
+. Do not start two implementation agents in the same checkout at the same time.
+  Parallel work is allowed only on disjoint files after their interfaces are
+  frozen. The coordinator integrates one focused change at a time and resolves
+  all shared-manifest/lockfile work.
+. Every task must integrate through an executable test or a justified proof
+  gate. A README-only interface, a compiling empty crate, or a green command
+  that did not run its advertised check is not completion.
+. Submit a concise handoff: changed files, public contract, commands run and
+  exact results, unavailable toolchains, remaining gaps, and requested shared
+  file changes. Do not claim a test passed if it was not run.
+
+== Copyable prompts for later sessions
+
+=== Prompt 0 — Architecture coordinator and template conversion
+
+[source,text]
+----
+You are the architecture coordinator for converting this RSR-derived repository
+into an honest, reusable game-engine project template. Work in planning mode
+first; do not implement every engine component and do not create empty crates.
+
+Read README.adoc, Cargo.toml, docs/architecture/TOPOLOGY.adoc,
+docs/architecture/UMS-INTEGRATION.adoc, docs/status/ROADMAP.adoc,
+docs/status/TEST-NEEDS.adoc, docs/status/PROOF-STATUS.adoc, ADR-0012, ADR-0013,
+ADR-0017, and the current code/tests for every implemented crate. Inspect the
+current public metadata and licences of hyperpolymath/absolute-zero,
+hyperpolymath/evil-weevil, hyperpolymath/epistemic-types,
+hyperpolymath/echo-types, hyperpolymath/choreographic-types,
+hyperpolymath/residual-evidence-types, hyperpolymath/tropical-types, and
+metadatastician/universal-modding-studio. Treat all of them as read-only
+references. Do not guess APIs or add dependencies.
+
+Deliver, before source changes:
+1. a current-vs-target architecture map with implemented/planned/blocked labels;
+2. a proposed source/crate/component directory map that distinguishes existing
+   packages from plan-only components;
+3. a dependency graph with a hard UMS/engine independence rule and versioned,
+   independently usable package contracts;
+4. a practical milestone order that reaches a deterministic headless host,
+   replayable test scenario, and real consumer before broad subsystem work;
+5. a file-ownership table and focused work packets with measurable acceptance
+   tests; identify the one owner of shared Cargo/CI/Justfile/ABI files;
+6. an explicit list of RSR/estate material to retain, adapt, or remove, with
+   no claims of certification, aggregate grade, or unrun validation.
+
+You may edit only docs/architecture/TOPOLOGY.adoc, a new or explicitly assigned
+ADR, and the planning document. Do not edit Rust/Zig/Idris source, manifests,
+lockfiles, generated interfaces, workflows, Justfile, or sibling repositories.
+Stop after the plan and request review. The coordinator will approve one
+implementation slice at a time.
+----
+
+=== Prompt 1 — Headless deterministic runtime owner
+
+[source,text]
+----
+You own the first runtime vertical slice after its public contract has been
+approved. Your exclusive implementation scope is crates/enaction-runtime/**
+and tests/engine-runtime/**. If those paths do not exist, create only the
+smallest crate and test files needed for working behaviour; do not create
+placeholder subsystems.
+
+Build a minimal headless host around the existing enaction-time crate. It must
+advance whole fixed steps, define deterministic input/event ordering at tick
+boundaries, own a minimal test world, and provide a replay test whose same input
+record produces identical state hashes on repeated runs. Document the runtime
+contract and which values are forbidden from affecting simulation state.
+
+Do not edit root Cargo.toml/Cargo.lock, Justfile, workflows, shared tests,
+`crates/enaction-time`, `crates/enaction-trace`, the ABI/FFI tree, UMS, or other
+crates. Send the coordinator a minimal manifest/lockfile patch request if
+workspace registration is required. Do not add an ECS, renderer, physics,
+audio, networking, assets, storage, AI framework, or editor abstraction unless
+the accepted vertical slice cannot work without it and the coordinator approves
+an ADR first.
+
+Acceptance: tests exercise state transitions (not import-only smoke tests),
+replay is deterministic, discontinuities are explicit, the host can be tested
+without a window or UMS, and all claims map to run output. Run the narrow crate
+tests plus any coordinator-approved workspace tests. Report exact output and
+all toolchains not run.
+----
+
+=== Prompt 2 — Trace and replay adapter owner
+
+[source,text]
+----
+Start only after Prompt 1's runtime contract is merged and the coordinator has
+assigned this task. Own only the assigned trace-adapter subtree under
+crates/enaction-runtime/ and its tests under tests/engine-runtime/trace/. Do
+not edit the runtime scheduler, core world, the existing enaction-trace crate,
+root manifests, shared tests, or workflows.
+
+Connect the existing enaction-trace types to the host through an observer
+boundary. Define whether trace events are emitted before or after committed
+ticks, preserve stable ordering, and prove by test that enabling, disabling, or
+serializing trace observation cannot change simulation state or replay hashes.
+Do not implement cognition, affect, conation, planning, or behaviour selection;
+the current trace crate is a typed seam, not those subsystems.
+
+Acceptance: tests compare state/replay hashes with tracing on and off, pin event
+ordering and failure behaviour, and use no UMS or game-specific vocabulary.
+If the accepted runtime contract makes this adapter unnecessary, report that
+result instead of inventing work.
+----
+
+=== Prompt 3 — Package contract and UMS boundary owner
+
+[source,text]
+----
+Own the package-contract boundary only: crates/enaction-contracts/**,
+its contract fixtures/tests, and docs/architecture/UMS-INTEGRATION.adoc. Do not
+edit UMS source, engine runtime code, root Cargo files, CI, or generated ABI
+files. Request shared-file changes from the coordinator.
+
+Inspect ADR-0009, ADR-0013, ADR-0019, the current package validator, and the
+current UMS public contract. Specify a minimal versioned package that can be
+validated and consumed headlessly by an engine host. The engine must build,
+test, and run without UMS source or binaries; UMS must remain optional and
+independently useful. Make compatibility, rejection, migration, and diagnostic
+semantics explicit. Do not make `enaction-contracts` depend on the UMS
+application or add a cross-repository build dependency.
+
+Acceptance: checked-in fixtures prove both compatible and rejected package
+cases; the public field/version contract has stable documentation; tests load a
+fixture with UMS absent; any proposed UMS producer/preview adapter is optional
+and can be implemented independently on either side. Do not add package features
+that lack a concrete consumer.
+----
+
+=== Prompt 4 — First game-like consumer and integration verifier
+
+[source,text]
+----
+Work only after the headless runtime and package contract are merged. Own
+examples/engine-smoke/** and tests/engine-integration/**. Do not change the
+runtime or contracts implementation, shared manifests/lockfiles, CI, Justfile,
+ABI, or documentation owned by another agent.
+
+Build a small, real consumer that creates a world, advances it through the
+public runtime API, consumes a versioned package fixture, and demonstrates one
+observable game-like state transition. Record inputs and prove replay equality
+from a clean process. Keep it headless unless an accepted requirement needs a
+presentation backend. It must run without UMS installed.
+
+Acceptance: a documented command builds and runs the example from a clean
+checkout; integration tests exercise the public APIs and a real state change;
+replay is deterministic; errors for unsupported package versions are visible
+and bounded. If required root-manifest or CI changes are needed, send them to
+the coordinator as a separate patch request.
+----
+
+=== Prompt 5 — Input/platform vertical-slice owner
+
+[source,text]
+----
+Do not begin until the first consumer demonstrates a concrete input/platform
+requirement and the coordinator has frozen the interface. Own only the approved
+new platform/input component subtree and its dedicated tests. Do not edit the
+runtime scheduler, renderer, shared manifests, workflows, or other agents'
+files; request integration changes from the coordinator.
+
+Implement one real input source and a small platform boundary that converts
+external events into the runtime's tick-ordered input contract. Keep wall-clock
+sampling, OS events, and nondeterministic device values outside the deterministic
+simulation core. Include a recorded/replayable fixture so tests do not require a
+physical device or display server. Do not add a cross-platform backend matrix
+until a second target is a real requirement.
+
+Acceptance: unit tests pin event ordering, duplicate/drop/error policy and
+replay; the headless consumer still works without the platform feature; no
+platform crate is added without working behaviour and tests.
+----
+
+=== Prompt 6 — Minimal renderer/presentation owner
+
+[source,text]
+----
+Start only after the coordinator accepts a consumer requirement for visible
+presentation. Own only the approved renderer/presentation component and its
+own tests/example. Do not edit runtime simulation code, input/platform code,
+shared manifests, ABI/FFI, UMS, or another agent's files.
+
+Implement the smallest real presentation path for the accepted consumer. Read
+completed simulation state and render-only interpolation; do not feed sampled
+values, renderer timing, GPU results, or window events back into simulation.
+Choose a backend from the consumer's demonstrated target rather than building a
+backend abstraction matrix. Keep a headless test path and make renderer
+availability optional to the core runtime.
+
+Acceptance: a reproducible demo or captured output proves the renderer is doing
+real work; tests pin the read-only presentation boundary; headless deterministic
+CI passes with the renderer disabled. Defer audio, physics, asset pipelines,
+networking, and editor work to separate consumer-backed prompts.
+----
+
+== Coordinator integration checklist
+
+Before accepting any later agent handoff, the coordinator should:
+
+* confirm changed paths match the assigned owner and no unrelated changes were
+  staged or overwritten;
+* review public interfaces and dependency direction before applying manifest or
+  lockfile changes;
+* run `git diff --check`, the narrow tests, then the relevant wider tests and
+  proof gates; name unavailable tools explicitly;
+* verify that the code is exercised by the first consumer rather than existing
+  only as a facade;
+* update topology, roadmap, and readiness only from observed evidence; leave
+  CRG unassessed until a formal component assessment is actually completed;
+* merge one slice at a time, keep failed/unavailable checks visible, and reject
+  a patch that cannot integrate with already accepted components.

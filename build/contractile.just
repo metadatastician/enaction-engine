@@ -3,18 +3,14 @@
 # Re-generate with: contractile gen-just --dir contractiles
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
+# Local safety override: recheck the non-destructive Dust recipes after regeneration.
 
 # === DUST (Recovery & Rollback) ===
 # Source: Dustfile.a2ml
 
-# List available dust recovery actions
+# No automatic whole-tree source rollback is defined for this project.
 dust-status:
-    @echo '  dust-source-rollback: Revert all source changes to last commit [rollback]'
-
-# Revert all source changes to last commit
-dust-source-rollback:
-    @echo 'Executing rollback for source-rollback'
-    git checkout HEAD -- .
+    @echo 'No automatic source rollback is configured; restore reviewed paths only.'
 
 
 # === INTEND (Declared Future Intent) ===
@@ -32,9 +28,9 @@ intend-list:
 # === MUST (Physical State Checks) ===
 # Source: Mustfile.a2ml
 
-# Run all must checks
-must-check: must-license-present must-readme-present must-spdx-headers must-no-banned-files
-    @echo 'All must checks passed'
+# Run generated baseline checks plus repository validation and project CI gates.
+must-check: must-license-present must-readme-present must-spdx-headers must-no-banned-files must-project-ci
+    @echo 'Generated baseline and project CI gates passed'
 
 # LICENSE file must exist
 must-license-present:
@@ -44,13 +40,17 @@ must-license-present:
 must-readme-present:
     test -f README.adoc || test -f README.md
 
-# Source files should have SPDX license headers
+# All implementation and proof sources carry SPDX identifiers.
 must-spdx-headers:
-    find . -name '*.rs' -o -name '*.res' -o -name '*.gleam' | head -20 | xargs -r grep -L 'SPDX-License-Identifier' | wc -l | grep -q '^0$'
+    bash scripts/check-source-spdx.sh
 
 # No Dockerfiles or Makefiles
 must-no-banned-files:
     test ! -f Dockerfile && test ! -f Makefile
+
+# Run selected structural validation and all implemented local CI gates.
+must-project-ci:
+    just validate && just ci
 
 
 # === TRUST (Integrity & Provenance Verification) ===

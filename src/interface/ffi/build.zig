@@ -47,25 +47,8 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(shared_library);
 
-    const generic_module = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    const generic_tests = b.addTest(.{ .root_module = generic_module });
     const accelerator_tests = b.addTest(.{ .root_module = accelerator_module });
-    const integration_module = b.createModule(.{
-        .root_source_file = b.path("test/integration_test.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    const integration_tests = b.addTest(.{ .root_module = integration_module });
-
-    const run_generic = b.addRunArtifact(generic_tests);
     const run_accelerator = b.addRunArtifact(accelerator_tests);
-    const run_integration = b.addRunArtifact(integration_tests);
-    const test_step = b.step("test", "Run generic, accelerator and integration FFI tests");
-    test_step.dependOn(&run_generic.step);
+    const test_step = b.step("test", "Run the pure-Zig accelerator FFI tests");
     test_step.dependOn(&run_accelerator.step);
-    test_step.dependOn(&run_integration.step);
 }

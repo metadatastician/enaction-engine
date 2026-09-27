@@ -2,39 +2,19 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # This workflow is managed by gh actions-lock.
 #
-# dependabot-automerge.yml — enable GitHub's native auto-merge on
-# Dependabot pull requests that match a declared severity / ecosystem
-# policy. Pairs with `.github/dependabot.yml`'s
-# `open-pull-requests-limit: 0` + security-only pattern (see the
-# cargo block there).
+# dependabot-automerge.yml — request GitHub-native auto-merge for PRs
+# authored by Dependabot. Repository owner policy makes every patch, minor,
+# major, security, and routine update eligible; native auto-merge still waits
+# for required checks and branch-protection rules. This workflow grants no
+# ruleset bypass.
 #
-# What this does:
-#   - Triggers on every Dependabot PR.
-#   - Reads the PR's update-type metadata via the dependabot/fetch-metadata
-#     action (no free-text parsing).
-#   - Requires CI to be green before merge (GitHub's auto-merge enforces
-#     required status checks).
-#   - Gates merge behind a severity+ecosystem policy table. Default is
-#     low+medium security updates only.
+# The update type and advisory metadata come from dependabot/fetch-metadata,
+# never free-text parsing. Eligibility is intentionally permissive, so a green
+# test run is not a proof that an upstream package is benign; this is an
+# accepted supply-chain risk in exchange for update velocity.
 #
-# Why auto-merge on GitHub (not via a bot like rhodibot) is the right
-# layer: GitHub enforces branch protection + required checks natively,
-# and the PR author is already `dependabot[bot]`. Rhodibot doesn't need
-# to know anything about ecosystems — GitHub handles the merge mechanics
-# once we approve.
-#
-# Threat model:
-#   - A compromised upstream package with a bogus security advisory
-#     could propose a malicious version bump. Mitigation: require at
-#     least one non-automated reviewer for HIGH+CRITICAL severity
-#     (done below — we explicitly refuse to auto-approve those).
-#   - A compromised Dependabot itself is an Akerlof claim-grounder
-#     problem. Not in scope here; track under
-#     `project_claim_grounders_dual_use_akerlof.md`.
-#
-# Dogfooding: this workflow template is itself subject to the same
-# Dependabot config via the github-actions ecosystem block, so SHA
-# bumps for dependabot/fetch-metadata flow through the same path.
+# The job permission block grants write access only to the auto-merge job. It
+# is scoped to PRs whose recorded author is Dependabot, per repository policy.
 
 name: Dependabot Auto-Merge
 on:
@@ -71,35 +51,22 @@ jobs:
       #   alert-state      → AUTO_DISMISSED | DISMISSED | FIXED | OPEN
       #   ghsa-id          → GHSA-... if this is a security PR
       # --- Policy -------------------------------------------------------------
-      # AUTO-APPROVE + AUTO-MERGE when:
-      #   1. This is a SECURITY update (ghsa-id present), AND
-      #   2. Update is patch or minor, AND
-      #   3. Severity ≤ moderate (Dependabot doesn't expose severity
-      #      directly in fetch-metadata; infer from the absence of
-      #      HIGH/CRITICAL labels added by Dependabot).
-      # Otherwise: do nothing. Human reviews HIGH+CRITICAL security
-      # updates and all non-security bumps.
+      # Owner policy makes every Dependabot update eligible. These metadata
+      # outputs are recorded for audit and do not narrow eligibility.
       - name: Decide policy outcome
         id: policy
         env:
           GHSA_ID: ${{ steps.meta.outputs.ghsa-id }}
           UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
-          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
         run: |
           set -euo pipefail
 
           is_security=false
           [ -n "$GHSA_ID" ] && is_security=true
 
-          # Owner policy (deliberate: velocity over caution). Auto-merge EVERY
-          # Dependabot update — patch, minor AND major, security or routine.
-          # Safe because GitHub's auto-merge only COMPLETES once the required
-          # checks (secret-scanner, codeql, hypatia-scan, openssf-compliance,
-          # build/test) are green: a bump that breaks fails CI and the PR stays
-          # OPEN with an email ("oi, it broke") instead of landing on a red
-          # main; a bump that passes lands within minutes with no chasing.
-          # This is preferred over making Dependabot a ruleset BYPASS actor,
-          # which would let bumps skip those very checks (no gate, no signal).
+          # Every update type is eligible. GitHub's native auto-merge remains
+          # subject to whichever required checks and rules branch protection
+          # currently enforces; Dependabot is not granted a ruleset bypass.
           echo "action=automerge" >> "$GITHUB_OUTPUT"
           echo "security=$is_security" >> "$GITHUB_OUTPUT"
           echo "update_type=$UPDATE_TYPE" >> "$GITHUB_OUTPUT"
@@ -111,7 +78,7 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           gh pr review --approve "$PR_URL" \
-            --body "Auto-approving Dependabot security update (${{ steps.policy.outputs.ghsa }}, ${{ steps.policy.outputs.update_type }}). Policy: low/moderate security patches/minors only."
+            --body "Auto-approving Dependabot update (type=${{ steps.policy.outputs.update_type }}, GHSA=${{ steps.policy.outputs.ghsa }}). Repository policy makes all update types eligible for native auto-merge, subject to required branch-protection checks."
       - name: Enable auto-merge (if policy allows)
         if: steps.policy.outputs.action == 'automerge'
         env:

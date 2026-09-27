@@ -15,20 +15,20 @@ authority = "advisory (continue-with-warnings)"
 [[files]]
 role = "declaration"
 path = "Dustfile.a2ml"
-sha256 = "pending-first-verify"
-size_bytes = "pending-first-verify"
+sha256 = "427d8bb0d6b9a7d7625098550e133237761c2a814e8c10148fe144ed3650b20c"
+size_bytes = "1649"
 
 [[files]]
 role = "runner"
 path = "dust.ncl"
-sha256 = "pending-first-verify"
-size_bytes = "pending-first-verify"
+sha256 = "3c935ee9d78d9e27445fb8ff8bd13a0b2ebac84edc27139fe9c13535eb331929"
+size_bytes = "2699"
 
 [[files]]
 role = "k9_component"
 path = "dust.k9.ncl"
-sha256 = "pending-first-verify"
-size_bytes = "pending-first-verify"
+sha256 = "f0295fb17fcf039a66105a802c9237337efb7d1495a3ae0bcfae3cb792a63018"
+size_bytes = "6498"
 
 [cross_refs]
 runner_paired_xfile = "Dustfile.a2ml"
@@ -49,3 +49,8 @@ note = "Dustfile.a2ml and dust.ncl pre-existed. This manifest + dust.k9.ncl comp
 date = "2026-04-18"
 event = "verb-set-complete"
 note = "Full estate trident coverage. Blocking-authority triple (must/trust/bust) handles release-gating. Advisory pair (adjust/dust) handles drift-warning and audit-trail. Single reporting verb (intend) handles north-star. α two-axis surface fully exercised on all four (tier, authority) combinations used: (Hunt, reporting), (Hunt, blocking), (Hunt-read-only, blocking), (Yard, advisory). The contractile system is ready for the adversarial Gemini+Copilot drift pilot."
+
+[[history]]
+date = "2026-09-27"
+event = "content-hashes-verified"
+note = "Recorded SHA-256 digests and byte sizes for all trident files after documenting the no-whole-tree-rollback recovery boundary."

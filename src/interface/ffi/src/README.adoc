@@ -1,3 +1,16 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Src Logic
+= Zig Accelerator Implementation
+
+`accelerator.zig` validates the Idris2-defined accelerator request and buffer
+layouts, enforces capability and aliasing constraints, and dispatches only the
+implemented scalar reference kernels in `axiom_matmul.zig` and
+`axiom_pointwise.zig`.
+
+The inline Zig tests exercise supported operations, rejected requests,
+non-finite inputs, alias refusal, overflow and failure atomicity. They are unit
+tests of the implementation, not end-to-end evidence from a game host or a
+separate language binding.
+
+The generated ABI module is imported as `abi`; do not edit its file by hand.
+Use `scripts/generate-accelerator-abi.sh --check` to detect drift.

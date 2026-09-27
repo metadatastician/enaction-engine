@@ -1,130 +1,74 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Project State Visualizer
-[source]
-----
-<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->
-<!-- TOPOLOGY.md — Project architecture map and completion dashboard -->
-<!-- Last updated: 2026-02-28 -->
+= Enaction Engine — Project State Map
+:toc:
 
-# RSR Template Repo — Project Topology
+[IMPORTANT]
+====
+This page is a qualitative orientation map, not a CRG assessment, compliance
+certificate, or percentage-complete dashboard. A listed workflow or test does
+not mean it passed in the current checkout. See
+link:status/READINESS.adoc[readiness status] and
+link:status/TEST-NEEDS.adoc[test inventory] for the explicit evidence boundary.
+====
 
-## System Architecture
+== Current state
 
-```
-                        ┌─────────────────────────────────────────┐
-                        │              NEW REPOSITORY             │
-                        │        (Consumer of this Template)      │
-                        └───────────────────┬─────────────────────┘
-                                            │ Scaffolding
-                                            ▼
-                        ┌─────────────────────────────────────────┐
-                        │           RSR TEMPLATE HUB              │
-                        │                                         │
-                        │  ┌───────────┐  ┌───────────────────┐  │
-                        │  │ AI Gate-  │  │  ABI / FFI        │  │
-                        │  │ keeper    │  │  Standard         │  │
-                        │  │ (0-AI-M)  │  │ (Idris2/Zig)      │  │
-                        │  └─────┬─────┘  └────────┬──────────┘  │
-                        │        │                 │              │
-                        │  ┌─────▼─────┐  ┌────────▼──────────┐  │
-                        │  │ Topology  │  │  SCM / 6SCM       │  │
-                        │  │ Guide     │  │  Metadata         │  │
-                        │  │ (Visual)  │  │ (machine_read)    │  │
-                        │  └─────┬─────┘  └────────┬──────────┘  │
-                        │        │                 │              │
-                        │  ┌─────▼─────────────────▼──────────┐  │
-                        │  │      CONTAINER ECOSYSTEM         │  │
-                        │  │  ┌──────────┐ ┌───────────────┐  │  │
-                        │  │  │ Podman / │ │ selur-compose  │  │  │
-                        │  │  │ OCI      │ │ cerro-torre    │  │  │
-                        │  │  │ Build    │ │ svalinn/vordr  │  │  │
-                        │  │  └──────────┘ └───────────────┘  │  │
-                        │  │  ct-build.sh  deploy.k9.ncl      │  │
-                        │  └──────────────────────────────────┘  │
-                        └────────│─────────────────│──────────────┘
-                                 │                 │
-                                 ▼                 ▼
-                        ┌─────────────────────────────────────────┐
-                        │          PLATFORM INTEGRATION           │
-                        │  ┌───────────┐  ┌───────────┐  ┌───────┐│
-                        │  │ GitHub    │  │ GitLab    │  │ Nix / ││
-                        │  │ Workflows │  │ CI/CD     │  │ Guix  ││
-                        │  └───────────┘  └───────────┘  └───────┘│
-                        └─────────────────────────────────────────┘
+[cols="1,2,3", options="header"]
+|===
+| Area | State | Boundary
 
-                        ┌─────────────────────────────────────────┐
-                        │          REPO INFRASTRUCTURE            │
-                        │  Justfile / Mustfile  .machine_readable/  │
-                        │  Codeowners / Reuse   0-AI-MANIFEST.a2ml  │
-                        └─────────────────────────────────────────┘
-```
+| Runtime
+| Experimental Rust libraries
+| No executable game host or complete runtime is present.
 
-## Completion Dashboard
+| Time and interpolation
+| Implemented library component
+| Fixed-step accounting and render-only interpolation; not yet adopted by two
+  game consumers.
 
-```
-COMPONENT                          STATUS              NOTES
-─────────────────────────────────  ──────────────────  ─────────────────────────────────
-CORE STANDARDS
-  ABI/FFI Standard (Idris2/Zig)     ██████████ 100%    Universal interface stable
-  AI Gatekeeper (0-AI-MANIFEST)     ██████████ 100%    Universal entry point active
-  TOPOLOGY.md Standard              ██████████ 100%    Visual summary guide active
-  6SCM Metadata Structure           ██████████ 100%    Machine-readable state stable
+| Trace and contracts
+| Implemented primitives
+| Typed trace/belief queries and version/package validation values; no game or
+  full content pipeline consumes them yet.
 
-INFRASTRUCTURE
-  Justfile Automation               ██████████ 100%    Standard build/verify tasks
-  CI/CD Workflow Templates          ██████████ 100%    GH/GL scaffolding verified
-  Multi-Forge Sync                  ██████████ 100%    Hub-and-spoke mirroring stable
+| Accelerator
+| CPU reference plus optional Zig-native boundary
+| Idris2 defines the ABI, declarations are generated, Zig implements the
+  current native operations, and a Rust adapter consumes the library. ABI v1
+  is restricted to 64-bit-pointer targets.
 
-CONTAINER ECOSYSTEM (Phase 2)
-  Containerfile (OCI build)         ██████████ 100%    Multi-stage Chainguard base
-  selur-compose orchestration       ██████████ 100%    Template + concrete example
-  cerro-torre manifest              ██████████ 100%    Bundle metadata & signing
-  svalinn gateway policy            ██████████ 100%    .gatekeeper.yaml active
-  vordr runtime monitoring          ██████████ 100%    Runtime config template
-  k9-svc deployment (Nickel)        ██████████ 100%    Hunt-level deploy descriptor
-  ct-build.sh pipeline              ██████████ 100%    Build/sign/verify script
-  Justfile container-* recipes      ██████████ 100%    8 recipes integrated
-  Trustfile CONTAINER_SUPPLY_CHAIN  ██████████ 100%    Supply chain section added
+| Governance and verification
+| Repository checks are configured
+| Results must be read from actual workflow/test output. Missing compiler or
+  prover toolchains are blocked gates, never implicit passes.
 
-REPO INFRASTRUCTURE
-  .machine_readable/                ██████████ 100%    STATE/META/ECOSYSTEM active
-  Governance & License              ██████████ 100%    AGPL-3.0-or-later & Ethical use verified
-  Development Shells (Guix)         ██████████ 100%    Reproducible env stable
+| Assurance
+| Not formally graded
+| No aggregate CRG grade, third-party compliance certification, or readiness
+  badge is claimed.
+|===
 
-─────────────────────────────────────────────────────────────────────────────
-OVERALL:                            ██████████ 100%    RSR Template Stable & Certified
-```
+== Intended integration order
 
-## Key Dependencies
+. Establish one small, headless host that advances a deterministic world by
+  whole `enaction-time` steps and records replayable inputs.
+. Integrate typed trace events at an explicit host boundary; prove that trace
+  observation cannot silently become simulation input.
+. Add a stable, versioned content-package contract. Keep engine/runtime and
+  UMS editor/application independently usable; exchange validated data through
+  documented contracts only.
+. Add one real game consumer and end-to-end determinism/replay tests before
+  generalising world, entity/component, physics, or presentation abstractions.
+. Add rendering, input, audio, networking, persistence, and tools only when a
+  working consumer establishes the contract and the associated tests.
 
-```
-Philosophy ──────► RSR Standard ──────► Template Scaffolding ──► New Repo
-     │                 │                      │                    │
-     ▼                 ▼                      ▼                    ▼
-CCCP Policy ─────► 0-AI-MANIFEST ────────► Justfile ──────────► Compliance
-                                              │
-                                              ▼
-                                      Container Ecosystem
-                                   ┌──────────┼──────────┐
-                                   ▼          ▼          ▼
-                              selur-compose  cerro-   svalinn/
-                              (orchestrate)  torre    vordr
-                                             (sign)   (monitor)
-                                              │
-                                              ▼
-                                         k9-svc deploy
-```
+This sequence is a plan, not a claim that those integrations exist. See
+link:architecture/TOPOLOGY.adoc[architecture topology] and
+link:status/ROADMAP.adoc[roadmap].
 
-## Update Protocol
+== Maintenance rule
 
-This file is maintained by both humans and AI agents. When updating:
-
-1. **After completing a component**: Change its bar and percentage
-2. **After adding a component**: Add a new row in the appropriate section
-3. **After architectural changes**: Update the ASCII diagram
-4. **Date**: Update the `Last updated` comment at the top of this file
-
-Progress bars use: `█` (filled) and `░` (empty), 10 characters wide.
-Percentages: 0%, 10%, 20%, ... 100% (in 10% increments).
-----
+Update this map only when the implementation or verified evidence changes.
+Prefer an explicit “not implemented” or “not assessed” state to completion
+percentages, inferred grades, or badges.

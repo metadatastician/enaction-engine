@@ -47,22 +47,12 @@ set -euo pipefail
 WF_DIR="${1:-.github/workflows}"
 LOCK="$WF_DIR/actions.lock"
 
-# gawk is required: the parser uses 3-argument match(), a GNU extension. mawk
-# (the Debian/Ubuntu default `awk`) does not support it, and a silent parse
-# failure here would read as a clean pass - the exact failure mode this script
-# exists to prevent. Probe it rather than trusting the name.
-AWK=""
-for cand in gawk awk; do
-  if command -v "$cand" >/dev/null 2>&1 \
-     && echo x | "$cand" '{ if (match($0, /(x)/, m) && m[1] == "x") exit 0; exit 1 }' 2>/dev/null; then
-    AWK="$cand"; break
-  fi
-done
-if [ -z "$AWK" ]; then
-  echo "check-lock-sync: FATAL: no awk supporting 3-argument match() (need gawk)" >&2
-  echo "check-lock-sync: install it with: sudo apt-get install -y gawk" >&2
+# Use only POSIX awk features so the lock gate works with the default Ubuntu
+# awk (often mawk) as well as gawk.
+AWK="$(command -v awk)" || {
+  echo "check-lock-sync: FATAL: awk is required to parse workflow and lock files" >&2
   exit 1
-fi
+}
 
 if [ ! -f "$LOCK" ]; then
   echo "check-lock-sync: FATAL: no lockfile at $LOCK" >&2
@@ -77,7 +67,9 @@ if [ "${#WORKFLOWS[@]}" -eq 0 ]; then
 fi
 
 read -r -d '' PROG <<'AWK' || true
-# owner/repo[/subpath...]@ref  ->  owner/repo@ref   ("" if not an external ref)
+# Reduce an action or reusable-workflow `uses:` value to `owner/repo@ref`.
+# The value may include a subpath. Return "" for local references, values without
+# a nonempty path and ref separated by `@`, or paths with fewer than two components.
 function norm(r,   at, path, ref, n, parts) {
   at = 0
   for (n = length(r); n > 0; n--) { if (substr(r, n, 1) == "@") { at = n; break } }
@@ -89,8 +81,11 @@ function norm(r,   at, path, ref, n, parts) {
   return parts[1] "/" parts[2] "@" ref
 }
 
-# Fold case on the OWNER/REPO segment only, for comparison keys. GitHub resolves
-# owner and repository names case-insensitively, and this is measured, not assumed:
+# Return a comparison key with the portion before the final `@` lowercased and
+# the ref unchanged. If there is no `@`, lowercase the entire value. Callers pass
+# normalized OWNER/REPO@REF values, so this folds the OWNER/REPO segment only.
+# GitHub resolves owner and repository names case-insensitively, and this is
+# measured, not assumed:
 # metadatastician/pong-ping's lockfile records sonarsource/sonarqube-scan-action@v8.2.1
 # while sonarqube.yml says SonarSource/..., and at commit cd5f90f that workflow ran
 # SUCCESS while codeql.yml at the SAME commit was startup_failure. A same-commit
@@ -112,14 +107,29 @@ FILENAME == lockfile {
   # --- the dependencies: section, for clause 3 ---
   if (indep) {
     # "    'owner/repo@ref':"  -- a top-level dependency record
-    if (match($0, /^    '([^']+)':/, m)) {
-      depkey = m[1]
+    if ($0 ~ /^    '[^']+':/) {
+      depkey = $0
+      sub(/^    '/, "", depkey)
+      sub(/':.*/, "", depkey)
       haverec[ck(depkey)] = 1; disp[ck(depkey)] = depkey
       next
     }
     # "            - 'owner/repo@ref'"  -- a nested uses: of that record
-    if (match($0, /^            - '([^']+)'/, m) && depkey != "") {
-      r = ck(m[1]); disp[r] = m[1]
+    if ($0 ~ /^            - '[^']+'/ && depkey != "") {
+      r = $0
+      sub(/^            - '/, "", r)
+      sub(/'.*/, "", r)
+      rawref = r
+      at = 0
+      for (z = length(rawref); z > 0; z--) {
+        if (substr(rawref, z, 1) == "@") { at = z; break }
+      }
+      if (at > 0) {
+        pathpart = substr(rawref, 1, at - 1)
+        slash_count = gsub(/\//, "", pathpart)
+        if (slash_count > 1) bad_subpath[rawref] = depkey
+      }
+      r = ck(rawref); disp[r] = rawref
       want[r] = 1
       wantsrc[r] = wantsrc[r] " dependencies:" depkey
       next
@@ -130,13 +140,19 @@ FILENAME == lockfile {
   if (!inwf) next
 
   # "    '.github/workflows/x.yml':"  or  "... : []"
-  if (match($0, /^    '([^']+)':/, m)) {
-    cur = m[1]
+  if ($0 ~ /^    '[^']+':/) {
+    cur = $0
+    sub(/^    '/, "", cur)
+    sub(/':.*/, "", cur)
     seen_path[cur] = 1
     next
   }
-  if (match($0, /^        - '([^']+)'[[:space:]]*$/, m) && cur != "") {
-    lr = ck(m[1]); disp[lr] = m[1]; lock[cur, lr] = 1
+  if ($0 ~ /^        - '[^']+'[[:space:]]*$/ && cur != "") {
+    lr = $0
+    sub(/^        - '/, "", lr)
+    sub(/'[[:space:]]*$/, "", lr)
+    rawref = lr
+    lr = ck(rawref); disp[lr] = rawref; lock[cur, lr] = 1
     lockcount[cur]++
     want[lr] = 1
     wantsrc[lr] = wantsrc[lr] " " cur
@@ -150,11 +166,15 @@ FNR == 1 { wf = FILENAME }
 {
   line = $0
   sub(/[[:space:]]+#.*$/, "", line)              # strip trailing comment
-  if (match(line, /^[[:space:]]*-?[[:space:]]*uses:[[:space:]]*(.+)$/, m)) {
-    raw = m[1]
+  if (line ~ /^[[:space:]]*-?[[:space:]]*uses:[[:space:]]*.*$/) {
+    raw = line
+    sub(/^[[:space:]]*-?[[:space:]]*uses:[[:space:]]*/, "", raw)
     gsub(/^["']|["']$/, "", raw)
     gsub(/[[:space:]]+$/, "", raw)
-    if (raw ~ /^\$\//) { dollar[wf] = dollar[wf] " " raw; next }   # known corruption
+    if (substr(raw, 1, 2) == "$/") {
+      invalid_local[wf] = raw
+      next
+    }
     n = norm(raw)
     if (n != "") { uses[wf, ck(n)] = 1; useslist[wf] = useslist[wf] " " n }
   }
@@ -162,6 +182,14 @@ FNR == 1 { wf = FILENAME }
 
 END {
   bad = 0
+  for (wf in invalid_local) {
+    printf "FAIL %s: invalid local-action rewrite (uses: $/...): %s\n", wf, invalid_local[wf]
+    bad = 1
+  }
+  for (r in bad_subpath) {
+    printf "FAIL actions.lock: invalid nested uses subpath %s (nested dependency keys must be bare OWNER/REPO@REF)\n", r
+    bad = 1
+  }
   for (i = 1; i < ARGC; i++) {
     wf = ARGV[i]
     if (wf == lockfile) continue
@@ -169,14 +197,10 @@ END {
     sub(/.*\//, "", key)
     key = ".github/workflows/" key          # the lockfile always uses this canonical path
 
-    if (dollar[wf] != "") {
-      printf "FAIL %s\n     invalid local-action rewrite (uses: $/...):%s\n", key, dollar[wf]
-      bad = 1
-    }
-
     # --- clause 1: every uses: must be locked under THIS path ---
     nu = split(useslist[wf], u, " ")
-    delete uniq; missing = ""
+    for (j in uniq) delete uniq[j]
+    missing = ""
     for (j = 1; j <= nu; j++) {
       if (u[j] == "" || (u[j] in uniq)) continue
       uniq[u[j]] = 1
@@ -279,7 +303,7 @@ END {
     print "     github/codeql-action/upload-sarif@<sha> is REJECTED by the schema; collapse it"
     print "     to github/codeql-action@<sha>."
     print "  4. For any UNLISTED WORKFLOWS above, add the path as a lockfile key. A workflow"
-    print "     with no uses: takes an empty list:  \x27.github/workflows/x.yml\x27: []"
+    print "     with no uses: takes an empty list:  '.github/workflows/x.yml': []"
     print "     `gh actions-lock` has been observed to OMIT such a workflow entirely; that"
     print "     omission is itself the defect, so re-running the tool may not add it."
     exit 1

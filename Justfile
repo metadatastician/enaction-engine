@@ -1,14 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# RSR Standard Justfile Template
+# Enaction Engine project task entry point
 # https://just.systems/man/en/
 #
-# Copy this file to new projects and customize the placeholder values.
-#
-# Run `just` to see all available recipes
-# Run `just cookbook` to generate docs/just-cookbook.adoc
-# Run `just combinations` to see matrix recipe options
+# Run `just` to list the project recipes. A recipe must perform its advertised
+# check or fail clearly; no placeholder command may exit successfully.
 
 set shell := ["bash", "-uc"]
 set dotenv-load := true
@@ -23,7 +20,7 @@ project := "enaction-engine"
 OWNER := "metadatastician"
 REPO := "enaction-engine"
 version := "0.1.0"
-tier := "infrastructure"  # 1 | 2 | infrastructure
+maturity := "experimental"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DEFAULT & HELP
@@ -36,6 +33,7 @@ default:
 # Show detailed help for a specific recipe
 help recipe="":
     #!/usr/bin/env bash
+    set -euo pipefail
     if [ -z "{{recipe}}" ]; then
         just --list --unsorted
         echo ""
@@ -48,9 +46,9 @@ help recipe="":
 
 # Show this project's info
 info:
-    @echo "Project: enaction_engine"
+    @echo "Project: Enaction Engine"
     @echo "Version: {{version}}"
-    @echo "RSR Tier: {{tier}}"
+    @echo "Maturity: {{maturity}}"
     @echo "Recipes: $(just --summary | wc -w)"
     @[ -f ".machine_readable/descriptiles/STATE.a2ml" ] && grep -oP 'phase\s*=\s*"\K[^"]+' .machine_readable/descriptiles/STATE.a2ml | head -1 | xargs -I{} echo "Phase: {}" || true
 
@@ -85,22 +83,18 @@ import? "build/just/assess.just"
 # BUILD & COMPILE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Build the project (debug mode)
+# Build the default Rust members (the Zig-linked native adapter has its own recipe/job)
 build *args:
-    cargo build --workspace {{args}}
+    cargo build --locked {{args}}
 
-# Build in release mode with optimizations
+# Build default Rust members in release mode
 build-release *args:
-    cargo build --workspace --release {{args}}
+    cargo build --locked --release {{args}}
 
-# Build and watch for changes (requires entr or similar)
+# Rebuild Rust members on file changes (requires `cargo-watch`)
 build-watch:
-    @echo "Watching for changes..."
-    # TODO: Customize file patterns for your language
-    # Examples:
-    #   find src -name '*.rs' | entr -c just build
-    #   mix compile --force --warnings-as-errors
-    #   deno task dev
+    @command -v cargo-watch >/dev/null 2>&1 || { echo "cargo-watch is required: cargo install cargo-watch" >&2; exit 1; }
+    cargo watch -x 'build --locked'
 
 # Clean build artifacts [reversible: rebuild with `just build`]
 clean:
@@ -120,19 +114,17 @@ clean-all: clean
 # TEST & QUALITY
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Run all tests
+# Run tests for the default Rust workspace members, matching the ordinary Rust CI job
 test *args:
-    cargo test --workspace {{args}}
+    cargo test --locked --all-targets {{args}}
 
-# Run tests with verbose output
+# Run default-member tests with captured output disabled
 test-verbose:
-    @echo "Running tests (verbose)..."
-    # TODO: Replace with verbose test command
+    cargo test --locked --all-targets -- --nocapture
 
-# Smoke test
+# Fast compile check of all default-member targets
 test-smoke:
-    @echo "Smoke test..."
-    # TODO: Add basic sanity checks
+    cargo check --locked --all-targets
 
 # Run end-to-end tests: conformance-corpus integrity (SHA256SUMS) + the
 # cross-implementation accelerator parity legs (scalar reference and the
@@ -141,62 +133,44 @@ test-smoke:
 e2e:
     @bash tests/e2e.sh
 
-# Run aspect tests — NOT IMPLEMENTED: no aspect suite exists yet.
+# Run cross-cutting source and proof-hygiene checks
 aspect:
-    @echo "aspect: NOT IMPLEMENTED — no aspect suite exists in this repo yet" >&2
-    @exit 1
+    @bash tests/aspect_tests.sh
 
 # Run benchmarks — NOT IMPLEMENTED: benches/ has no runnable benchmarks yet.
 bench:
     @echo "bench: NOT IMPLEMENTED — no runnable benchmarks exist yet" >&2
     @exit 1
 
-# Run readiness tests — NOT IMPLEMENTED: no readiness suite exists yet.
+# Check that the public readiness record is complete and does not imply an unearned grade.
 readiness:
-    @echo "readiness: NOT IMPLEMENTED — no readiness suite exists yet" >&2
-    @exit 1
+    @bash tests/readiness_status_test.sh
 
-# Print the current CRG grade (reads from READINESS.md '**Current Grade:** X' line)
-crg-grade:
-    @grade=$$(grep -oP '(?<=\*\*Current Grade:\*\* )[A-FX]' READINESS.md 2>/dev/null | head -1); \
-    [ -z "$$grade" ] && grade="X"; \
-    echo "$$grade"
+# Ensure generated recovery tasks cannot discard unrelated working-tree edits.
+contractile-safety:
+    @bash tests/contractile_safety_test.sh
 
-# Print a shields.io CRG badge for embedding in README files
-# Looks for '**Current Grade:** X' in READINESS.md; falls back to X
-crg-badge:
-    @grade=$$(grep -oP '(?<=\*\*Current Grade:\*\* )[A-FX]' READINESS.md 2>/dev/null | head -1); \
-    [ -z "$$grade" ] && grade="X"; \
-    case "$$grade" in \
-      A) color="brightgreen" ;; \
-      B) color="green" ;; \
-      C) color="yellow" ;; \
-      D) color="orange" ;; \
-      E) color="red" ;; \
-      F) color="critical" ;; \
-      *) color="lightgrey" ;; \
-    esac; \
-    echo "[![CRG $$grade](https://img.shields.io/badge/CRG-$$grade-$$color?style=flat-square)](https://github.com/hyperpolymath/standards/tree/main/component-readiness-grades)"
+# CRG is graded per component; this repository publishes no aggregate grade or badge.
+crg-status:
+    @cat docs/status/READINESS.adoc
 
-# Run every test category that actually exists. e2e/aspect/bench/readiness
-# are deliberately excluded until they are real — they previously echoed
-# success without running anything, so this aggregate was a fake green.
-test-all: test fmt-check lint e2e
+# Run implemented test and quality categories plus cross-language conformance
+test-all: quality e2e
     @echo "All implemented test categories passed."
 
-# Run all quality checks
-quality: fmt-check lint test
-    @echo "All quality checks passed!"
+# Run default-member format, lint, tests, source hygiene, readiness, and contractile-safety checks
+quality: fmt-check lint test aspect readiness contractile-safety
+    @echo "All implemented quality checks passed."
 
-# Fix all auto-fixable issues [reversible: git checkout]
+# Apply configured formatters; review the diff and restore only selected paths if needed.
 fix: fmt
-    @echo "Fixed all auto-fixable issues"
+    @echo "Workspace formatting complete. Review the diff before committing."
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # LINT & FORMAT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Format all source files [reversible: git checkout]
+# Format workspace sources; inspect the resulting diff before accepting it.
 fmt:
     cargo fmt --all
 
@@ -206,50 +180,39 @@ fmt-check:
 
 # Run linter
 lint:
-    cargo clippy --workspace --all-targets -- -D warnings
+    cargo clippy --locked --all-targets -- -D warnings
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # RUN & EXECUTE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Run the application
-run *args: build
-    # TODO: Replace with your run command
-    echo "Run not configured yet"
+# This workspace contains libraries and no executable game host yet.
+run:
+    @echo "Enaction Engine has no runnable application or game host yet." >&2
+    @exit 1
 
-# Run with verbose output
-run-verbose *args: build
-    # TODO: Replace with verbose run command
-    echo "Run not configured yet"
+# Same explicit boundary for the verbose alias; there is no application output.
+run-verbose:
+    @echo "Enaction Engine has no runnable application or game host yet." >&2
+    @exit 1
 
-# Install to user path
-install: build-release
-    @echo "Installing enaction_engine..."
-    # TODO: Replace with your install command
+# No binary or installable application is published from this library workspace.
+install:
+    @echo "No installable executable exists; consume the individual crates as libraries." >&2
+    @exit 1
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DEPENDENCIES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Install/check all dependencies
+# Fetch exactly the dependencies recorded in Cargo.lock
 deps:
-    @echo "Checking dependencies..."
-    # TODO: Replace with your dependency check
-    # Examples:
-    #   cargo check
-    #   mix deps.get
-    #   gleam deps download
-    @echo "All dependencies satisfied"
+    cargo fetch --locked
 
-# Audit dependencies for vulnerabilities
+# Audit Cargo.lock against RustSec advisories; missing tooling is a hard failure
 deps-audit:
-    @echo "Auditing for vulnerabilities..."
-    # TODO: Replace with your audit command
-    # Examples:
-    #   cargo audit
-    #   mix audit
-    @command -v trivy >/dev/null && trivy fs --severity HIGH,CRITICAL --quiet . || true
-    @echo "Audit complete"
+    @command -v cargo-audit >/dev/null 2>&1 || { echo "cargo-audit is required: cargo install cargo-audit --locked" >&2; exit 1; }
+    cargo audit
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ARRIVAL PACK — agent-facing CLAUDE.md, compiled from a2ml
@@ -293,6 +256,7 @@ docs:
 # Generate justfile cookbook documentation
 cookbook:
     #!/usr/bin/env bash
+    set -euo pipefail
     mkdir -p docs
     OUTPUT="docs/just-cookbook.adoc"
     echo "= enaction_engine Justfile Cookbook" > "$OUTPUT"
@@ -320,16 +284,17 @@ cookbook:
 # Generate man page
 man:
     #!/usr/bin/env bash
+    set -euo pipefail
     mkdir -p docs/man
     cat > docs/man/enaction_engine.1 << EOF
     .TH enaction_engine 1 "$(date +%Y-%m-%d)" "{{version}}" "enaction_engine Manual"
     .SH NAME
-    enaction_engine \- RSR-compliant project
+    enaction_engine \- experimental deterministic game-engine libraries
     .SH SYNOPSIS
     .B just
     [recipe] [args...]
     .SH DESCRIPTION
-    RSR (Rhodium Standard Repository) project managed with just.
+    Rust game-engine libraries managed with just; no executable game host exists yet.
     .SH AUTHOR
     $(git config user.name 2>/dev/null || echo "Author") <$(git config user.email 2>/dev/null || echo "email")>
     EOF
@@ -342,8 +307,8 @@ man:
 # Run full CI pipeline locally
 # proof-check-all is FATAL if any prover toolchain is absent (idris2/lean/agda/coqc):
 # the full CI gate must not pass on a machine that cannot verify the proofs.
-ci: deps quality proof-check-all
-    @echo "CI pipeline complete!"
+ci: deps quality e2e proof-check-all
+    @echo "Full local CI pipeline complete."
 
 # Install git hooks
 install-hooks:
@@ -361,16 +326,16 @@ install-hooks:
 # SECURITY
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Run security audit
+# Run locked dependency audit and filesystem vulnerability scan; fail if either tool is absent
 security: deps-audit
-    @echo "=== Security Audit ==="
-    @command -v trivy >/dev/null && trivy fs --severity HIGH,CRITICAL . || true
-    @echo "Security audit complete"
+    @command -v trivy >/dev/null 2>&1 || { echo "trivy is required for the filesystem scan" >&2; exit 1; }
+    trivy fs --severity HIGH,CRITICAL --exit-code 1 --quiet .
 
-# Generate SBOM
+# Generate an SPDX JSON SBOM; fail rather than report success when Syft is absent
 sbom:
+    @command -v syft >/dev/null 2>&1 || { echo "syft is required to generate the SBOM" >&2; exit 1; }
     @mkdir -p docs/security
-    @command -v syft >/dev/null && syft . -o spdx-json > docs/security/sbom.spdx.json || echo "syft not found"
+    syft . -o spdx-json > docs/security/sbom.spdx.json
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # VALIDATION & COMPLIANCE — see build/just/validate.just
@@ -412,9 +377,10 @@ guix-build:
 # Run local automation tasks
 automate task="all":
     #!/usr/bin/env bash
+    set -euo pipefail
     case "{{task}}" in
-        all) just fmt && just lint && just test && just docs && just state-touch ;;
-        cleanup) just clean && find . -name "*.orig" -delete && find . -name "*~" -delete ;;
+        all) just quality && just e2e && just docs && just state-touch ;;
+        cleanup) just clean; echo "Backup files were left untouched; review and remove them explicitly if needed." ;;
         update) just deps && just validate ;;
         *) echo "Unknown: {{task}}. Use: all, cleanup, update" && exit 1 ;;
     esac
@@ -423,26 +389,71 @@ automate task="all":
 # COMBINATORIC MATRIX RECIPES
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Build matrix: [debug|release] x [target] x [features]
+# Build default Rust members: [debug|release] x optional target x optional feature list
 build-matrix mode="debug" target="" features="":
-    @echo "Build matrix: mode={{mode}} target={{target}} features={{features}}"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    args=()
+    case "{{mode}}" in
+      debug) ;;
+      release) args+=(--release) ;;
+      *) echo "mode must be debug or release" >&2; exit 2 ;;
+    esac
+    [ -z "{{target}}" ] || args+=(--target "{{target}}")
+    [ -z "{{features}}" ] || args+=(--features "{{features}}")
+    cargo build --locked "${args[@]}"
 
-# Test matrix: [unit|integration|e2e|all] x [verbosity] x [parallel]
+# Run Rust unit/integration tests or the e2e/full gate. Verbosity and parallelism
+# apply only to the unit and integration suites.
 test-matrix suite="unit" verbosity="normal" parallel="true":
-    @echo "Test matrix: suite={{suite}} verbosity={{verbosity}} parallel={{parallel}}"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    test_args=()
+    case "{{verbosity}}" in
+      normal) ;;
+      verbose) test_args+=(--nocapture) ;;
+      *) echo "verbosity must be normal or verbose" >&2; exit 2 ;;
+    esac
+    case "{{parallel}}" in
+      true) ;;
+      false) test_args+=(--test-threads=1) ;;
+      *) echo "parallel must be true or false" >&2; exit 2 ;;
+    esac
+    case "{{suite}}" in
+      unit) cargo test --locked --lib -- "${test_args[@]}" ;;
+      integration) cargo test --locked --tests -- "${test_args[@]}" ;;
+      e2e|all)
+        if [ "{{verbosity}}" != normal ] || [ "{{parallel}}" != true ]; then
+          echo "verbosity and parallelism apply only to unit or integration suites" >&2
+          exit 2
+        fi
+        if [ "{{suite}}" = e2e ]; then just e2e; else just test-all; fi ;;
+      *) echo "suite must be unit, integration, e2e, or all" >&2; exit 2 ;;
+    esac
 
-# CI matrix: [lint|test|build|security|all] x [quick|full]
+# Run an explicit CI stage at quick (quality) or full (proof + E2E) depth.
 ci-matrix stage="all" depth="quick":
-    @echo "CI matrix: stage={{stage}} depth={{depth}}"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{stage}}" in
+      lint) just fmt-check lint aspect ;;
+      test) just test ;;
+      build) just build ;;
+      security) just security ;;
+      all)
+        case "{{depth}}" in
+          quick) just quality ;;
+          full) just ci ;;
+          *) echo "depth must be quick or full" >&2; exit 2 ;;
+        esac ;;
+      *) echo "stage must be lint, test, build, security, or all" >&2; exit 2 ;;
+    esac
 
-# Show all matrix combinations
+# Show supported matrix combinations
 combinations:
-    @echo "=== Combinatoric Matrix Recipes ==="
-    @echo ""
-    @echo "Build Matrix: just build-matrix [debug|release] [target] [features]"
-    @echo "Test Matrix:  just test-matrix [unit|integration|e2e|all] [verbosity] [parallel]"
-    @echo "Container:    just container-matrix [build|run|push|shell|scan] [registry] [tag]  (needs container module)"
-    @echo "CI Matrix:    just ci-matrix [lint|test|build|security|all] [quick|full]"
+    @echo "Build: just build-matrix [debug|release] [target] [features]"
+    @echo "Test:  just test-matrix [unit|integration|e2e|all] [normal|verbose] [true|false]"
+    @echo "CI:    just ci-matrix [lint|test|build|security|all] [quick|full]"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # VERSION CONTROL
@@ -470,6 +481,7 @@ changelog-preview:
 # Tag a new release (usage: just release-tag 1.2.3)
 release-tag version:
     #!/usr/bin/env bash
+    set -euo pipefail
     TAG="v{{version}}"
     if git rev-parse "$TAG" >/dev/null 2>&1; then
         echo "Tag $TAG already exists"
@@ -479,7 +491,7 @@ release-tag version:
     git add CHANGELOG.md
     git commit -m "chore(release): prepare $TAG"
     git tag -a "$TAG" -m "Release $TAG"
-    echo "Created tag $TAG — push with: git push origin main --tags"
+    echo "Created tag $TAG. Publish it only from the reviewed release commit and follow the draft-release gate."
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # UTILITIES
@@ -489,9 +501,24 @@ release-tag version:
 loc:
     @find . \( -name "*.rs" -o -name "*.ex" -o -name "*.exs" -o -name "*.res" -o -name "*.gleam" -o -name "*.zig" -o -name "*.idr" -o -name "*.hs" -o -name "*.ncl" -o -name "*.scm" -o -name "*.adb" -o -name "*.ads" \) -not -path './target/*' -not -path './_build/*' 2>/dev/null | xargs wc -l 2>/dev/null | tail -1 || echo "0"
 
-# Show TODO comments
+# Show TODO comments; scanner errors must not be reported as an empty result.
 todos:
-    @grep -rn "TODO\|FIXME\|HACK\|XXX" --include="*.rs" --include="*.ex" --include="*.res" --include="*.gleam" --include="*.zig" --include="*.idr" --include="*.hs" . 2>/dev/null || echo "No TODOs"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if grep -rnE 'TODO|FIXME|HACK|XXX' \
+        --include='*.rs' --include='*.ex' --include='*.res' --include='*.gleam' \
+        --include='*.zig' --include='*.idr' --include='*.hs' \
+        --exclude-dir=.git --exclude-dir=target .; then
+        exit 0
+    else
+        status=$?
+        if [ "$status" -eq 1 ]; then
+            echo "No TODOs"
+        else
+            echo "TODO scan failed (grep exit $status)" >&2
+            exit "$status"
+        fi
+    fi
 
 # Open in editor
 edit:
@@ -501,20 +528,44 @@ edit:
 maint-assault:
     @./.machine_readable/scripts/maintenance/maint-assault.sh
 
-# Run panic-attacker pre-commit scan (foundational floor-raise requirement)
+# Run panic-attack's static-analysis scan; missing scanner is a hard failure
 assail:
-    @command -v panic-attack >/dev/null 2>&1 && panic-attack assail . || echo "WARN: panic-attack not found — install from https://github.com/hyperpolymath/panic-attacker"
+    @command -v panic-attack >/dev/null 2>&1 || { echo "panic-attack is required: https://github.com/hyperpolymath/panic-attacker" >&2; exit 1; }
+    panic-attack assail .
 
 
-# Self-diagnostic — checks dependencies, permissions, paths
+# Self-diagnostic — required tools and absolute developer-specific paths
 doctor:
-    @echo "Running diagnostics for enaction-engine..."
-    @echo "Checking required tools..."
-    @command -v just >/dev/null 2>&1 && echo "  [OK] just" || echo "  [FAIL] just not found"
-    @command -v git >/dev/null 2>&1 && echo "  [OK] git" || echo "  [FAIL] git not found"
-    @echo "Checking for hardcoded paths..."
-    @grep -rn '$HOME\|$ECLIPSE_DIR' --include='*.rs' --include='*.ex' --include='*.res' --include='*.gleam' --include='*.sh' . 2>/dev/null | head -5 || echo "  [OK] No hardcoded paths"
-    @echo "Diagnostics complete."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    failed=0
+    echo "Running diagnostics for enaction-engine..."
+    for tool in just git; do
+        if command -v "$tool" >/dev/null 2>&1; then
+            echo "  [OK] $tool"
+        else
+            echo "  [FAIL] $tool not found" >&2
+            failed=1
+        fi
+    done
+    echo "Checking for absolute developer-specific paths..."
+    if grep -rnE '/home/[[:alnum:]_.-]+/|[A-Za-z]:\\Users\\' \
+        --include='*.rs' --include='*.ex' --include='*.res' \
+        --include='*.gleam' --include='*.sh' \
+        --exclude-dir=.git --exclude-dir=target .; then
+        echo "  [FAIL] developer-specific absolute path found" >&2
+        failed=1
+    else
+        status=$?
+        if [ "$status" -eq 1 ]; then
+            echo "  [OK] no developer-specific absolute paths"
+        else
+            echo "  [FAIL] path scan failed (grep exit $status)" >&2
+            failed=1
+        fi
+    fi
+    echo "Diagnostics complete."
+    exit "$failed"
 
 # Guided tour of key features
 tour:
@@ -607,5 +658,7 @@ handover-model path=".":
 handover-human path=".":
     @./session/dispatch.sh handover human "{{path}}"
 
+# Scan the working tree for verified secrets; missing tooling or findings are failures.
 secret-scan-trufflehog:
-    @command -v trufflehog >/dev/null && trufflehog filesystem . --only-verified || true
+    @command -v trufflehog >/dev/null 2>&1 || { echo "trufflehog is required: https://github.com/trufflesecurity/trufflehog" >&2; exit 1; }
+    trufflehog filesystem . --only-verified

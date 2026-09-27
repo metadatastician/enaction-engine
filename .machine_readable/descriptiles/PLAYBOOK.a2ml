@@ -67,7 +67,7 @@ enforcement-workflow = ".github/workflows/estate-rules.yml"
 #                      just/*.just (Justfile section imports)
 # docs/                onboarding/, status/, architecture/, governance/  (all .adoc)
 # session/             dispatch.sh, custom-checks.k9, local-hooks.sh
-# src/                 Project source (Idris2 ABI under abi/, Zig FFI under ffi/)
+# src/                 Project source (Idris2 ABI under interface/Abi/, Zig FFI under interface/ffi/)
 # tests/, benches/, examples/, features/, scripts/, verification/, container/
 
 # === Documentation format rule ===

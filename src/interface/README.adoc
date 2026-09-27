@@ -1,3 +1,12 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= interface Unit
+= Interface Boundaries
+
+This directory contains the Idris2 accelerator ABI authority, its generated
+language declarations, and the pure-Zig implementation. The consuming Rust
+adapter is a separate workspace crate at `crates/enaction-accelerator-native/`.
+
+The boundary is intentionally narrow: it does not define a general game API,
+UMS application API, rendering interface, or network protocol. Read
+`Abi/README.adoc` and `../../docs/developer/ABI-FFI-README.adoc` before changing
+ABI fields or generated files.

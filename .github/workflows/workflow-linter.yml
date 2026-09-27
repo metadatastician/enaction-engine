@@ -93,45 +93,43 @@ jobs:
           echo "All workflows have permissions declared"
 
       - name: Check SHA-Pinned Actions
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           echo "=== Checking Action Pinning ==="
-          if [ -f .github/workflows/actions.lock ]; then
-            # Pin authority is the lockfile: `gh actions-lock` resolves every
-            # tag-style ref (incl. composites' transitive actions) against
-            # recorded numeric owner/repo ids. The lockfile does NOT scope
-            # cross-repo reusable workflows, so those must stay 40-hex pinned.
-            echo "actions.lock present — verifying against the lockfile"
-            unpinned_reusables=$(grep -rnE "^[[:space:]]+uses:.*/\.github/workflows/.*\.ya?ml@" .github/workflows/ | \
-              grep -v "@[a-f0-9]\{40\}" || true)
-            if [ -n "$unpinned_reusables" ]; then
-              echo "ERROR: cross-repo reusable workflows must be SHA-pinned (the lockfile does not cover them):"
-              echo "$unpinned_reusables"
-              exit 1
-            fi
-            gh extension install github/gh-actions-lock 2>/dev/null || true
-            # --verify-local is offline and built for CI; a missing extension
-            # must FAIL the gate, not skip it — a check that cannot fail is
-            # not a check.
-            gh actions-lock --verify-local
-            echo "Lockfile verification passed; reusable pins are 40-hex"
-          else
-            # No lockfile: every uses: must be a 40-char SHA pin.
-            unpinned=$(grep -rnE "^[[:space:]]+uses:" .github/workflows/ | \
-              grep -v "@[a-f0-9]\{40\}" | \
-              grep -v -e "uses: \./" -e "uses: docker" -e "uses: actions/github-script" || true)
-
-            if [ -n "$unpinned" ]; then
-              echo "ERROR: Found unpinned actions:"
-              echo "$unpinned"
-              echo ""
-              echo "Replace version tags with SHA pins, e.g.:"
-              echo "  uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.1"
-              exit 1
-            fi
-            echo "All actions are SHA-pinned"
+          if [ ! -f .github/workflows/actions.lock ]; then
+            echo "ERROR: .github/workflows/actions.lock is required"
+            exit 1
           fi
+
+          # The repository-local checker verifies direct actions, job-level
+          # reusable workflows, stale entries, and transitive dependency closure.
+          ./scripts/check-lock-sync.sh
+
+          TEMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TEMP_DIR"' EXIT
+          if grep -rnE "^[[:space:]]+uses:.*/\\.github/workflows/.*\\.ya?ml@" .github/workflows/ \
+              >"$TEMP_DIR/reusable"; then
+            if grep -vE "@[a-f0-9]{40}" "$TEMP_DIR/reusable" >"$TEMP_DIR/unpinned"; then
+              echo "ERROR: cross-repo reusable workflows must use a full 40-character SHA:"
+              cat "$TEMP_DIR/unpinned"
+              exit 1
+            else
+              status=$?
+              if [ "$status" -gt 1 ]; then
+                echo "ERROR: failed to filter reusable-workflow pins (grep exit $status)" >&2
+                exit 1
+              fi
+            fi
+          else
+            status=$?
+            if [ "$status" -eq 1 ]; then
+              : # No cross-repo reusable workflows were found.
+            else
+              echo "ERROR: failed to inspect reusable-workflow pins (grep exit $status)" >&2
+              exit 1
+            fi
+          fi
+          echo "Lockfile verification passed; reusable workflow pins are 40-hex"
 
       - name: Check for Duplicate Workflows
         run: |
