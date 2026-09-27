@@ -1,156 +1,82 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= TOPOLOGY.md — Generation Guide
-Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+= Architecture and State Map Guide
 :toc:
 :sectnums:
 
-== What Is TOPOLOGY.md?
+== Purpose
 
-A single-file visual map of any project's architecture and completion status.
-It lives in the repo root and contains:
+A topology page is a concise map of a project's actual architecture, intended
+boundaries, and known gaps. It complements implementation docs; it is not a
+completion score, CRG assessment, compliance certificate, or substitute for
+build/test evidence.
 
-1. **ASCII architecture diagram** — the full system as it will look when complete
-2. **Completion dashboard** — every component with a progress bar and status note
-3. **Dependency graph** — what blocks what (the critical path)
-4. **Update protocol** — how to keep it current
+== Required content
 
-It is designed to be readable by humans, AI agents, and rendered cleanly on any
-forge (GitHub, GitLab, Codeberg, Bitbucket).
+. *Current components*: name the real crates, services, packages, or modules;
+  link their source and describe what each currently does.
+. *Boundaries*: distinguish implemented paths from planned paths. Label a
+  conceptual diagram as a target whenever it is not wired end to end.
+. *Dependencies and ownership*: show which component depends on which contract
+  and who owns each boundary. Identify runtime dependencies separately from
+  development and governance tooling.
+. *Evidence and limits*: cite test/build/proof surfaces and state the exact
+  scope they support. A configured workflow is not a passing workflow run.
+. *Update protocol*: specify which implementation or observed evidence change
+  justifies an update.
 
-== Why
+== Honest status vocabulary
 
-- Gives any contributor (human or AI) an instant picture of the whole project
-- Replaces "read 20 files to understand the architecture" with one glance
-- The completion dashboard makes project health visible without running anything
-- Works offline, no tooling required, just a text file
+Use one of these labels and include paths or run links where relevant:
 
-== How To Generate One
+[cols="1,3", options="header"]
+|===
+| Label | Meaning
 
-=== Option 1: Ask an AI agent
+| Implemented
+| Source exists and its stated behaviour has a corresponding test or other
+  direct evidence. State the boundary of that evidence.
 
-Use this prompt (works with Claude, Gemini, ChatGPT, or any LLM with repo access):
+| Experimental
+| A working component exists, but its API, adoption, supported targets, or
+  operational context remains narrow or unvalidated.
+
+| Planned
+| Accepted direction with no implementation claim.
+
+| Blocked
+| A named dependency, decision, toolchain, or test prevents the next step.
+
+| Unassessed
+| No adequate evidence has been collected. Do not convert this to a failing or
+  passing grade without a formal assessment.
+|===
+
+Do not use completion percentages, progress bars, aggregate grades, or badges
+unless a project has defined a repeatable measurement and can publish its
+source evidence. Never infer a certification from using a template, workflow,
+or policy set.
+
+== Agent prompt for a project topology page
 
 [source,text]
 ----
-Read the entire repository and produce a TOPOLOGY.md file for the repo root.
-
-The file must contain exactly three sections:
-
-1. **System Architecture** — An ASCII box diagram showing the complete system
-   as it will look when finished. Use Unicode box-drawing characters
-   (┌ ┐ └ ┘ │ ─ ├ ┤ ┬ ┴ ┼), arrows (▲ ▼ ◄ ► → ←), and double lines
-   (═ ║) for boundaries. Show:
-   - All external services (DNS, CDN, gateways) at the top
-   - Application components in the middle
-   - Data layer (databases, caches, queues) below
-   - Repo infrastructure (CI, contractiles, SCM files) at the bottom
-   - Every box labelled, every connection labelled or obvious from context
-   - The diagram should be BESPOKE to this project, not generic
-
-2. **Completion Dashboard** — A table in a code block listing every component
-   from the diagram. For each component show:
-   - Name (left-aligned, padded to 35 chars)
-   - Progress bar: 10 characters using █ (done) and ░ (remaining)
-   - Percentage (0% to 100% in 10% increments)
-   - A short note explaining the status
-   Group components by layer/concern. End with an OVERALL summary line.
-
-3. **Key Dependencies** — An ASCII arrow diagram showing the critical path.
-   What must finish before what else can start.
-
-Add a header comment with SPDX-License-Identifier and Last updated date.
-End with an "Update Protocol" section explaining how to maintain the file.
-
-Use `docs/architecture/TOPOLOGY.adoc` as a structural reference,
-but make the content completely specific to THIS project.
+Inspect the repository and update its architecture/state map using only evidence
+in the current checkout. Name the real components and their source locations;
+separate implemented dataflow from conceptual/future flow; describe ownership,
+contracts, and hard dependency boundaries; cite actual test/build/proof gates
+and their limitations. Mark missing or unverified evidence as planned, blocked,
+or unassessed. Do not invent completion percentages, grades, badges, passing
+workflow results, integrations, or runtime dependencies. Keep RSR/estate
+governance separate from product runtime architecture. If two projects are
+intended to interoperate, specify a versioned, independently implementable
+contract and preserve the ability to use either project without adopting the
+other. Make the smallest coherent edit and report claims that could not be
+verified.
 ----
 
-=== Option 2: Copy the template and fill it in
+== Relationship to machine-readable estate files
 
-[source,bash]
-----
-cp docs/architecture/TOPOLOGY.adoc ./TOPOLOGY.adoc
-# Then edit: replace placeholders, draw the real architecture, fill the dashboard
-----
-
-=== Option 3: Batch generation across all repos
-
-[source,bash]
-----
-# From the repos root, generate for every repo that lacks one
-for repo in /path/to/your/repos/*/; do
-  if [ ! -f "$repo/TOPOLOGY.md" ]; then
-    echo "NEEDS TOPOLOGY: $(basename $repo)"
-  fi
-done
-----
-
-Then feed each repo to an AI agent with the prompt above. Claude Code can do
-this with a session per repo, or you can batch it.
-
-== Conventions
-
-=== Box-drawing characters
-
-Use Unicode, not ASCII art. This renders correctly everywhere.
-
-[cols="1,1", options="header"]
-|===
-| Character | Use
-| `┌ ┐ └ ┘` | Box corners
-| `│ ─`      | Vertical / horizontal lines
-| `├ ┤ ┬ ┴ ┼` | T-junctions and crosses
-| `═ ║`      | Double lines for major boundaries
-| `▲ ▼ ◄ ►` | Directional arrows
-| `→ ← ↑ ↓` | Thin arrows (alternative)
-|===
-
-=== Progress bars
-
-Always 10 characters wide. Use full blocks only (no half-blocks).
-
-[source,text]
-----
-░░░░░░░░░░   0%    Not started
-█░░░░░░░░░  10%    Stub/skeleton exists
-██░░░░░░░░  20%    Early work
-███░░░░░░░  30%    Foundation laid
-████░░░░░░  40%    Core logic started
-█████░░░░░  50%    Half done
-██████░░░░  60%    Most logic complete
-███████░░░  70%    Working but rough
-████████░░  80%    Needs polish/docs
-█████████░  90%    Nearly done
-██████████ 100%    Complete and tested
-----
-
-=== Component naming
-
-- Use the actual names from the codebase (file names, service names, tool names)
-- Group by architectural layer, not alphabetically
-- Include repo infrastructure (CI, contractiles, SCM files) as a layer
-
-=== When to update
-
-- After completing a component → change bar + percentage
-- After adding a component → add row
-- After architectural change → redraw diagram
-- After major milestone → update overall percentage
-- Always update the `Last updated` date
-
-== Integration With Other RSR Files
-
-TOPOLOGY.md complements but does not replace:
-
-- **STATE.a2ml** — machine-readable state (tasks, blockers, next actions)
-- **ECOSYSTEM.a2ml** — position in the wider project ecosystem
-- **META.a2ml** — architecture decisions and design rationale
-- **0-AI-MANIFEST.a2ml** — AI agent entry point and invariants
-
-TOPOLOGY.md is the _visual summary_ for humans; the a2ml files are the
-_structured data_ for tooling. Both should agree.
-
-== Copyright
-
-Copyright (c) 2026 Jonathan D.A. Jewell (metadatastician) <jonathan.jewell@gmail.com>
+A project may use `.machine_readable/` for structured state and governance. A
+human-readable topology should agree with those files, but it does not replace
+them and must not upgrade a policy declaration into evidence that a gate passed.

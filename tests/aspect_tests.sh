@@ -2,22 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (c) 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
 #
-# RSR Standard Aspect Test Template
-#
-# Aspect tests validate cross-cutting architectural invariants that span
-# the entire codebase. These are NOT functional tests — they verify that
-# coding standards, safety rules, and structural contracts hold.
-#
-# Usage:
-#   bash tests/aspect_tests.sh
-#   just aspect
-#
-# Standard aspects (enable what applies to your project):
-#   1. SPDX compliance — all source files have license headers
-#   2. Dangerous patterns — no believe_me, assert_total, sorry, unsafeCoerce, etc.
-#   3. ABI/FFI contract — declarations match exports
-#   4. Thread safety — mutex in FFI modules
-#   5. Error handling — no panic/unreachable in production paths
+# Repository-specific, cross-cutting source checks. This scans code files only;
+# explanatory prose and examples in documentation are not executable proofs.
 
 set -euo pipefail
 
@@ -27,108 +13,174 @@ cd "$PROJECT_DIR"
 
 PASS=0
 FAIL=0
-WARN=0
+TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "$TMP_DIR"' EXIT
 
-green() { printf '\033[32m%s\033[0m\n' "$*"; }
-red()   { printf '\033[31m%s\033[0m\n' "$*"; }
-yellow(){ printf '\033[33m%s\033[0m\n' "$*"; }
-bold()  { printf '\033[1m%s\033[0m\n' "$*"; }
+pass() { printf 'PASS: %s\n' "$1"; PASS=$((PASS + 1)); }
+fail() { printf 'FAIL: %s\n' "$1" >&2; FAIL=$((FAIL + 1)); }
 
-pass() { green "  PASS: $1"; PASS=$((PASS + 1)); }
-fail() { red "  FAIL: $1"; FAIL=$((FAIL + 1)); }
-warn() { yellow "  WARN: $1"; WARN=$((WARN + 1)); }
-
-echo "═══════════════════════════════════════════════════════════════"
-echo "  ENACTION_ENGINE — Aspect Tests (Cross-Cutting Concerns)"
-echo "═══════════════════════════════════════════════════════════════"
-echo ""
-
-# ═══════════════════════════════════════════════════════════════════════
-# Aspect 1: SPDX License Headers
-# ═══════════════════════════════════════════════════════════════════════
-bold "Aspect 1: SPDX license headers"
-
-MISSING_SPDX=0
-while IFS= read -r -d '' f; do
-    if ! head -5 "$f" | grep -q "SPDX-License-Identifier"; then
-        warn "Missing SPDX header: $f"
-        MISSING_SPDX=$((MISSING_SPDX + 1))
+for source_root in crates src/interface verification tests examples; do
+    if [ ! -d "$source_root" ]; then
+        fail "required source root is missing: $source_root"
     fi
-done < <(find src/ -type f \( -name "*.rs" -o -name "*.zig" -o -name "*.res" -o -name "*.ex" -o -name "*.exs" -o -name "*.gleam" -o -name "*.idr" -o -name "*.sh" \) -print0 2>/dev/null)
-
-if [ "$MISSING_SPDX" -eq 0 ]; then
-    pass "All source files have SPDX headers"
-else
-    fail "$MISSING_SPDX files missing SPDX headers"
+done
+if ! find crates src/interface verification tests examples -type f \
+    \( -name '*.rs' -o -name '*.zig' -o -name '*.idr' -o \
+       -name '*.lean' -o -name '*.agda' -o -name '*.v' -o -name '*.hs' \) \
+    -print0 >"$TMP_DIR/source-files" 2>"$TMP_DIR/find-errors"; then
+    fail "source inventory failed: $(cat "$TMP_DIR/find-errors")"
+    exit 1
+fi
+mapfile -d '' SOURCE_FILES <"$TMP_DIR/source-files"
+if [ "${#SOURCE_FILES[@]}" -eq 0 ]; then
+    fail "no implementation or proof source files were found"
+    exit 1
 fi
 
-# ═══════════════════════════════════════════════════════════════════════
-# Aspect 2: Dangerous Patterns (BANNED)
-# ═══════════════════════════════════════════════════════════════════════
-bold "Aspect 2: Dangerous patterns"
-
-# Idris2 dangerous patterns
-DANGEROUS_IDRIS=$(grep -rn 'believe_me\|assert_total\|really_believe_me' src/abi/ 2>/dev/null | grep -v "^Binary" | grep -v "test" || true)
-if [ -n "$DANGEROUS_IDRIS" ]; then
-    fail "Dangerous Idris2 patterns found:"
-    echo "$DANGEROUS_IDRIS" | head -5
+# Aspect 1: every implementation and proof source carries its SPDX identifier.
+MISSING_SPDX=()
+for file in "${SOURCE_FILES[@]}"; do
+    if ! head -n 5 "$file" | grep -q 'SPDX-License-Identifier:'; then
+        MISSING_SPDX+=("$file")
+    fi
+done
+if [ "${#MISSING_SPDX[@]}" -eq 0 ]; then
+    pass "all Rust, Zig, Idris2 and proof source files have SPDX headers"
 else
-    pass "No dangerous Idris2 patterns (believe_me, assert_total)"
+    fail "source files missing SPDX headers: ${MISSING_SPDX[*]}"
 fi
 
-# Coq/Lean dangerous patterns
-DANGEROUS_PROOF=$(grep -rn '\bAdmitted\b\|\bsorry\b\|\bunsafeCoerce\b\|\bObj\.magic\b' src/ verification/ 2>/dev/null | grep -v "test" | grep -v "comment" || true)
-if [ -n "$DANGEROUS_PROOF" ]; then
-    fail "Dangerous proof patterns found:"
-    echo "$DANGEROUS_PROOF" | head -5
+# Aspect 2: reject actual unsound proof constructs, after removing language
+# comments so policy examples in source comments cannot create false positives.
+PROOF_FINDINGS=()
+for file in "${SOURCE_FILES[@]}"; do
+    case "$file" in
+        *.idr)
+            sed -E '/^[[:space:]]*(--|\|\|\|)/d; s/[[:space:]]--.*$//' "$file" >"$TMP_DIR/source"
+            if grep -nE '(^|[^[:alnum:]_])(believe_me|really_believe_me|assert_total)([^[:alnum:]_]|$)' "$TMP_DIR/source" >/dev/null; then
+                PROOF_FINDINGS+=("$file: Idris2 partiality escape")
+            fi
+            ;;
+        *.agda)
+            sed -E '/^[[:space:]]*--/d; s/[[:space:]]--.*$//' "$file" >"$TMP_DIR/source"
+            if grep -nE '^[[:space:]]*postulate([[:space:]]|$)' "$TMP_DIR/source" >/dev/null; then
+                PROOF_FINDINGS+=("$file: Agda postulate")
+            fi
+            ;;
+        *.v)
+            awk '
+              {
+                line = $0
+                out = ""
+                i = 1
+                while (i <= length(line)) {
+                  pair = substr(line, i, 2)
+                  if (in_comment) {
+                    if (pair == "*)") { in_comment = 0; i += 2 }
+                    else { i++ }
+                  } else if (pair == "(*") {
+                    in_comment = 1
+                    i += 2
+                  } else {
+                    out = out substr(line, i, 1)
+                    i++
+                  }
+                }
+                print out
+              }
+            ' "$file" >"$TMP_DIR/source"
+            if grep -nE '(^|[^[:alnum:]_])Admitted([[:space:].]|$)' "$TMP_DIR/source" >/dev/null; then
+                PROOF_FINDINGS+=("$file: Coq Admitted")
+            fi
+            ;;
+        *.lean)
+            # Lean permits nested block comments. Strip both block and line comments.
+            awk '
+              {
+                line = $0
+                out = ""
+                i = 1
+                while (i <= length(line)) {
+                  pair = substr(line, i, 2)
+                  if (depth > 0) {
+                    if (pair == "/-") { depth++; i += 2 }
+                    else if (pair == "-/") { depth--; i += 2 }
+                    else { i++ }
+                  } else if (pair == "--") {
+                    break
+                  } else if (pair == "/-") {
+                    depth = 1
+                    i += 2
+                  } else {
+                    out = out substr(line, i, 1)
+                    i++
+                  }
+                }
+                print out
+              }
+            ' "$file" >"$TMP_DIR/source"
+            if grep -nE '(^|[^[:alnum:]_])sorry([^[:alnum:]_]|$)' "$TMP_DIR/source" >/dev/null; then
+                PROOF_FINDINGS+=("$file: Lean sorry")
+            fi
+            ;;
+        *.hs)
+            sed -E '/^[[:space:]]*--/d; s/[[:space:]]--.*$//' "$file" >"$TMP_DIR/source"
+            if grep -nE '(^|[^[:alnum:]_])unsafeCoerce([^[:alnum:]_]|$)' "$TMP_DIR/source" >/dev/null; then
+                PROOF_FINDINGS+=("$file: Haskell unsafeCoerce")
+            fi
+            ;;
+    esac
+done
+if [ "${#PROOF_FINDINGS[@]}" -eq 0 ]; then
+    pass "no banned proof escape constructs in source files"
 else
-    pass "No dangerous proof patterns (Admitted, sorry, unsafeCoerce)"
+    fail "banned proof constructs found: ${PROOF_FINDINGS[*]}"
 fi
 
-# ═══════════════════════════════════════════════════════════════════════
-# Aspect 3: ABI/FFI Contract (if applicable)
-# ═══════════════════════════════════════════════════════════════════════
-# Uncomment if your project has Idris2 ABI + Zig FFI:
+# Aspect 3: Hypatia treats Zig pointer conversions as a safety boundary. There
+# is one narrowly reviewed @ptrFromInt fixture in an inline test to construct
+# overlapping buffers of different element types. No conversion is allowed in
+# production code or anywhere else; the file-scoped Hypatia exemption is guarded
+# here so it cannot silently become a production escape hatch.
+ZIG_PTRCAST_FINDINGS=()
+for file in "${SOURCE_FILES[@]}"; do
+    case "$file" in
+        *.zig)
+            if grep -nF '@ptrCast' "$file" >/dev/null; then
+                ZIG_PTRCAST_FINDINGS+=("$file: @ptrCast")
+            fi
+            if grep -nF '@ptrFromInt' "$file" >/dev/null; then
+                if [ "$file" != "src/interface/ffi/src/accelerator.zig" ] \
+                    || [ "$(grep -Fc '@ptrFromInt' "$file")" -ne 1 ] \
+                    || ! grep -Fq '@ptrFromInt(@intFromPtr(&aliased_storage))' "$file"; then
+                    ZIG_PTRCAST_FINDINGS+=("$file: unreviewed @ptrFromInt")
+                else
+                    marker_line="$(grep -nF 'test "null dimensions and aliasing are refused without mutation"' "$file" | head -1 | cut -d: -f1)"
+                    cast_line="$(grep -nF '@ptrFromInt' "$file" | cut -d: -f1)"
+                    if [ -z "$marker_line" ] || [ -z "$cast_line" ] || [ "$cast_line" -le "$marker_line" ]; then
+                        ZIG_PTRCAST_FINDINGS+=("$file: sanctioned cast is not inside its named aliasing test")
+                    fi
+                    if ! grep -Fq 'code_safety/zig_ptr_cast:src/interface/ffi/src/accelerator.zig' .hypatia-ignore \
+                        || ! head -5 "$file" | grep -Fq 'hypatia: allow code_safety/zig_ptr_cast'; then
+                        ZIG_PTRCAST_FINDINGS+=("$file: test-fixture exemption lacks its documented Hypatia scope")
+                    fi
+                fi
+            fi
+            ;;
+    esac
+done
+if [ "${#ZIG_PTRCAST_FINDINGS[@]}" -eq 0 ]; then
+    pass "no production Zig pointer conversions; the single test-fixture exception is scoped"
+else
+    fail "unreviewed Zig pointer conversion found: ${ZIG_PTRCAST_FINDINGS[*]}"
+fi
 
-# bold "Aspect 3: ABI/FFI contract"
-# if [ -d "src/abi" ] && [ -d "ffi/zig" ]; then
-#     # Check that every exported function in Idris2 ABI has a Zig FFI implementation
-#     ABI_EXPORTS=$(grep -h 'export' src/abi/*.idr 2>/dev/null | wc -l)
-#     FFI_EXPORTS=$(grep -h 'pub export fn' ffi/zig/src/*.zig 2>/dev/null | wc -l)
-#     if [ "$ABI_EXPORTS" -gt 0 ] && [ "$FFI_EXPORTS" -gt 0 ]; then
-#         pass "ABI ($ABI_EXPORTS exports) and FFI ($FFI_EXPORTS exports) both present"
-#     else
-#         fail "ABI/FFI mismatch: $ABI_EXPORTS ABI exports, $FFI_EXPORTS FFI exports"
-#     fi
-# else
-#     pass "ABI/FFI not applicable (no src/abi or ffi/zig)"
-# fi
+# Aspect 4: the old generic FFI scaffold and placeholder test must not return.
+if [ ! -e src/interface/ffi/src/main.zig ] && [ ! -e src/interface/ffi/test/integration_test.zig ]; then
+    pass "no disconnected generic FFI module or placeholder integration test"
+else
+    fail "obsolete generic FFI scaffold or placeholder integration test is present"
+fi
 
-# ═══════════════════════════════════════════════════════════════════════
-# Aspect 4: Error Handling (no raw panic in production code)
-# ═══════════════════════════════════════════════════════════════════════
-# Uncomment for Rust projects:
-
-# bold "Aspect 4: Error handling"
-# UNWRAP_COUNT=$(grep -rn '\.unwrap()' src/ 2>/dev/null | grep -v "test" | grep -v "example" | wc -l)
-# if [ "$UNWRAP_COUNT" -gt 20 ]; then
-#     warn "$UNWRAP_COUNT .unwrap() calls in src/ — consider replacing with ? or expect()"
-# else
-#     pass "Acceptable unwrap count: $UNWRAP_COUNT"
-# fi
-
-# ═══════════════════════════════════════════════════════════════════════
-# Summary
-# ═══════════════════════════════════════════════════════════════════════
-echo ""
-echo "═══════════════════════════════════════════════════════════════"
-printf "  Results: "
-green "PASS=$PASS" | tr -d '\n'
-echo -n "  "
-if [ "$FAIL" -gt 0 ]; then red "FAIL=$FAIL" | tr -d '\n'; else echo -n "FAIL=0"; fi
-echo -n "  "
-if [ "$WARN" -gt 0 ]; then yellow "WARN=$WARN"; else echo "WARN=0"; fi
-echo ""
-echo "═══════════════════════════════════════════════════════════════"
-
-exit "$FAIL"
+printf '\nAspect test summary: %d passed, %d failed\n' "$PASS" "$FAIL"
+[ "$FAIL" -eq 0 ]

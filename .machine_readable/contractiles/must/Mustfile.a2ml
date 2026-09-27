@@ -10,17 +10,17 @@ canonical identity, licence posture, and honest architecture claims.
 
 ### whole-steps-only
 - description: Simulation support exposes whole equal steps; alpha is presentation-only
-- run: cargo test --workspace
+- run: cargo test --locked -p enaction-time
 - severity: critical
 
 ### interpolation-render-only
 - description: Documentation and host examples prohibit sampled values from re-entering simulation
-- run: grep -q 'render-only' README.adoc && grep -q 'render interpolation never feeds simulation state' ARCHITECTURE.md
+- run: grep -q 'render-only' README.adoc && grep -q 'Interpolation is render-only' crates/enaction-time/src/lib.rs
 - severity: critical
 
 ### discontinuity-commit-then-snap
 - description: Tests pin commit followed by snap for discontinuities
-- run: cargo test --workspace commit_then_snap
+- run: cargo test --locked -p enaction-time commit_then_snap
 - severity: critical
 
 ## Project identity
@@ -84,7 +84,7 @@ canonical identity, licence posture, and honest architecture claims.
 
 ### idris2-abi-no-unsound-escapes
 - description: The accelerator ABI authority contains no Idris2 trust-me escape hatch
-- run: test -z "$(grep -En 'believe_me|assert_total|postulate' src/interface/Abi/Accelerator.idr src/interface/Abi/Generate.idr || true)"
+- run: bash scripts/check-idris-abi-no-unsound.sh
 - severity: critical
 
 ### accelerator-abi-generated-current
@@ -98,8 +98,8 @@ canonical identity, licence posture, and honest architecture claims.
 - severity: critical
 
 ### zig-ffi-formatted
-- description: The Zig FFI implementation and tests remain formatter-clean
-- run: zig fmt --check src/interface/ffi/src/main.zig src/interface/ffi/src/accelerator.zig src/interface/ffi/src/axiom_pointwise.zig src/interface/ffi/build.zig src/interface/ffi/test/integration_test.zig src/interface/generated/abi/enaction_accelerator.zig
+- description: The production Zig accelerator implementation and generated declarations remain formatter-clean
+- run: zig fmt --check src/interface/ffi/src/accelerator.zig src/interface/ffi/src/axiom_pointwise.zig src/interface/ffi/src/axiom_matmul.zig src/interface/ffi/build.zig src/interface/generated/abi/enaction_accelerator.zig
 - severity: critical
 
 ### julia-abi-layouts
@@ -108,8 +108,8 @@ canonical identity, licence posture, and honest architecture claims.
 - severity: critical
 
 ### zig-ffi-tests
-- description: The pure Zig FFI implementation passes its native tests
-- run: ZIG_GLOBAL_CACHE_DIR=target/zig-global-cache ZIG_LOCAL_CACHE_DIR=target/zig-local-cache zig test src/interface/ffi/src/main.zig
+- description: The production pure-Zig accelerator FFI passes its native test step
+- run: cd src/interface/ffi && ZIG_GLOBAL_CACHE_DIR=../../../target/zig-global-cache ZIG_LOCAL_CACHE_DIR=../../../target/zig-build-cache zig build test
 - severity: critical
 
 ### zig-accelerator-tests
@@ -133,6 +133,16 @@ canonical identity, licence posture, and honest architecture claims.
 - severity: critical
 
 ## Evidence and governance
+
+### spdx-headers
+- description: Every implementation and proof source file has an SPDX license identifier
+- run: bash scripts/check-source-spdx.sh
+- severity: critical
+
+### project-ci
+- description: Repository validation, implemented engine tests, conformance and configured proof gates pass
+- run: just validate && just ci
+- severity: critical
 
 ### principal-documents
 - description: README, EXPLAINME, architecture, roadmap, UMS integration, and ADRs exist

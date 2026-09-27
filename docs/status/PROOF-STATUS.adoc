@@ -145,10 +145,12 @@ manifest remains limited:
 * `verification/proofs/coq/TypeSafety.v` compiles, but labels itself a Coq proof
   template and proves soundness of an example expression language unrelated to
   Enaction.
-* `src/interface/Abi/Foreign.idr`, `Types.idr`, and the generic Zig integration
-  test still contain RSR-template names or explicit template language. Their
-  presence in a typechecked package does not establish the advertised generic
-  FFI safety claim.
+* The unrelated generic Zig lifecycle scaffold and its passing placeholder
+  integration test have been removed from `build.zig`; the Zig test target now
+  exercises only the production accelerator implementation. The legacy
+  `Abi.Foreign` / `Abi.Types` material remains in the Idris package and is still
+  quarantined from the production accelerator proof claims. Their presence in a
+  typechecked package does not establish a generic engine FFI safety claim.
 
 == Explicit gaps
 

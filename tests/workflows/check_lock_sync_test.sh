@@ -198,19 +198,18 @@ test_requires_workflow_files() {
   assert_failure 'rejects a lockfile when no workflow files exist'
 }
 
-test_requires_gnu_awk() {
-  new_fixture missing-gawk
+test_works_without_gnu_awk() {
+  new_fixture posix-awk
   write_workflow build.yml 'actions/checkout@abc123'
   write_closed_lock build.yml 'actions/checkout@abc123'
-  mkdir -p "$TMP_ROOT/failing-awk-bin"
+  mkdir -p "$TMP_ROOT/failing-gawk-bin"
   {
     printf '%s\n' '#!/usr/bin/env bash' 'exit 1'
-  } >"$TMP_ROOT/failing-awk-bin/gawk"
-  cp "$TMP_ROOT/failing-awk-bin/gawk" "$TMP_ROOT/failing-awk-bin/awk"
-  chmod +x "$TMP_ROOT/failing-awk-bin/gawk" "$TMP_ROOT/failing-awk-bin/awk"
+  } >"$TMP_ROOT/failing-gawk-bin/gawk"
+  chmod +x "$TMP_ROOT/failing-gawk-bin/gawk"
 
-  run_checker_with_path "$TMP_ROOT/failing-awk-bin:$PATH"
-  assert_failure 'fails closed when GNU awk features are unavailable' 'need gawk'
+  run_checker_with_path "$TMP_ROOT/failing-gawk-bin:$PATH"
+  assert_success 'validates the lock with POSIX awk when GNU awk is unavailable' '0 dangling edges'
 }
 
 test_reports_unonboarded_workflow() {
@@ -450,7 +449,7 @@ test_ignores_local_and_non_action_uses
 test_accepts_duplicate_uses_once
 test_requires_lockfile
 test_requires_workflow_files
-test_requires_gnu_awk
+test_works_without_gnu_awk
 test_reports_unonboarded_workflow
 test_reports_unlisted_zero_uses_workflow
 test_reports_unlisted_local_only_workflow

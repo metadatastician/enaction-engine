@@ -19,22 +19,22 @@ authority = "blocking (hard gate)"
 [[files]]
 role = "declaration"
 path = "Mustfile.a2ml"
-sha256 = "pending-first-verify"
-size_bytes = "pending-first-verify"
+sha256 = "bdcaa9a5339e2fb34d04e4a25b8812e8a8361f30c1025faadfb6b24c702e321a"
+size_bytes = "7892"
 notes = "Mustfile declaration — invariants each with id, description, probe, severity."
 
 [[files]]
 role = "runner"
 path = "must.ncl"
-sha256 = "pending-first-verify"
-size_bytes = "pending-first-verify"
+sha256 = "c7b24671f8bf03435841cf0fe94eef14b565bc39a7172e1104ddc35ff75ce3c1"
+size_bytes = "2453"
 notes = "Runner pre-existed. Schema covers invariants array with status_core + severity."
 
 [[files]]
 role = "k9_component"
 path = "must.k9.ncl"
-sha256 = "pending-first-verify"
-size_bytes = "pending-first-verify"
+sha256 = "2dc3aadb40f2a98bfa88e2790f0120a2b1412db8bae270744ab767f4c56dc48e"
+size_bytes = "10695"
 notes = "Hunt-restricted read-only tier; blocking authority. Tracks per-invariant trend across sessions; flags silent regressions; blocks session close on critical drift."
 
 ## Cross-references (must round-trip)
@@ -57,3 +57,8 @@ context = "Enaction Engine must trident: blocking authority for deterministic an
 date = "2026-04-18"
 event = "trident-born"
 note = "Mustfile.a2ml and must.ncl pre-existed. This manifest + must.k9.ncl complete the trident. Inherits on_open schema from intend.k9.ncl v2.0.0; inherits block_session_close_on_critical_drift + variance-severity-acknowledgement from trust.k9.ncl v1.0.0; adds must-specific track_per_session_trend + flag_silent_regression + probe_scope = 'read_only (must doesn't do active exploit attempts — that's trust's safe_hacking territory)."
+
+[[history]]
+date = "2026-09-27"
+event = "content-hashes-verified"
+note = "Recorded SHA-256 digests and byte sizes for all trident files after updating stale workspace commands, source-safety checks, and the full project-CI gate."

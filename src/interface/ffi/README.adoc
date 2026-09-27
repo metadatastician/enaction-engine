@@ -1,12 +1,25 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= Pure-Zig FFI implementations
+= Pure-Zig Accelerator FFI
 
-`src/main.zig` retains the repository's generic lifecycle seam.
-`src/accelerator.zig` implements the versioned accelerator ABI rendered from
-Idris2. The latter contains checked scalar dot/matrix kernels, capability
-discovery, request validation, output-atomic failure and no backend fallback.
+`src/accelerator.zig` implements the accelerator ABI defined by
+`src/interface/Abi/Accelerator.idr`. The ABI's generated Zig declarations are
+imported as the `abi` module; generated files must be refreshed and checked
+through `scripts/generate-accelerator-abi.sh`, not edited by hand.
 
-C is only the exported calling convention and generated header format. There
-is no hand-written C/C++ implementation in this tree and the gate prevents one
-from arriving unnoticed.
+`build.zig` builds static and shared library forms and runs the implementation's
+actual unit tests with `zig build test`. There is no second generic
+`enaction_engine_*` lifecycle API and no placeholder integration test in this
+component. The Rust adapter is in `crates/enaction-accelerator-native/`.
+
+The exported interface is a narrow CPU accelerator seam, not a complete engine
+runtime, game host or UMS adapter. ABI v1 is limited to 64-bit-pointer targets;
+compiler-layout correspondence and target support remain subject to the
+limitations recorded in `docs/status/PROOF-STATUS.adoc`.
+
+[source,sh]
+----
+cd src/interface/ffi
+zig build
+zig build test
+----

@@ -44,8 +44,22 @@ else
     pass "README does not claim an unverified OpenSSF Best Practices badge"
 fi
 
-# Removing the final badge in the compliance block must not collapse the
-# AsciiDoc separator before the first content section.
+# An organization's settings URL is not evidence of certification. Reject
+# compliance badges until an independently verifiable assessment is published.
+if grep -Eiq '^image:.*(SOC[ _-]?3|ISO[ _-]?27001|CIAQ)' "$README"; then
+    fail "README advertises an unverified SOC 3, ISO 27001, or CIAQ badge"
+else
+    pass "README does not advertise unsupported compliance badges"
+fi
+
+if grep -Eiq '^image:.*RSR.*(Rhodium|Standard)' "$README"; then
+    fail "README advertises an unverified RSR compliance badge"
+else
+    pass "README does not imply an RSR certification badge"
+fi
+
+# Removing compliance badges must not collapse the AsciiDoc separator before
+# the first content section.
 if awk '
     /^== The invariant everything follows from$/ {
         found = 1

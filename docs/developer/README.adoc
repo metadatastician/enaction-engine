@@ -1,3 +1,10 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= developer Unit
+= Developer Documentation
+:toc:
+
+* link:ABI-FFI-README.adoc[Accelerator ABI and FFI boundary] — authority,
+  generated declarations, build commands, and limits of target evidence.
+* link:GAME-ENGINE-TEMPLATE-AGENT-PROMPTS.adoc[Game-engine template conversion
+  and agent prompts] — planning-only architecture map, integration sequence,
+  and file-ownership-bounded prompts for future work.

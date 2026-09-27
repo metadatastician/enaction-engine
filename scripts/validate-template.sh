@@ -296,10 +296,13 @@ check_abi_file_exists "Types.idr" "Core type definitions"
 check_abi_file_exists "Layout.idr" "Memory layout specifications"
 check_abi_file_exists "Foreign.idr" "FFI foreign declarations"
 
-# Zig FFI files
+# Production Zig accelerator files. The project keeps unit tests beside the
+# implementation; there is no generic lifecycle module or placeholder test tree.
 check_file_exists "src/interface/ffi/build.zig" "Zig build configuration"
-check_file_exists "src/interface/ffi/src/main.zig" "Zig implementation"
-check_file_exists "src/interface/ffi/test/integration_test.zig" "Integration tests"
+check_file_exists "src/interface/ffi/src/accelerator.zig" "Production Zig accelerator implementation"
+check_file_exists "src/interface/ffi/src/axiom_pointwise.zig" "Axiom-derived pointwise kernels"
+check_file_exists "src/interface/ffi/src/axiom_matmul.zig" "Axiom-derived matrix kernel"
+check_file_exists "src/interface/generated/abi/enaction_accelerator.zig" "Generated Zig ABI declarations"
 
 #==============================================================================
 # VALIDATION PHASE 5: PLACEHOLDER TOKENS
@@ -384,6 +387,19 @@ if [ "$SOURCE_COUNT" -gt 0 ]; then
     fi
 fi
 
+# Also run the engine's narrower fail-closed source/proof inventory. The broad
+# estate scan above includes shell and additional source languages; this gate
+# specifically protects implementation and proof roots used by this project.
+if [ -f "$REPO_ROOT/scripts/check-source-spdx.sh" ]; then
+    if bash "$REPO_ROOT/scripts/check-source-spdx.sh"; then
+        log_pass "SPDX identifiers are present across implementation and proof sources"
+    else
+        log_error "Project source SPDX validation failed"
+    fi
+else
+    log_error "Source SPDX checker is missing: scripts/check-source-spdx.sh"
+fi
+
 #==============================================================================
 # VALIDATION PHASE 7: BUILD VERIFICATION
 #==============================================================================
@@ -392,18 +408,21 @@ echo ""
 log_info "Phase 7: Build system verification"
 echo ""
 
-# Check Zig build
+# Build the libraries and run the actual pure-Zig accelerator tests. Check the
+# command's exit status directly; grepping its output can turn a failed build
+# without the literal word "error" into a false pass.
 if [ -f "$REPO_ROOT/src/interface/ffi/build.zig" ]; then
-    if command -v zig &> /dev/null; then
-        cd "$REPO_ROOT/src/interface/ffi"
-        if zig build 2>&1 | grep -q "error"; then
-            log_error "Zig build failed"
+    if command -v zig >/dev/null 2>&1; then
+        BUILD_LOG="$(mktemp)"
+        if (cd "$REPO_ROOT/src/interface/ffi" && zig build && zig build test) >"$BUILD_LOG" 2>&1; then
+            log_pass "Zig accelerator libraries build and unit tests pass"
         else
-            log_pass "Zig build successful"
+            cat "$BUILD_LOG" >&2
+            log_error "Zig accelerator build or tests failed"
         fi
-        cd - > /dev/null
+        rm -f "$BUILD_LOG"
     else
-        log_warning "Zig compiler not found - skipping Zig build check"
+        log_warning "Zig compiler not found - build and unit-test gate not run"
     fi
 else
     log_error "Zig build.zig not found"

@@ -6,6 +6,13 @@ Cleanup rules that keep the early engine honest, coherent, and free of
 speculative or generated residue.
 @end
 
+## Recovery boundary
+
+### no-whole-tree-rollback
+- description: Recovery commands never erase unrelated tracked working-tree edits
+- verification: bash tests/contractile_safety_test.sh
+- severity: blocking
+
 ## Hygiene
 
 ### no-identity-drift

@@ -1,36 +1,80 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
 // Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-// Last updated: 2026-04-04
-= Architecture Topology
+= Enaction Engine Architecture Topology
+:toc:
 
-== System Overview
+This page describes the repository that exists today. It is an experimental
+library workspace, not a complete game engine or an RSR template service.
+Component boundaries are real; the end-to-end runtime flow below is a target,
+not an integration claim.
 
-RSR (Rhodium Standard Repository) template provides the canonical scaffold for all hyperpolymath projects, with integrated CI/CD, documentation, and service discovery patterns.
+== Current components
 
-== Component Overview
-
-[cols="1,1,2", options="header"]
+[cols="1,2,3", options="header"]
 |===
-| Component | Language | Purpose
+| Component | Location | Responsibility and boundary
 
-| dogfood-gate workflow | YAML | Quality checks (CRG, security, linting)
-| eclexiaiser-validate job | YAML | Resource cost awareness scoring
-| Groove discovery | JSON | Service endpoint registration
+| Deterministic time
+| `crates/enaction-time/`
+| Fixed-step accounting, double buffering, and render-only interpolation.
+  No game loop or host is included.
+
+| Typed trace
+| `crates/enaction-trace/`
+| Game-neutral causal events and cognitive/affective/conative state queries.
+  It does not select an agent's behaviour.
+
+| Package contracts
+| `crates/enaction-contracts/`
+| Version and validation primitives. This is not a full content package
+  protocol or a dependency on the UMS application.
+
+| CPU accelerator reference
+| `crates/enaction-accelerator/`
+| Operation planning and deterministic scalar kernels.
+
+| Native accelerator boundary
+| `src/interface/Abi/`, `src/interface/generated/abi/`,
+  `src/interface/ffi/`, `crates/enaction-accelerator-native/`
+| Idris2 ABI authority, generated declarations, Zig implementation, and Rust
+  adapter. ABI v1 currently requires 64-bit pointers; model-to-compiler
+  correspondence is tested, not fully proved.
 |===
 
-== Data Flow
+== Conceptual runtime flow
 
+[source,text]
 ----
-[Code Push] → [GitHub Actions] → [hypatia scan] → [eclexiaiser validate] → [Results]
+Game host (not implemented)
+        |
+        v
+whole fixed steps ----> host-owned world and systems ----> render interpolation
+        |                         |
+        |                         +----> typed trace (optional seam; not adopted)
+        |
+        +----> contract-validated content packages (future consumer seam)
+        |
+        +----> capability plan -> CPU reference or optional Zig-native adapter
 ----
 
-== Integration Points
+The diagram records intended integration seams; the workspace does not yet wire
+them into one application. Renderer, entity/component model, input, physics,
+audio, networking, persistence, and a runnable host remain future work.
 
-* *Upstream*: Hypatia (neurosymbolic CI/CD), eclexiaiser (resource scoring)
-* *Downstream*: All RSR-based repositories (500+ instances)
+== Product boundaries
 
-== Deployment
+* Games own their domain ontology, host loop, and game-specific rules.
+* Enaction Engine must remain independently usable; it must not depend on the
+  Universal Modding Studio application. Any future UMS exchange belongs at a
+  versioned data/contract boundary that a game can also produce or consume on
+  its own.
+* `.machine_readable/`, GitHub workflows, and `build/just/` provide repository
+  governance and verification. They support development; they are not runtime
+  engine subsystems or certification evidence.
 
-* Container: Stapeln Six ecosystem
-* CI/CD: GitHub Actions → Hypatia scan → eclexiaiser-validate (6 scorecard dimensions) → Mirror
-* Service Discovery: Groove protocol (.well-known/groove/manifest.json)
+== Evidence references
+
+* `../status/ROADMAP.adoc` — staged, evidence-gated integration plan.
+* `../status/TEST-NEEDS.adoc` — implemented test and verification surfaces.
+* `../status/PROOF-STATUS.adoc` — formal-proof scope and limits.
+* `../status/READINESS.adoc` — explicit unassessed CRG status.

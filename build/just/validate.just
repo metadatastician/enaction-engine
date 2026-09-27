@@ -4,15 +4,15 @@
 # VALIDATION & COMPLIANCE
 #
 # Imported by ../../Justfile via `import? "build/just/validate.just"`.
-# Recipes here check that this repo conforms to the RSR (Rhodium Standard
-# Repository) skeleton: required files, METAdata, AI install guide
-# completeness, etc. Run via `just validate`.
+# These recipes check selected repository-structure and metadata invariants.
+# They are not a full RSR compliance assessment or certification. Run via
+# `just validate`.
 
-# Validate RSR compliance
+# Check selected RSR-derived structural invariants; this is not a certification.
 validate-rsr:
     #!/usr/bin/env bash
     cd "{{justfile_directory()}}"
-    echo "=== RSR Compliance Check ==="
+    echo "=== Repository Structure Baseline ==="
     MISSING=""
     for f in .editorconfig .gitignore Justfile README.adoc LICENSE 0-AI-MANIFEST.a2ml; do
         [ -f "$f" ] || MISSING="$MISSING $f"
@@ -50,83 +50,87 @@ validate-rsr:
         echo "MISSING:$MISSING"
         exit 1
     fi
-    echo "RSR compliance: PASS"
+    echo "Repository structure baseline: PASS (this is not a certification)"
 
-# Validate STATE.a2ml syntax
+# Structural smoke check for STATE.a2ml; this is not a full A2ML parser.
 validate-state:
-    @cd "{{justfile_directory()}}" && if [ -f ".machine_readable/descriptiles/STATE.a2ml" ]; then \
-        grep -q '^\[metadata\]' .machine_readable/descriptiles/STATE.a2ml && \
-        grep -q 'project\s*=' .machine_readable/descriptiles/STATE.a2ml && \
-        echo "STATE.a2ml: valid" || echo "STATE.a2ml: INVALID (missing required sections)"; \
-    else \
-        echo "No .machine_readable/descriptiles/STATE.a2ml found"; \
-    fi
-
-# Validate AI installation guide completeness (finishbot pre-release check)
-validate-ai-install:
     #!/usr/bin/env bash
+    set -euo pipefail
     cd "{{justfile_directory()}}"
-    echo "=== AI Installation Guide Check ==="
-    GUIDE="docs/AI_INSTALLATION_GUIDE.adoc"
-    README="README.adoc"
-    ERRORS=0
-
-    # Check guide exists
-    if [ ! -f "$GUIDE" ]; then
-        echo "MISSING: $GUIDE (create from template: docs/AI_INSTALLATION_GUIDE.adoc)"
-        ERRORS=$((ERRORS + 1))
-    else
-        # Check for unfilled TODO markers
-        TODOS=$(grep -c '\[TODO-AI-INSTALL' "$GUIDE" 2>/dev/null || true)
-        if [ "$TODOS" -gt 0 ]; then
-            echo "INCOMPLETE: $GUIDE has $TODOS unfilled [TODO-AI-INSTALL] markers:"
-            grep -n '\[TODO-AI-INSTALL' "$GUIDE" | head -10
-            ERRORS=$((ERRORS + 1))
-        else
-            echo "$GUIDE: complete (no TODO markers)"
-        fi
-
-        # Check AI implementation section exists
-        if ! grep -q 'ai-implementation' "$GUIDE" 2>/dev/null; then
-            echo "MISSING: [[ai-implementation]] anchor in $GUIDE"
-            ERRORS=$((ERRORS + 1))
-        fi
-
-        # Check privacy notice exists
-        if ! grep -qi 'privacy' "$GUIDE" 2>/dev/null; then
-            echo "MISSING: Privacy notice in $GUIDE"
-            ERRORS=$((ERRORS + 1))
-        fi
-
-        # Check install commands exist (not just placeholders)
-        if ! grep -q 'git clone' "$GUIDE" 2>/dev/null; then
-            echo "WARNING: No git clone command found in $GUIDE -- install commands may be incomplete"
-        fi
-    fi
-
-    # Check README has AI install section
-    if [ -f "$README" ]; then
-        if ! grep -qi 'AI-Assisted Installation' "$README" 2>/dev/null; then
-            echo "MISSING: AI-Assisted Installation section in $README"
-            echo "  Copy from docs/AI-INSTALL-README-SECTION.adoc"
-            ERRORS=$((ERRORS + 1))
-        fi
-
-        # Check README for unfilled TODO markers
-        README_TODOS=$(grep -c '\[TODO-AI-INSTALL' "$README" 2>/dev/null || true)
-        if [ "$README_TODOS" -gt 0 ]; then
-            echo "INCOMPLETE: $README has $README_TODOS unfilled [TODO-AI-INSTALL] markers"
-            ERRORS=$((ERRORS + 1))
-        fi
-    fi
-
-    if [ "$ERRORS" -gt 0 ]; then
-        echo ""
-        echo "AI install guide: FAIL ($ERRORS issues)"
+    STATE=".machine_readable/descriptiles/STATE.a2ml"
+    if [ ! -f "$STATE" ]; then
+        echo "FAIL: $STATE is missing" >&2
         exit 1
     fi
-    echo "AI install guide: PASS"
+    grep -q '^\[metadata\]' "$STATE" || { echo "FAIL: $STATE has no [metadata] section" >&2; exit 1; }
+    grep -Eq '^[[:space:]]*project[[:space:]]*=' "$STATE" || { echo "FAIL: $STATE has no project field" >&2; exit 1; }
+    echo "STATE.a2ml structural smoke check passed (not a full A2ML parse)"
+
+# Validate the AI installation guide only when this project provides one.
+# A missing optional guide is reported as SKIP, not as a compliance pass.
+validate-ai-install:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{justfile_directory()}}"
+    GUIDE="docs/AI_INSTALLATION_GUIDE.adoc"
+    README="README.adoc"
+
+    if [ ! -f "$GUIDE" ]; then
+        echo "SKIP: optional AI installation guide is not present"
+        exit 0
+    fi
+
+    errors=0
+    tmp="$(mktemp)"
+    trap 'rm -f "$tmp"' EXIT
+
+    if grep -nF '[TODO-AI-INSTALL' "$GUIDE" >"$tmp"; then
+        echo "FAIL: unfilled [TODO-AI-INSTALL] markers in $GUIDE:"
+        head -10 "$tmp"
+        errors=1
+    else
+        status=$?
+        if [ "$status" -gt 1 ]; then
+            echo "FAIL: could not scan $GUIDE (grep exit $status)" >&2
+            errors=1
+        fi
+    fi
+
+    if ! grep -qF 'ai-implementation' "$GUIDE"; then
+        echo "FAIL: missing [[ai-implementation]] anchor in $GUIDE"
+        errors=1
+    fi
+    if ! grep -qi 'privacy' "$GUIDE"; then
+        echo "FAIL: missing privacy notice in $GUIDE"
+        errors=1
+    fi
+    if ! grep -qi 'AI-Assisted Installation' "$README"; then
+        echo "FAIL: $README has no AI-Assisted Installation section"
+        errors=1
+    fi
+
+    if grep -nF '[TODO-AI-INSTALL' "$README" >"$tmp"; then
+        echo "FAIL: unfilled [TODO-AI-INSTALL] markers in $README:"
+        head -10 "$tmp"
+        errors=1
+    else
+        status=$?
+        if [ "$status" -gt 1 ]; then
+            echo "FAIL: could not scan $README (grep exit $status)" >&2
+            errors=1
+        fi
+    fi
+
+    if ! grep -q 'git clone' "$GUIDE"; then
+        echo "WARN: $GUIDE has no git clone example; review its setup instructions"
+    fi
+
+    if [ "$errors" -ne 0 ]; then
+        echo "AI installation guide validation failed ($errors issue(s))" >&2
+        exit 1
+    fi
+    echo "AI installation guide validation passed"
 
 # Full validation suite
 validate: validate-rsr validate-state validate-ai-install
-    @echo "All validations passed!"
+    @echo "All configured repository validation checks passed."
