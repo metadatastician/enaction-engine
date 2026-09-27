@@ -77,9 +77,7 @@ if [ "${#WORKFLOWS[@]}" -eq 0 ]; then
 fi
 
 read -r -d '' PROG <<'AWK' || true
-# Reduce an action or reusable-workflow `uses:` value to `owner/repo@ref`.
-# The value may include a subpath. Return "" for local references, values without
-# a nonempty path and ref separated by `@`, or paths with fewer than two components.
+# owner/repo[/subpath...]@ref  ->  owner/repo@ref   ("" if not an external ref)
 function norm(r,   at, path, ref, n, parts) {
   at = 0
   for (n = length(r); n > 0; n--) { if (substr(r, n, 1) == "@") { at = n; break } }
@@ -91,11 +89,8 @@ function norm(r,   at, path, ref, n, parts) {
   return parts[1] "/" parts[2] "@" ref
 }
 
-# Return a comparison key with the portion before the final `@` lowercased and
-# the ref unchanged. If there is no `@`, lowercase the entire value. Callers pass
-# normalized OWNER/REPO@REF values, so this folds the OWNER/REPO segment only.
-# GitHub resolves owner and repository names case-insensitively, and this is
-# measured, not assumed:
+# Fold case on the OWNER/REPO segment only, for comparison keys. GitHub resolves
+# owner and repository names case-insensitively, and this is measured, not assumed:
 # metadatastician/pong-ping's lockfile records sonarsource/sonarqube-scan-action@v8.2.1
 # while sonarqube.yml says SonarSource/..., and at commit cd5f90f that workflow ran
 # SUCCESS while codeql.yml at the SAME commit was startup_failure. A same-commit
@@ -159,6 +154,7 @@ FNR == 1 { wf = FILENAME }
     raw = m[1]
     gsub(/^["']|["']$/, "", raw)
     gsub(/[[:space:]]+$/, "", raw)
+    if (raw ~ /^\$\//) { dollar[wf] = dollar[wf] " " raw; next }   # known corruption
     n = norm(raw)
     if (n != "") { uses[wf, ck(n)] = 1; useslist[wf] = useslist[wf] " " n }
   }
@@ -172,6 +168,11 @@ END {
     key = wf
     sub(/.*\//, "", key)
     key = ".github/workflows/" key          # the lockfile always uses this canonical path
+
+    if (dollar[wf] != "") {
+      printf "FAIL %s\n     invalid local-action rewrite (uses: $/...):%s\n", key, dollar[wf]
+      bad = 1
+    }
 
     # --- clause 1: every uses: must be locked under THIS path ---
     nu = split(useslist[wf], u, " ")

@@ -17,6 +17,7 @@ AUDIT.adoc
 EXPLAINME.adoc
 AFFIRMATION.adoc           # dated/signed honesty snapshot (README/EXPLAINME/AFFIRMATION trio)
 0-AI-MANIFEST.a2ml         # thin pointer to .machine_readable/0.1-AI-MANIFEST.a2ml
+enaction-engine_chora.deed # the repo deed: universal AI entry point
 GOVERNANCE.adoc            # governance model (validator accepts root or docs/governance/)
 MAINTAINERS.adoc           # maintainer roster
 CONTRIBUTING.md            # Accepted at root OR .github/ — CI (openssf/quality/rhodibot) now checks both; .github/ is the canonical estate location (org-inherited). Allow-listed if present at root.

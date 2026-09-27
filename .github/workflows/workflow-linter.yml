@@ -120,7 +120,7 @@ jobs:
             # No lockfile: every uses: must be a 40-char SHA pin.
             unpinned=$(grep -rnE "^[[:space:]]+uses:" .github/workflows/ | \
               grep -v "@[a-f0-9]\{40\}" | \
-              grep -v "uses: \./\|uses: docker://\|uses: actions/github-script" || true)
+              grep -v -e "uses: \./" -e "uses: docker" -e "uses: actions/github-script" || true)
 
             if [ -n "$unpinned" ]; then
               echo "ERROR: Found unpinned actions:"

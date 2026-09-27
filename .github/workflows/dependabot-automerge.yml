@@ -44,14 +44,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 permissions:
-  actions: read
-  contents: write # needed to enable auto-merge
+  contents: read
   pull-requests: write # needed to approve
   # NB: keep narrow — do NOT add secrets: read or id-token: write here.
+  # The write scope auto-merge needs is elevated PER JOB below, not here: a
+  # job-level permissions: block REPLACES this one, so the job restates both.
 jobs:
   automerge:
     # Only run for PRs actually authored by Dependabot.
-    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write # needed to enable auto-merge (gh pr merge --auto)
+      pull-requests: write # needed to approve
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
