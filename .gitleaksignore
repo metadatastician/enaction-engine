@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Historical false positive, one exact finding (no path or rule is widened).
+# Commit a0f8a52 put a UUID beside the word "key" in CLADE.a2ml line 21;
+# gitleaks generic-api-key matches it. It is an identifier, not a credential,
+# and the current file already documents it. The git-history scan reads that
+# commit forever, so only an exact fingerprint can retire it.
+a0f8a5265751d51a55db3443b51d8b44cba2756d:.machine_readable/descriptiles/CLADE.a2ml:generic-api-key:21
