@@ -1,95 +1,211 @@
 // SPDX-License-Identifier: CC-BY-SA-4.0
-// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
-= AFFIRMATION — Enaction Engine, as of <UTC timestamp>
-:toc: macro
-:toclevels: 2
-
-_the No-Bullshit file: what we affirm was true and checkable at this moment._
-
-[NOTE]
-====
-*This file is a template.* Replace the `{{…}}` placeholders and the `<…>` anchor
-fields, then re-run your project's own checks in the same session before signing.
-
-An *affirmation* is a solemn declaration of the truth of a statement, made by
-someone who _declines to swear an oath_ — our truth-as-best-believed at a stamped
-instant, binding on our honesty, not a claim of infallibility. It is the third of
-the README / EXPLAINME / AFFIRMATION trio:
-
-[cols="1,3,2",options="header"]
-|===
-| File | Answers | Tense
-| `README.adoc` | _Where is this going, and why?_ — steering, intent, vision | future / aspirational
-| `EXPLAINME.adoc` | _How is it built, and what's the evidence?_ — engineering | descriptive / mechanism
-| *`AFFIRMATION.adoc`* (this file) | _What can we honestly affirm was *true and checkable* at a stamped moment?_ | a frozen instant, falsifiable
-|===
-====
-
-toc::[]
+= AFFIRMATION — Enaction Engine, as of 2026-10-07
+Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+:toc:
+:icons: font
 
 == What this is, and how it works
 
-*What it is.* A short, dated, signed snapshot of what metadatastician can honestly and
-verifiably claim about *Enaction Engine* at one exact commit. Nothing here is
-marketing and nothing is a promise about the future — those live in the README.
-This file is the receipt.
+This file is a dated, signed snapshot of what can honestly be claimed about
+*Enaction Engine* at one exact commit. It is the third file of the README /
+EXPLAINME / AFFIRMATION trio. The README says where the project is going.
+EXPLAINME says how it is built. This file says what was *true and checkable*
+at the anchor below.
 
-*How it stays trustworthy.* Three moving parts:
+Every claim here comes from running the project's own checks in the session
+that wrote this file. Where the README, the Justfile or memory disagree with a
+live run, the live run wins and the disagreement is recorded.
 
-. *Ground truth, not memory.* Every claim below must be produced by _running the
-  project's own checks_ in the session that writes this file (build, tests,
-  typecheck, `just audit`). Where a status doc, the `Justfile`, or memory says
-  otherwise, the live run wins and the contradiction is flagged here.
-. *A frozen anchor.* The file names the exact commit SHA, branch, UTC timestamp,
-  and toolchain (see <<verifiable-anchor>>), so "true" always means "true _at
-  this point_". Move the SHA and this file is a draft until it is re-run.
-. *A real signature.* It is landed by a *signed git commit*; that signature over
-  this content at the anchored SHA is what makes the affirmation tamper-evident
-  and attributable — not the prose alone.
+The owner lands this file with a signed git commit. That signature over this
+content, at the anchored commit, is what makes the affirmation attributable.
 
-*We are fallible.* This is our best honest belief, not a proof of its own
-correctness. Treat it as a falsifiable claim, not gospel.
+== The epistemic contract
 
-== The epistemic contract (read this before you trust _or_ attack)
+This document records best belief at the timestamp below. It is not a
+guarantee of correctness. The only guarantee is *no intentional overclaim*.
+Where something was checked, it says how. Where something was not checked, it
+says so. A claim that later proves false is an error to fix, not a lie.
 
-This document records metadatastician's *best belief* at the timestamp below. It is
-*not a guarantee of correctness.* The only guarantee is *no intentional
-overclaim*: where something is proven we say "proven"; where it is a documented
-trust boundary, an experiment, or an unwired module, we say so; where a claim is
-the README's aspiration rather than a checked result, we say so. An honest claim
-that later turns out false is an *error to be fixed* — not a lie.
-
-*Standing invitation to refute.* You are invited to bulldoze any claim in this
-file. Bring a counter-example, a failing run, or a contradicting source.
-
-== What we affirm (fill in — delete the examples)
-
-[cols="2,1,3",options="header"]
-|===
-| Claim | Status | Evidence (command / `file:line`)
-| _e.g. The library builds clean_ | affirmed | `just build` at the anchor SHA
-| _e.g. The ABI seam typechecks_ | affirmed | `idris2 --typecheck abi.ipkg`
-| _e.g. Feature X is complete_ | aspiration | README §… (not yet checked)
-|===
-
-== What we do NOT claim
-
-* List the known gaps, trust boundaries, postulates, unwired modules, and stale
-  docs here. Silence is not affirmation — name what you have *not* verified.
+You are invited to refute any claim here with a failing run, a
+counter-example or a contradicting source.
 
 [#verifiable-anchor]
 == Verifiable anchor
 
-[cols="1,3"]
+[cols="1,2", options="header"]
 |===
-| Project | Enaction Engine
-| Repository | https://github.com/metadatastician/enaction-engine
-| Commit (SHA) | <full commit SHA at time of signing>
-| Branch | main
-| Timestamp (UTC) | <ISO-8601 UTC timestamp>
-| Toolchain | <compilers / provers / versions used to ground the claims>
-| Affirmed by | Jonathan D.A. Jewell <jonathan.jewell@gmail.com>
+| Field | Value
+| Repo | https://github.com/metadatastician/enaction-engine
+| Branch | `main`
+| Commit (HEAD) | `0e7f3e78fbd95e306da34373a6b8cb5f9e64f1ff`
+| Permalink | https://github.com/metadatastician/enaction-engine/tree/0e7f3e78fbd95e306da34373a6b8cb5f9e64f1ff
+| Verified (UTC) | 2026-10-07T12:13:28Z
+| Working-tree delta at verification | none (`git status --porcelain --ignored` empty)
+| Toolchain | Rust nightly 1.101.0 (rustc ea137335b 2026-10-05, cargo f3865b2a4); Zig 0.16.0; Idris 2 0.7.0; Agda 2.7.0.1 with agda-stdlib 2ffa8b7d; Lean 4.34.1; Coq 8.20.1; just 1.56.0; cargo-creusot 0.13.0. Not available: TLC (TLA+ model checker), and the Creusot SMT solvers (Alt-Ergo, Z3, CVC4, CVC5).
 |===
 
-_Landed by a signed git commit. Verify with `git log --show-signature` that the
-anchor SHA above matches the commit that introduced this affirmation._
+[quote]
+____
+If you are reading this at a later commit, the claims may have drifted.
+Re-run the reproduction steps and write a fresh affirmation; do not trust a
+stale one.
+____
+
+== Companion documents and repo metadata (cross-check)
+
+* `README.adoc` calls Enaction Engine an experimental set of deterministic,
+  type-safe game-engine library foundations that is "not yet a complete game
+  engine or runnable host". The GitHub repository description says the same:
+  component libraries only. The runs below agree. They test separate
+  libraries; nothing integrates them into a running host.
+* The README's central invariant is that the simulation advances only in
+  whole, equal steps, and that render interpolation never feeds simulation
+  state. The `enaction-time` tests (`step.rs`, `blend.rs`,
+  `idaptik_parity.rs`) exercise that invariant, and they pass.
+* This file replaces an earlier `AFFIRMATION.adoc` that was the unfilled
+  estate template (placeholder heading and anchor fields). It made no claims,
+  so it is replaced in place rather than archived. Git history keeps it.
+
+== The honest state (one breath)
+
+At the anchor, the golden path `just test && just verify` passes: 123 Rust
+tests across four crates, clippy with `-D warnings`, a formatting check, the
+aspect, readiness and contractile-safety gates, and an e2e suite showing
+byte-identical Rust and Zig output against a locked corpus. The Agda and Coq
+proofs check. Not everything holds. `just ci` fails at its Idris2 ABI step
+(`Abi/Accelerator.idr:230`). The Lean gate passes only because its single file
+is quarantined. `actions.lock` has drifted from two workflows, which the
+repository's own checker and CI both report.
+
+=== What is solid (and how we checked)
+
+* `just test` (`cargo test --locked --all-targets`) passes with *123 passed,
+  0 failed* across 8 test targets: `enaction-trace` 48 unit tests,
+  `enaction-contracts` 26, `enaction-accelerator` 9 unit tests plus 1
+  conformance test, and `enaction-time` with 18 in `tests/step.rs`, 15 in
+  `tests/blend.rs` and 6 in `tests/idaptik_parity.rs`.
+* `just verify` passes: "All OpenSSF Best Practices prerequisites satisfied"
+  (SECURITY.md, LICENSE, CONTRIBUTING.md, README.adoc, CHANGELOG.md, 29
+  workflows).
+* Each `just quality` component passes when run on its own:
+** `fmt-check`
+** `lint` (`cargo clippy --locked --all-targets -- -D warnings`)
+** `aspect`, 4 of 4: SPDX headers, no banned proof escapes, no production Zig
+   pointer conversions (one scoped test-fixture exception), and no
+   disconnected FFI or placeholder integration test
+** `readiness`
+** `contractile-safety`, 5 of 5
+* `just e2e` (`tests/e2e.sh`) is substantive and passes. It covers
+  conformance corpus integrity (SHA256SUMS), the scalar reference against the
+  locked corpus, three Rust tests and the Zig-native backend against the locked
+  corpus. One of the Rust tests is
+  `rust_and_zig_match_v1_canonical_fixtures_byte_for_byte`. The script's own
+  summary is "3 passed, 0 failed".
+* `verification/proofs/agda/Properties.agda` checks with Agda.
+  `verification/proofs/coq/TypeSafety.v` compiles with `coqc`.
+* `just proof-scan-dangerous` passes.
+* The repository's own tests of its tests and badges pass:
+** `tests/workflows/lock_sync_gate_test.sh`: 10 of 10
+** `tests/workflows/check_lock_sync_test.sh`: 32 of 32
+** `tests/workflows/validate_workflows_test.sh`: 0 errors, 0 warnings
+** `tests/readme_badges_test.sh`
+** `tests/readme_openssf_badge_test.sh`: 8 of 8
+* On the anchor commit's GitHub status check rollup (read over the GraphQL
+  API), 38 of 51 contexts concluded `SUCCESS`. Among them is "Check, format,
+  clippy, and test", which agrees with the local run, and
+  "Accelerator (Zig-linked)".
+
+=== The honest nuance you must not lose
+
+* *A green Lean gate here means nothing.* `just proof-check-lean4` exits 0,
+  but `ApiTypes.lean`, the only Lean file, is quarantined as expected-fail
+  ("has never compiled"; a type mismatch in `Nat.zero_le max` at line 44).
+  No Lean proof is checked.
+* *The Idris2 verification gate passes one file.* `just proof-check-idris2`
+  exits 0. Only `ABI/Foreign.idr` actually checks. Five files are quarantined
+  as expected-fail, each with a recorded reason: `Types.idr`,
+  `ABI/Layout.idr`, `ABI/Platform.idr`, `ABI/Pointers.idr` and
+  `ABI/Compliance.idr` (for example `Undefined name LTE`).
+* *`just quality` was not run as one command.* Each of its components was
+  run separately and passed. The combined recipe was not invoked.
+* *Three manifest warnings.* Cargo warns that the workspace dependencies
+  `enaction-time` (`Cargo.toml:40`), `enaction-contracts` (`:42`) and
+  `enaction-accelerator-native` (`:44`) are declared but unused.
+  Clippy's `-D warnings` does not cover manifest warnings, so the lint still
+  passes.
+* *`just verify` checks for retired-format files.* It requires
+  `.machine_readable/descriptiles/{STATE,META,ECOSYSTEM}.a2ml`. They exist,
+  so the check passes. The estate has retired that format.
+* *The repository's `mise.toml` is untrusted on a fresh machine.* With mise
+  shims on `PATH`, the `cargo` shim exits 1 ("Config files … are not
+  trusted"). These checks ran with the shims removed from `PATH`.
+
+=== Known-incomplete but honestly fenced
+
+* *Creusot proofs were not checked, rather than found failing.*
+  `just proof-check-creusot` exits 1 because the configured proof tools are
+  absent here.
+* `verification/proofs/tlaplus` was *not checked*: TLC is not installed here.
+* `just bench` is declared "NOT IMPLEMENTED" by its own recipe.
+* Several App check suites were still `QUEUED` on the anchor commit and
+  reported nothing, among them CodeRabbit, Codecov and Semgrep. `SonarCloud
+  Code Analysis` concluded `NEUTRAL`. Their output was not read for this file.
+
+=== Outstanding / weak / refuted (no spin)
+
+[cols="2,3", options="header"]
+|===
+| Check | Result at the anchor
+| `just ci` and `just proof-check-all` | Refuted, rc=1, at their first proof step, `proof-check-idris2-abi` (`idris2 --typecheck abi.ipkg`, the production Idris2 ABI). Modules 1–3 (`Abi.Types`, `Abi.Layout`, `Abi.Foreign`) build. Module 4, `Abi.Accelerator`, fails at `Abi/Accelerator.idr:230:28` (`operationCodeInjective _ _ Refl impossible`): "Impossible pattern gives an error: Can't solve constraint". Module 5 is never reached. The file was last changed on 2026-08-30.
+| `tests/workflows/foundation_ci_config_test.sh` | Refuted, 18 of 20 pass. Both CodeQL steps pin `github/codeql-action` at `2892aa5e…` where the test expects the approved revision `cdf488f5…`.
+| `scripts/check-lock-sync.sh` on the repository's own workflows | Refuted, rc=1. `codeql.yml` uses `github/codeql-action@2892aa5e…` while `actions.lock` records `cdf488f5…`. `oikosbot.yml` uses `@v4.38.2` while the lock records `v4.38.0`.
+| CI on the anchor: lock checks | `actions.lock is in sync with the workflow YAML` and `governance / Actions lockfile verify` both concluded `FAILURE`, which agrees with the local checker.
+| CI on the anchor: other suites | Check suites absent from the rollup: `FAILURE` for OSSF Scorecard (6 suites) and the Rhodibot RSR compliance canary; `STARTUP_FAILURE` for CodeQL Security Analysis and OikosBot Sustainability Analysis. A startup failure means no jobs ran, so CodeQL produced no result at this commit.
+| `just proof-check-lean4` | Vacuous: zero files checked (see above).
+|===
+
+== Reproduce it yourself
+
+From a clone checked out at the anchor commit:
+
+[source,bash]
+----
+git checkout 0e7f3e78fbd95e306da34373a6b8cb5f9e64f1ff
+just test && just verify                  # golden path: 123 tests pass
+just fmt-check lint aspect readiness contractile-safety e2e
+just proof-check-idris2-abi               # rc=1 at Abi/Accelerator.idr:230
+just proof-check-idris2 proof-check-agda proof-check-coq proof-check-lean4
+just proof-scan-dangerous
+bash scripts/check-lock-sync.sh           # rc=1: codeql.yml, oikosbot.yml
+for t in tests/workflows/*.sh; do bash "$t"; done   # foundation CI: 18/20
+----
+
+If `mise` shims are on your `PATH` and you have not trusted this repository's
+`mise.toml`, remove them from `PATH` first, or the `cargo` shim exits 1.
+
+Agda needs agda-stdlib. Point `AGDA_DIR` at a directory whose `libraries` file
+names the stdlib's `.agda-lib` and whose `defaults` file says
+`standard-library`.
+
+== One-line characterisation (quote this)
+
+At `0e7f3e7`, Enaction Engine's Rust libraries pass their golden path (123
+tests, clean clippy, Rust and Zig byte-for-byte parity), and its Agda and Coq
+proofs check. Its full CI recipe fails at the Idris2 ABI, its Lean gate checks
+nothing, and its `actions.lock` has drifted from two workflows.
+
+== Joint attestation
+
+*Engineering party (AI).* Claude (`claude-opus-5-5`), session run at
+2026-10-07T12:13:28Z, ran every check above and wrote this file. The wording
+is a faithful report of those runs. Nothing was copied forward from an earlier
+affirmation.
+
+*Owner.* Jonathan D.A. Jewell signs by committing this file with an SSH
+signing key:
+
+[source,bash]
+----
+git commit -S -s AFFIRMATION.adoc -m "docs: affirm state at 0e7f3e78"
+git log --show-signature -1
+----
